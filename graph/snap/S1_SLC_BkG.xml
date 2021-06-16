@@ -1,0 +1,61 @@
+<graph id="Graph">
+  <version>1.0</version>
+  <node id="ReadMaster">
+    <operator>Read</operator>
+    <sources/>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <file>${master}</file>
+    </parameters>
+  </node>
+  <node id="ReadSlave">
+    <operator>Read</operator>
+    <sources/>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <file>${slave}</file>
+    </parameters>
+  </node>
+
+  <node id="Back-Geocoding">
+    <operator>Back-Geocoding</operator>
+    <sources>
+      <sourceProduct refid="ReadMaster"/>
+      <sourceProduct.1 refid="ReadSlave"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <demName>${dem_name}</demName>
+      <demResamplingMethod>${dem_resampling}</demResamplingMethod>
+      <externalDEMFile>${dem_file}</externalDEMFile>
+      <externalDEMNoDataValue>${dem_nodata}</externalDEMNoDataValue>
+      <resamplingType>BISINC_21_POINT_INTERPOLATION</resamplingType>
+      <maskOutAreaWithoutElevation>true</maskOutAreaWithoutElevation>
+      <outputRangeAzimuthOffset>false</outputRangeAzimuthOffset>
+      <outputDerampDemodPhase>${output_deramp}</outputDerampDemodPhase>
+      <disableReramp>false</disableReramp>
+    </parameters>
+  </node>
+  <node id="Write">
+    <operator>Write</operator>
+    <sources>
+      <sourceProduct refid="Back-Geocoding"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <file>${output}</file>
+      <formatName>BEAM-DIMAP</formatName>
+    </parameters>
+  </node>
+  <applicationData id="Presentation">
+    <Description/>
+    <node id="ReadMaster">
+      <displayPosition x="40.0" y="74.0"/>
+    </node>
+    <node id="ReadSlave">
+      <displayPosition x="40.0" y="144.0"/>
+    </node>
+    <node id="Back-Geocoding">
+      <displayPosition x="128.0" y="114.0"/>
+    </node>
+    <node id="Write">
+      <displayPosition x="300.0" y="114.0"/>
+    </node>
+  </applicationData>
+</graph>

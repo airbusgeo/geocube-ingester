@@ -1,0 +1,257 @@
+<graph id="Graph">
+  <version>1.0</version>
+  <node id="Read">
+    <operator>Read</operator>
+    <sources/>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <file>${input}</file>
+    </parameters>
+  </node>
+  <node id="TOPSAR-Deburst">
+    <operator>TOPSAR-Deburst</operator>
+    <sources>
+      <sourceProduct refid="Read"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <selectedPolarisations/>
+    </parameters>
+  </node>
+  <node id="BandMathsSigma0VV">
+    <operator>BandMaths</operator>
+    <sources>
+      <sourceProduct refid="TOPSAR-Deburst"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <targetBands>
+        <targetBand>
+          <name>Sigma0_VV</name>
+          <type>float32</type>
+          <expression>Intensity_${swath}_VV_slv1_${img_suffix}</expression>
+          <description/>
+          <unit>intensity</unit>
+          <noDataValue>0.0</noDataValue>
+        </targetBand>
+      </targetBands>
+      <variables/>
+    </parameters>
+  </node>
+  <node id="BandMathsBeta0VV">
+    <operator>BandMaths</operator>
+    <sources>
+      <sourceProduct refid="BandMathsSigma0VV"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <targetBands>
+        <targetBand>
+          <name>Beta0_VV</name>
+          <type>float32</type>
+          <expression>Sigma0_VV / sin(incident_angle * PI/180.0)</expression>
+          <description/>
+          <unit>Intensity</unit>
+          <noDataValue>0.0</noDataValue>
+        </targetBand>
+      </targetBands>
+      <variables/>
+    </parameters>
+  </node>
+  <node id="BandMathsSigma0VH">
+    <operator>BandMaths</operator>
+    <sources>img_ref
+      <sourceProduct refid="TOPSAR-Deburst"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <targetBands>
+        <targetBand>
+          <name>Sigma0_VH</name>
+          <type>float32</type>
+          <expression>Intensity_${swath}_VH_slv1_${img_suffix}</expression>
+          <description/>
+          <unit>intensity</unit>
+          <noDataValue>0.0</noDataValue>
+        </targetBand>
+      </targetBands>
+      <variables/>
+    </parameters>
+  </node>
+  <node id="BandMathsBeta0VH">
+    <operator>BandMaths</operator>
+    <sources>
+      <sourceProduct refid="BandMathsSigma0VH"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <targetBands>
+        <targetBand>
+          <name>Beta0_VH</name>
+          <type>float32</type>
+          <expression>Sigma0_VH / sin(incident_angle * PI/180.0)</expression>
+          <description/>
+          <unit>Intensity</unit>
+          <noDataValue>0.0</noDataValue>
+        </targetBand>
+      </targetBands>
+      <variables/>
+    </parameters>
+  </node>
+  <node id="BandMerge">
+    <operator>BandMerge</operator>
+    <sources>
+      <sourceProduct.1 refid="BandMathsBeta0VV"/>
+      <sourceProduct.3 refid="BandMathsBeta0VH"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <sourceBands/>
+      <geographicError>1.0E-5</geographicError>
+    </parameters>
+  </node>
+  <node id="Multilook">
+    <operator>Multilook</operator>
+    <sources>
+      <sourceProduct refid="BandMerge"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <sourceBands/>
+      <nRgLooks>${range_multilook}</nRgLooks>
+      <nAzLooks>${azimuth_multilook}</nAzLooks>
+      <outputIntensity>true</outputIntensity>
+      <grSquarePixel>false</grSquarePixel>
+    </parameters>
+  </node>
+  <node id="Terrain-Correction">
+    <operator>Terrain-Correction</operator>
+    <sources>
+      <sourceProduct refid="Multilook"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <sourceBands/>
+      <demName>${dem_name}</demName>
+      <externalDEMFile>${dem_file}</externalDEMFile>
+      <externalDEMNoDataValue>${dem_nodata}</externalDEMNoDataValue>
+      <externalDEMApplyEGM>${dem_egm}</externalDEMApplyEGM>
+      <demResamplingMethod>${dem_resampling}</demResamplingMethod>
+      <imgResamplingMethod>${img_resampling}</imgResamplingMethod>
+      <pixelSpacingInMeter>${resolution}</pixelSpacingInMeter>
+      <pixelSpacingInDegree>0</pixelSpacingInDegree>
+      <mapProjection>${projection}</mapProjection>
+      <alignToStandardGrid>${grid_align}</alignToStandardGrid>
+      <standardGridOriginX>0.0</standardGridOriginX>
+      <standardGridOriginY>0.0</standardGridOriginY>
+      <nodataValueAtSea>true</nodataValueAtSea>
+      <saveDEM>true</saveDEM>
+      <saveLatLon>false</saveLatLon>
+      <saveIncidenceAngleFromEllipsoid>false</saveIncidenceAngleFromEllipsoid>
+      <saveLocalIncidenceAngle>false</saveLocalIncidenceAngle>
+      <saveProjectedLocalIncidenceAngle>true</saveProjectedLocalIncidenceAngle>
+      <saveSelectedSourceBand>true</saveSelectedSourceBand>
+      <outputComplex>false</outputComplex>
+      <applyRadiometricNormalization>false</applyRadiometricNormalization>
+      <saveSigmaNought>false</saveSigmaNought>
+      <saveGammaNought>false</saveGammaNought>
+      <saveBetaNought>false</saveBetaNought>
+      <incidenceAngleForSigma0>Use projected local incidence angle from DEM</incidenceAngleForSigma0>
+      <incidenceAngleForGamma0>Use projected local incidence angle from DEM</incidenceAngleForGamma0>
+      <auxFile>Latest Auxiliary File</auxFile>
+      <externalAuxFile/>
+    </parameters>
+  </node>
+  <node id="BandMathsVV">
+    <operator>BandMaths</operator>
+    <sources>
+      <sourceProduct refid="Terrain-Correction"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <targetBands>
+        <targetBand>
+          <name>${band}_VV</name>
+          <type>float32</type>
+          <expression>Beta0_VV * ${trig}(projectedLocalIncidenceAngle * PI/180.0)</expression>
+          <description/>
+          <unit>Intensity</unit>
+          <noDataValue>0.0</noDataValue>
+        </targetBand>
+      </targetBands>
+      <variables/>
+    </parameters>
+  </node>
+  <node id="WriteVV">
+    <operator>Write</operator>
+    <sources>
+      <sourceProduct refid="BandMathsVV"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <file>${outputVV}</file>
+      <formatName>GeoTIFF-BigTIFF</formatName>
+    </parameters>
+  </node>
+  <node id="BandMathsVH">
+    <operator>BandMaths</operator>
+    <sources>
+      <sourceProduct refid="Terrain-Correction"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <targetBands>
+        <targetBand>
+          <name>${band}_VH</name>
+          <type>float32</type>
+          <expression>Beta0_VH * ${trig}(projectedLocalIncidenceAngle * PI/180.0)</expression>
+          <description/>
+          <unit>Intensity</unit>
+          <noDataValue>0.0</noDataValue>
+        </targetBand>
+      </targetBands>
+      <variables/>
+    </parameters>
+  </node>
+  <node id="WriteVH">
+    <operator>Write</operator>
+    <sources>
+      <sourceProduct refid="BandMathsVH"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <file>${outputVH}</file>
+      <formatName>GeoTIFF-BigTIFF</formatName>
+    </parameters>
+  </node>
+  <applicationData id="Presentation">
+    <Description/>
+    <node id="Read">
+      <displayPosition x="24.0" y="114.0"/>
+    </node>
+    <node id="TOPSAR-Deburst">
+      <displayPosition x="124.0" y="114.0"/>
+    </node>
+    <node id="BandMathsSigma0VV">
+      <displayPosition x="254.0" y="84.0"/>
+    </node>
+    <node id="BandMathsBeta0VV">
+      <displayPosition x="254.0" y="24.0"/>
+    </node>
+    <node id="BandMathsSigma0VH">
+      <displayPosition x="254.0" y="144.0"/>
+    </node>
+    <node id="BandMathsBeta0VH">
+      <displayPosition x="254.0" y="204.0"/>
+    </node>
+    <node id="BandMerge">
+      <displayPosition x="400.0" y="114.0"/>
+    </node>
+    <node id="Multilook">
+      <displayPosition x="500.0" y="114.0"/>
+    </node>
+    <node id="Terrain-Correction">
+      <displayPosition x="600.0" y="114.0"/>
+    </node>
+    <node id="BandMathsVV">
+      <displayPosition x="750.0" y="74.0"/>
+    </node>
+    <node id="BandMathsVH">
+      <displayPosition x="750.0" y="144.0"/>
+    </node>
+    <node id="WriteVV">
+      <displayPosition x="900.0" y="74.0"/>
+    </node>
+    <node id="WriteVH">
+      <displayPosition x="900.0" y="144.0"/>
+    </node>
+
+  </applicationData>
+</graph>

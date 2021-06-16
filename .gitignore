@@ -1,0 +1,8 @@
+/.idea
+/cmd/catalog/catalog
+/cmd/downloader/downloader
+/cmd/processor/processor
+/cmd/workflow/workflow
+/.vscode/
+/Jupyter/outputs/
+/Jupyter/.ipynb_checkpoints/

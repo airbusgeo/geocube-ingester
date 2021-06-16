@@ -1,0 +1,51 @@
+{
+    "aoi":"Denmark",
+    "geometry":{
+        "type": "MultiPolygon",
+        "coordinates":
+        [
+			[
+				[
+					[10.061230468750068, 54.88637695312502],
+					[9.957128906249977, 54.87246093750002],
+					[9.903906250000063, 54.896630859374994],
+					[9.80625, 54.90600585937503],
+					[9.77119140625004, 55.059912109375034],
+					[9.78125, 55.06904296875001],
+					[9.830371093750015, 55.05825195312505],
+					[9.998828125000045, 54.986474609374994],
+					[10.05771484375006, 54.90791015624998],
+					[10.061230468750068, 54.88637695312502]
+				]
+			]
+    	]
+    },
+    "start_time":"2019-01-01T00:00:00.000Z",
+    "end_time":"2019-01-10T00:00:00.000Z",
+	"scene_type":{
+        "constellation":"sentinel1",
+        "parameters": {
+            "producttype": "SLC",
+            "polarisationmode": "VV VH",
+            "sensoroperationalmode": "IW",
+			"relativeorbitnumber": "44"
+        }
+    },
+    "scene_graph_name":"S1Preprocessing",
+    "tile_graph_name":"S1BackscatterCoherence",
+    "graph_config":{
+        "projection":"EPSG:32632",
+        "snap_cpu_parallelism":"8"
+    },
+    "layers":{
+		"sigma0_VV": {"variable":"BackscatterSigma0VV", "instance":"RNKell"},
+		"sigma0_VH": {"variable":"BackscatterSigma0VH", "instance":"RNKell"},
+		"coh_VV": {"variable":"CoherenceVV", "instance":"master"},
+		"coh_VH": {"variable":"CoherenceVH", "instance":"master"}
+    },
+    "record_tags":{
+        "source": "tutorial",
+		"provider": "geocube-ingester",
+		"area":"Denmark"
+    }
+}

@@ -1,0 +1,163 @@
+<graph id="Graph">
+  <version>1.0</version>
+  <node id="Read">
+    <operator>Read</operator>
+    <sources/>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <file>${input}</file>
+    </parameters>
+  </node>
+  <node id="TOPSAR-Deburst">
+    <operator>TOPSAR-Deburst</operator>
+    <sources>
+      <sourceProduct refid="Read"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <selectedPolarisations/>
+    </parameters>
+  </node>
+  <node id="Multilook">
+    <operator>Multilook</operator>
+    <sources>
+      <sourceProduct refid="TOPSAR-Deburst"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <sourceBands/>
+      <nRgLooks>${range_multilook}</nRgLooks>
+      <nAzLooks>${azimuth_multilook}</nAzLooks>
+      <outputIntensity>false</outputIntensity>
+      <grSquarePixel>false</grSquarePixel>
+    </parameters>
+  </node>
+  <node id="Coherence">
+    <operator>Coherence</operator>
+    <sources>
+      <sourceProduct refid="Multilook"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <cohWinAz>${coherence_azimuth}</cohWinAz>
+      <cohWinRg>${coherence_range}</cohWinRg>
+      <subtractFlatEarthPhase>true</subtractFlatEarthPhase>
+      <srpPolynomialDegree>5</srpPolynomialDegree>
+      <srpNumberPoints>501</srpNumberPoints>
+      <orbitDegree>3</orbitDegree>
+      <squarePixel>false</squarePixel>
+      <subtractTopographicPhase>false</subtractTopographicPhase>
+      <demName>SRTM 3Sec</demName>
+      <externalDEMFile/>
+      <externalDEMNoDataValue>0.0</externalDEMNoDataValue>
+      <externalDEMApplyEGM>true</externalDEMApplyEGM>
+      <tileExtensionPercent>100</tileExtensionPercent>
+      <singleMaster>true</singleMaster>      
+    </parameters>
+  </node>
+  <node id="Terrain-Correction">
+    <operator>Terrain-Correction</operator>
+    <sources>
+      <sourceProduct refid="Coherence"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <sourceBands/>
+      <demName>${dem_name}</demName>
+      <externalDEMFile>${dem_file}</externalDEMFile>
+      <externalDEMNoDataValue>${dem_nodata}</externalDEMNoDataValue>
+      <externalDEMApplyEGM>${dem_egm}</externalDEMApplyEGM>
+      <demResamplingMethod>${dem_resampling}</demResamplingMethod>
+      <imgResamplingMethod>${img_resampling}</imgResamplingMethod>
+      <pixelSpacingInMeter>${resolution}</pixelSpacingInMeter>
+      <pixelSpacingInDegree>0</pixelSpacingInDegree>
+      <mapProjection>${projection}</mapProjection>
+      <alignToStandardGrid>${grid_align}</alignToStandardGrid>
+      <standardGridOriginX>0.0</standardGridOriginX>
+      <standardGridOriginY>0.0</standardGridOriginY>
+      <nodataValueAtSea>true</nodataValueAtSea>
+      <saveDEM>true</saveDEM>
+      <saveLatLon>false</saveLatLon>
+      <saveIncidenceAngleFromEllipsoid>false</saveIncidenceAngleFromEllipsoid>
+      <saveLocalIncidenceAngle>false</saveLocalIncidenceAngle>
+      <saveProjectedLocalIncidenceAngle>true</saveProjectedLocalIncidenceAngle>
+      <saveSelectedSourceBand>true</saveSelectedSourceBand>
+      <outputComplex>false</outputComplex>
+      <applyRadiometricNormalization>false</applyRadiometricNormalization>
+      <saveSigmaNought>false</saveSigmaNought>
+      <saveGammaNought>false</saveGammaNought>
+      <saveBetaNought>false</saveBetaNought>
+      <incidenceAngleForSigma0>Use projected local incidence angle from DEM</incidenceAngleForSigma0>
+      <incidenceAngleForGamma0>Use projected local incidence angle from DEM</incidenceAngleForGamma0>
+      <auxFile>Latest Auxiliary File</auxFile>
+      <externalAuxFile/>
+    </parameters>
+  </node>
+  <node id="BandSelectVV">
+    <operator>BandSelect</operator>
+    <sources>
+      <sourceProduct refid="Terrain-Correction"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <selectedPolarisations/>
+      <sourceBands/>
+      <bandNamePattern>.*VV.*</bandNamePattern>
+    </parameters>
+  </node>
+  <node id="WriteVV">
+    <operator>Write</operator>
+    <sources>
+      <sourceProduct refid="BandSelectVV"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <file>${outputVV}</file>
+      <formatName>GeoTIFF-BigTIFF</formatName>
+    </parameters>
+  </node>
+  <node id="BandSelectVH">
+    <operator>BandSelect</operator>
+    <sources>
+      <sourceProduct refid="Terrain-Correction"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <selectedPolarisations/>
+      <sourceBands/>
+      <bandNamePattern>.*VH.*</bandNamePattern>
+    </parameters>
+  </node>
+  <node id="WriteVH">
+    <operator>Write</operator>
+    <sources>
+      <sourceProduct refid="BandSelectVH"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <file>${outputVH}</file>
+      <formatName>GeoTIFF-BigTIFF</formatName>
+    </parameters>
+  </node>
+  <applicationData id="Presentation">
+    <Description/>
+    <node id="Read">
+      <displayPosition x="24.0" y="114.0"/>
+    </node>
+    <node id="TOPSAR-Deburst">
+      <displayPosition x="100.0" y="114.0"/>
+    </node>    
+    <node id="Multilook">
+      <displayPosition x="250.0" y="114.0"/>
+    </node>
+    <node id="Coherence">
+      <displayPosition x="350.0" y="114.0"/>
+    </node>
+    <node id="Terrain-Correction">
+      <displayPosition x="450.0" y="114.0"/>
+    </node>
+    <node id="BandSelectVV">
+      <displayPosition x="600.0" y="74.0"/>
+    </node>
+    <node id="BandSelectVH">
+      <displayPosition x="600.0" y="144.0"/>
+    </node>
+    <node id="WriteVV">
+      <displayPosition x="750.0" y="74.0"/>
+    </node>
+    <node id="WriteVH">
+      <displayPosition x="750.0" y="144.0"/>
+    </node>
+  </applicationData>
+</graph>

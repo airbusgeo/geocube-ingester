@@ -1,0 +1,325 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingester-workflow
+  namespace: ingester
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingester-workflow
+  template:
+    metadata:
+      labels:
+        app: ingester-workflow
+    spec:
+      automountServiceAccountToken: true
+      serviceAccount: ingester-workflow-sa
+      serviceAccountName: ingester-workflow-sa
+      containers:
+        - name: workflow
+          image: {{WORKFLOW_IMAGE}}
+          env:
+            - name: DB_CONNECTION
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: ingester-db
+                  optional: false
+            - name: GEOCUBE_SERVER
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: GEOCUBE_SERVER
+            - name: GEOCUBE_CLIENTAPIKEY
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: GEOCUBE_CLIENTAPIKEY
+            - name: SCIHUB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: SCIHUB_USERNAME
+            - name: SCIHUB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: SCIHUB_PASSWORD
+          args:
+            - "--dbConnection=$(DB_CONNECTION)"
+            - "--psSubscription=ingester-events"
+            - "--psDownloader-topic=ingester-downloader"
+            - "--psProcessor-topic=ingester-processor"
+            - "--namespace=ingester"
+            - "--downloader-rc=ingester-downloader"
+            - "--processor-rc=ingester-processor"
+            - "--max-downloader=20"
+            - "--max-processor=800"
+            - "--geocube-server=$(GEOCUBE_SERVER)"
+            - "--geocube-apikey=$(GEOCUBE_CLIENTAPIKEY)"
+            - "--scihub-username=$(SCIHUB_USERNAME)"
+            - "--scihub-password=$(SCIHUB_PASSWORD)"
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 1m
+              memory: 30Mi
+          terminationMessagePolicy: FallbackToLogsOnError
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  labels:
+    app: ingester-downloader
+  name: ingester-downloader
+  namespace: ingester
+spec:
+  replicas: 0
+  selector:
+    app: ingester-downloader
+  template:
+    metadata:
+      labels:
+        app: ingester-downloader
+    spec:
+      containers:
+        - name: ingester-downloader
+          env:
+            - name: STORAGE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: STORAGE_URI
+            - name: PEPS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: PEPS_USERNAME
+            - name: PEPS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: PEPS_PASSWORD
+            - name: ONDA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: ONDA_USERNAME
+            - name: ONDA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: ONDA_PASSWORD
+            - name: CREODIAS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: CREODIAS_USERNAME
+            - name: CREODIAS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: CREODIAS_PASSWORD
+            - name: SCIHUB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: SCIHUB_USERNAME
+            - name: SCIHUB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: SCIHUB_PASSWORD
+            - name: SOBLOO_APIKEY
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: SOBLOO_APIKEY
+            - name: MUNDI_SEEED_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: MUNDI_SEEED_TOKEN
+            - name: GCS_PROVIDER_BUCKETS
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: GCS_PROVIDER_BUCKETS
+          args:
+            - "--psSubscription=ingester-downloader"
+            - "--psEvent=ingester-events"
+            - "--storage-uri=$(STORAGE_URI)"
+            - "--peps-username=$(PEPS_USERNAME)"
+            - "--peps-password=$(PEPS_PASSWORD)"
+            - "--onda-username=$(ONDA_USERNAME)"
+            - "--onda-password=$(ONDA_PASSWORD)"
+            - "--scihub-username=$(SCIHUB_USERNAME)"
+            - "--scihub-password=$(SCIHUB_PASSWORD)"
+            - "--creodias-username=$(CREODIAS_USERNAME)"
+            - "--creodias-password=$(CREODIAS_PASSWORD)"
+            - "--sobloo-apikey=$(SOBLOO_APIKEY)"
+            - "--gs-provider-buckets=$(GCS_PROVIDER_BUCKETS)"
+            - "--mundi-seeed-token=$(MUNDI_SEEED_TOKEN)"
+          image: {{DOWNLOADER_IMAGE}}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9000
+              protocol: TCP
+          resources:
+            limits:
+              memory: 16Gi
+            requests:
+              cpu: 1900m
+              memory: 7Gi
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /local-ssd
+              mountPropagation: None
+              name: local-ssd
+      terminationGracePeriodSeconds: 5
+      tolerations:
+        - effect: NoSchedule
+          key: preemptible
+          operator: Equal
+          value: "true"
+      volumes:
+        - name: local-ssd
+          hostPath:
+            path: /mnt/disks/ssd0
+            type: ""
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  labels:
+    app: ingester-processor
+  name: ingester-processor
+  namespace: ingester
+spec:
+  replicas: 0
+  selector:
+    app: ingester-processor
+  template:
+    metadata:
+      labels:
+        app: ingester-processor
+    spec:
+      containers:
+        - name: ingester-processor
+          env:
+            - name: GEOCUBE_SERVER
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: GEOCUBE_SERVER
+            - name: GEOCUBE_CLIENTAPIKEY
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: GEOCUBE_CLIENTAPIKEY
+            - name: STORAGE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: ingester-secrets
+                  key: STORAGE_URI
+          args:
+            - "--psSubscription=ingester-processor"
+            - "--psEvent=ingester-events"
+            - "--storage-uri=$(STORAGE_URI)"
+            - "--geocube-server=$(GEOCUBE_SERVER)"
+            - "--geocube-apikey=$(GEOCUBE_CLIENTAPIKEY)"
+          image: {{PROCESSOR_IMAGE}}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9000
+              protocol: TCP
+          resources:
+            limits:
+              memory: 16Gi
+            requests:
+              cpu: 1900m
+              memory: 1500Mi
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - mountPath: /local-ssd
+              mountPropagation: None
+              name: local-ssd
+      terminationGracePeriodSeconds: 5
+      tolerations:
+        - effect: NoSchedule
+          key: preemptible
+          operator: Equal
+          value: "true"
+      volumes:
+        - name: local-ssd
+          hostPath:
+            path: /mnt/disks/ssd0
+            type: ""
+
+---
+
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ingester-workflow-sa
+  namespace: ingester
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ingester-autoscaled-pods
+  namespace: ingester
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ingester-autoscaler-role
+subjects:
+  - kind: ServiceAccount
+    name: ingester-workflow-sa
+    namespace: ingester
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ingester-autoscaler-role
+  namespace: ingester
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - list
+      - create
+      - get
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - replicationcontrollers
+    verbs:
+      - get
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-service
+  namespace: ingester
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: ingester-workflow
+  sessionAffinity: None
+  type: NodePort

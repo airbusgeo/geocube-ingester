@@ -1,0 +1,138 @@
+package db
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/airbusgeo/geocube-ingester/common"
+)
+
+type Scene struct {
+	common.Scene
+	Status  common.Status `json:"status"`
+	Message string        `json:"message"`
+}
+
+type Tile struct {
+	common.Tile
+	Status      common.Status `json:"status"`
+	Message     string        `json:"message"`
+	PreviousID  *int
+	ReferenceID *int
+}
+
+var (
+	ErrAlreadyExists = errors.New("Already exists")
+	ErrNotFound      = errors.New("Not found")
+)
+
+type WorkflowTxBackend interface {
+	WorkflowBackend
+	// Must be call to apply transaction
+	Commit() error
+	// Might be called to cancel the transaction (no effect if commit has already be done)
+	Rollback() error
+}
+
+type WorkflowDBBackend interface {
+	WorkflowBackend
+	StartTransaction(ctx context.Context) (WorkflowTxBackend, error)
+}
+
+type Status struct {
+	New, Pending, Done, Retry, Failed int64
+}
+
+// Set the number of occurences for a given status
+func (s *Status) Set(status common.Status, nb int64) {
+	switch status {
+	case common.StatusNEW:
+		s.New = nb
+	case common.StatusPENDING:
+		s.Pending = nb
+	case common.StatusDONE:
+		s.Done = nb
+	case common.StatusRETRY:
+		s.Retry = nb
+	case common.StatusFAILED:
+		s.Failed = nb
+	}
+}
+
+type WorkflowBackend interface {
+	// Create an AOI in database, may return ErrAlreadyExists
+	CreateAOI(ctx context.Context, aoi string) error
+
+	// Returns the status of the scenes of the aoi
+	ScenesStatus(ctx context.Context, aoi string) (Status, error)
+	// Create a new scene, returning its id
+	CreateScene(ctx context.Context, sourceID, aoi string, status common.Status, data common.SceneAttrs) (int, error)
+	// Get scene with the given id, may return ErrNotFound
+	// If a scenesCache is provided, try first to get the scene from the map. Otherwise, the map is updated
+	Scene(ctx context.Context, id int, scenesCache *map[int]Scene) (Scene, error)
+	// List scenes of the given AOI
+	Scenes(ctx context.Context, aoi string) ([]Scene, error)
+	// Update scene status & message (if != nil)
+	UpdateScene(ctx context.Context, id int, status common.Status, message *string) error
+	// Returns true if a scene with the given source exists
+	SceneExists(ctx context.Context, aoi, sourceID string) (bool, error)
+
+	// Returns the status of the tiles of the aoi
+	TilesStatus(ctx context.Context, aoi string) (Status, error)
+	// Create a new tile, returning its id
+	// prevTileSource == "" || refTileSource == "" => root tile
+	CreateTile(ctx context.Context, sourceID string, sceneID int, data common.TileAttrs, aoi, prevTileSource, prevSceneSource, refTileSource, refSceneSource string) (int, error)
+	// Get tile with the given id and status of the scene. May return ErrNotFound
+	// If loadScene, the scene is also loaded
+	Tile(ctx context.Context, id int, loadScene bool) (Tile, common.Status, error)
+	// Tiles returns the list of tiles fitting the given parameters
+	// aoi [optional=""] aoi
+	// sceneID [optional=0] sceneID
+	// status [optional=""] status of the tile
+	// loadScene also loads the scenes
+	Tiles(ctx context.Context, aoi string, sceneID int, status string, loadScene bool) ([]Tile, error)
+	// Get tiles that are either root or leaf tile and their scene.
+	RootLeafTiles(ctx context.Context, aoi string) ([]common.Tile, error)
+	// Update tile status & message (if != nil)
+	UpdateTile(ctx context.Context, id int, status common.Status, message *string, resetPrev bool) error
+	// Set status of given tiles
+	SetTilesStatus(ctx context.Context, ids []int, status common.Status) error
+	// Update status of tiles given previous tile ID, current status and scene status
+	// Returns updated tiles and their scenesID
+	UpdateNextTilesStatus(ctx context.Context, prevID int, status, sceneStatus, newStatus common.Status) ([]Tile, []int, error)
+	// Update status of tiles given scene ID, current status and status of previous tile
+	// Returns updated tiles, previous tiles and previous scenes ID
+	UpdateSceneTilesStatus(ctx context.Context, sceneID int, status, prevStatus, newStatus common.Status) ([]Tile, []Tile, []int, error)
+	// Same as UpdateSceneTilesStatus, but only updates root tiles
+	UpdateSceneRootTilesStatus(ctx context.Context, sceneID int, status, newStatus common.Status) ([]Tile, error)
+	// Update next tile, setting newPrevID
+	// Returns list of modified tiles
+	UpdateNextTilesPrevId(ctx context.Context, oldPrevID int, newPrevID *int) ([]int, error)
+	// Update ref tile, setting newRefID
+	// Returns list of modified tiles
+	UpdateRefTiles(ctx context.Context, oldRefID int, newRefID int) error
+}
+
+// UnitOfWork runs a function and commit the database at the end or rollback if the function returns an error
+func UnitOfWork(ctx context.Context, db WorkflowDBBackend, f func(tx WorkflowTxBackend) error) (err error) {
+	// Start transaction
+	txn, err := db.StartTransaction(ctx)
+	if err != nil {
+		return fmt.Errorf("uow.starttransaction: %w", err)
+	}
+
+	// Rollback if not successful
+	defer func() {
+		if e := txn.Rollback(); err == nil {
+			err = e
+		}
+	}()
+
+	// Execute function
+	if err = f(txn); err != nil {
+		return fmt.Errorf("uow.%w", err)
+	}
+
+	return txn.Commit()
+}

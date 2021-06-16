@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Workflow server</title>
+  <style>
+    a {
+      color: darkslateblue;
+      margin: 5px;
+      cursor: pointer;
+    }
+    a:hover {
+      background: lightsteelblue;
+    }
+  </style>
+  <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
+</head>
+
+<body>
+
+  <label for="wfserver">Workflow server: </label>
+  <input type="text" id="wfserver" name="wfserver" value="http://127.0.0.1:8080/"><br><br>
+  
+  <table>
+    <tr >
+      <td><h2>AOI</h2></td>
+      <td><h2>Scene</h2></td>
+      <td><h2>Tile</h2></td>
+    </tr>
+    <tr style="vertical-align:top">
+      <td>
+        <input style="width:142px" type="text" id="aoi" name="aoi" value="Poland">
+        <button id="btn_aoi" style="width:100px">Load aoi</button><br>
+        <select style="width:150px" name="scenes_status" id="scenes_status" form="scenes_status_form">
+          <option value="NEW">NEW</option>
+          <option value="PENDING">PENDING</option>
+          <option value="RETRY">RETRY</option>
+          <option value="DONE">DONE</option>
+          <option value="FAILED">FAILED</option>
+        </select>
+        <button id="btn_scenes" style="width:100px">Load scenes</button><br>
+        <select style="width:150px" name="tiles_status" id="tiles_status" form="tiles_status_form">
+          <option value="NEW">NEW</option>
+          <option value="PENDING">PENDING</option>
+          <option value="RETRY">RETRY</option>
+          <option value="DONE">DONE</option>
+          <option value="FAILED">FAILED</option>
+        </select>
+        <button id="btn_tiles" style="width:100px">Load tiles</button><br>
+      </td>
+      <td>
+        <input size="10" type="text" id="scene" name="scene" placeholder="SceneId">
+        <button id="btn_scene" style="width:100px">Load scene</button>
+        <select style="width:150px" name="force_scene_status" id="force_scene_status" form="force_scene_status_form">
+          <option value="NEW">NEW</option>
+          <option value="PENDING">PENDING</option>
+          <option value="RETRY">RETRY</option>
+          <option value="DONE">DONE</option>
+          <option value="FAILED">FAILED</option>
+        </select>
+        <button id="btn_force_scene_status" style="width:100px">Force status</button>
+      </td>
+      <td>
+        <input size="10" type="text" id="tile" name="tile" placeholder="TileId">
+        <button id="btn_tile" style="width:100px">Load tile</button>
+        <select style="width:150px" name="force_tile_status" id="force_tile_status" form="force_tile_status_form">
+          <option value="NEW">NEW</option>
+          <option value="PENDING">PENDING</option>
+          <option value="RETRY">RETRY</option>
+          <option value="DONE">DONE</option>
+          <option value="FAILED">FAILED</option>
+        </select>
+        <button id="btn_force_tile_status" style="width:100px">Force status</button>
+      </td>
+    </tr>
+    <tr style="vertical-align:top">
+      <td id="result"></td>
+      <td id="sceneResult"></td>
+      <td id="tileResult"></td>
+    </tr>
+  </table>  
+  <script>
+    $("#btn_aoi").click(function() {
+      aoiInfo()
+    });
+    $("#btn_scenes").click(function() {
+      loadScenes( $('#scenes_status').val() )
+    });
+    $("#btn_tiles").click(function() {
+      loadTiles($('#tiles_status').val() )
+    });
+    $("#btn_scene").click(function() {
+      loadScene( $('#scene').val() )
+    });
+    $("#btn_force_scene_status").click(function() {
+      forceStatus( "scene", $('#scene').val(), $('#force_scene_status').val() )
+    });
+    $("#btn_tile").click(function() {
+      loadTile( $('#tile').val() )
+    });
+    $("#btn_force_tile_status").click(function() {
+      forceStatus( "tile", $('#tile').val(), $('#force_tile_status').val() )
+    });
+
+    function aoiInfo(){
+      $("body").css("cursor", "progress");
+      $.get({
+        url: $('#wfserver').val() + "aoi/" + $('#aoi').val()
+      })
+      .done(function( data ) {
+        lines = data.split("\n");
+        res = "<table>"
+        type_id = null
+        $.each( lines, function( key, val ) {
+          if (val != ""){
+            items = val.split(":");
+            status = items[0].trim()
+            value = items[1].trim()
+            switch (status){
+              case "Tiles": case "Scenes":
+                type_id = items[0];
+                break;
+              case "new": case "pending": case "done": case "retry": case "failed":
+                if (type_id != null && value != "0") {
+                  value = formatLink("load" + type_id, value, "'" + status.toUpperCase() + "'")
+                  if (status == "retry"){
+                    value += "<div id=\"" + "aoi" + $('#aoi').val() +"\"> (" + formatLink("retryAOI", "retry all scenes and tiles", "") + ")</div>"
+                  }
+                }
+                break;
+            }
+            res += "<tr style=\"vertical-align:top\"><td><b>" + status.replaceAll(" ", "&nbsp;") + "</b></td><td>" + value + "</td></tr>";
+          }
+        })
+        $( "#result" ).html( res + "</table>" )
+      }).always(function(){
+        $("body").css("cursor", "default");
+      });
+    }
+
+    function loadScenes(scene_status){
+      $("body").css("cursor", "progress");
+      $.getJSON({
+        url: $('#wfserver').val() + "aoi/" + $('#aoi').val() + "/scenes" + (scene_status != "" ? "/" + scene_status : "" )
+      })
+      .done(function( data ) {
+        $( "#result" ).html( formatJson(data, "Scene", 2))
+      })
+      .fail(function(jqXHR, textStatus, error) {
+        $( "#result" ).html( "Request failed: " + textStatus + " responseText: " + jqXHR.responseText);
+      }).always(function(){
+        $("body").css("cursor", "default");
+      });
+    }
+
+    function loadTiles(tile_status){
+      $("body").css("cursor", "progress");
+      $.getJSON({
+        url: $('#wfserver').val() + "aoi/" + $('#aoi').val() + "/tiles" + (tile_status != "" ? "/" + tile_status : "" )
+      })
+      .done(function( data ) {
+        $( "#result" ).html( formatJson(data, "Tile", 2))
+      })
+      .fail(function(jqXHR, textStatus, error) {
+        $( "#result" ).html( "Request failed: " + textStatus + " responseText: " + jqXHR.responseText);
+      }).always(function(){
+        $("body").css("cursor", "default");
+      });
+    }
+
+    function loadScene(scene){
+      $( "#scene" ).val(scene)
+      $.getJSON({
+        url: $('#wfserver').val() + "scene/" + scene
+      })
+      .done(function( data ) {
+        $( "#sceneResult" ).html( formatJson(data, "Scene", 1))
+      })
+      .fail(function(jqXHR, textStatus, error) {
+        $( "#sceneResult" ).html( "Request failed: " + textStatus + " responseText: " + jqXHR.responseText);
+      })
+    }
+
+    function loadTile(tile){
+      $( "#tile" ).val(tile)
+      $.getJSON({
+        url: $('#wfserver').val() + "tile/" + tile
+      })
+      .done(function( data ) {
+        $( "#tileResult" ).html( formatJson(data, "Tile", 1))
+      })
+      .fail(function(jqXHR, textStatus, error) {
+        $( "#tileResult" ).html( "Request failed: " + textStatus + " responseText: " + jqXHR.responseText);
+      })
+    }
+
+    function forceStatus(type, id, status){
+      if (confirm("Are you sure to force the status of the " + type + "[" + id + "] to be " + status + "?\nIt can lead to unpredictable results !!")){
+        putAction("force/"+status, type, id)
+      }
+    }
+
+    function retryAOI(){
+      putAction("retry", "aoi", $('#aoi').val())
+    }
+
+    function retryTile(id){
+      putAction("retry", "tile", id)
+    }
+    
+    function retryScene(id){
+      putAction("retry", "scene", id)
+    }
+
+    function failScene(id){
+      putAction("fail", "scene", id)
+    }
+
+    function failTile(id){
+      putAction("fail", "tile", id)
+    }
+
+    function putAction(action, type, id){
+      $("body").css("cursor", "progress");
+      $.ajax({
+        url: $('#wfserver').val() + type + "/" + id + "/" + action,
+        type: 'PUT',
+      })
+      .done(function(data) {
+        $( "#"+type+id ).html("action sended");
+      })
+      .always(function(){
+        $("body").css("cursor", "default");
+      });
+    }
+
+    function formatJson(json, type_id, hidden_lvl=100000){
+      if (json == null || json.length == 0){
+        return ""
+      }
+      var res = (hidden_lvl <= 0 ? "<table onClick='slideDown(this)'><thead style='background: whitesmoke;'>" : "<table><thead>")
+      var first = true
+      var cur_id = null
+      $.each( json, function( key, val ) {
+        if ((key == "id" || key == "PreviousID" || key == "ReferenceID") && type_id != null && typeof(val) == "number"){
+          cur_id = val
+          val = formatLink("load" + type_id, val, val)
+        }
+        switch (key){
+          case "scene":
+            val_type_id = "Scene";
+            break;
+          case "prev": case "ref":
+            val_type_id = "Tile";
+            break;
+          case "status":
+            if (val=="RETRY" && type_id != null && cur_id != null){
+              val += "<div id=\"" + type_id.toLowerCase()+cur_id + "\">(" + formatLink("retry" + type_id, "retry", cur_id) + " or " + formatLink("fail" + type_id, "fail", cur_id) + ")</div>"
+            }
+          default:
+            val_type_id = type_id;
+        }
+
+        if (typeof(val) == "object"){
+          val = formatJson(val, val_type_id, hidden_lvl-1)
+          if (hidden_lvl-1<=0){
+            val = "<div>" + val + "</div>"
+          }
+        }
+
+        res += "<tr style=\"vertical-align:top\"><td><b>" + key + "</b></td><td>" + val + "</td></tr>"
+        if (first){
+          first = false
+          res += "</thead><tbody" + (hidden_lvl <= 0 ? " class=\"hidden\" style=\"display: none;\"":"") +">"
+        }
+      })
+      return res + (first ? "</thead>" : "</tbody>") + "</table>"
+    }
+
+    function formatLink(fn, val, arg){
+      return "<a onClick=\"" + fn + "(" + arg + ");\">" + val + "</a>"
+    }
+
+    function slideDown(table){
+      $(table).children(".hidden").slideDown();
+    }
+  </script> 
+</body>
+</html>

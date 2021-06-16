@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Workflow server</title>
+  <style>
+    a {
+      color: darkslateblue;
+      margin: 5px;
+      cursor: pointer;
+    }
+    a:hover {
+      background: lightsteelblue;
+    }
+  </style>
+  <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
+</head>
+
+<body>
+
+  <label for="wfserver">Workflow server: </label>
+  <input type="text" id="wfserver" name="wfserver" value="http://127.0.0.1:8080/"><br><br>
+  curl -X GET -F "area=@Bretagne.json" http://127.0.0.1:8080/catalog/scenes > scenes.json<br>
+  curl -X GET -F "area=@Bretagne.json" -F "scenes=@scenes.json" http://127.0.0.1:8080/catalog/tiles > tiles.json<br>
+  curl -F "area=@Bretagne.json" http://127.0.0.1:8080/catalog/aoi<br>
+
+</body>
+</html>
