@@ -198,7 +198,7 @@ $ ./downloader -flag value
 Example (run):
 
 ```bash
-$ ./downloader -subscription=ingester-downloader -event=ingester-events -storage-uri=$STORAGE_URI -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{UTM}/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE} -scihub-username=$SCIHUB_USERNAME -scihub-password=$SCIHUB_PASSWORD
+$ ./downloader -psSubscription=ingester-downloader -psEvent=ingester-events -storage-uri=$STORAGE_URI -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{UTM}/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE} -scihub-username=$SCIHUB_USERNAME -scihub-password=$SCIHUB_PASSWORD
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -266,7 +266,7 @@ $ ./processor -flag value
 Example running command:
 
 ```bash
-$ ./processor -subscription=ingester-processor -event=ingester-events -storage-uri=$STORAGE_URI -geocube-server=$GEOCUBE_SERVER -geocube-apikey=$GEOCUBE_CLIENTAPI
+$ ./processor -psSubscription=ingester-processor -psEvent=ingester-events -storage-uri=$STORAGE_URI -geocube-server=$GEOCUBE_SERVER -geocube-apikey=$GEOCUBE_CLIENTAPI
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -313,7 +313,7 @@ $ ./workflow -flag value
 Example running command:
 
 ```bash
-$ ./workflow -subscription ingester-events -downloader-topic ingester-downloader -processor-topic ingester-processor -dbConnection=postgresql://postgres:password@localhost:5432/ingester?binary_parameters=yes -port $WORKFLOW_PORT -namespace ingester -downloader-rc ingester-downloader -processor-rc ingester-processor -geocube-server $GEOCUBE_SERVER -geocube-apikey $GEOCUBE_CLIENTAPIKEY
+$ ./workflow -psSubscription ingester-events -psDownloader-topic ingester-downloader -psProcessor-topic ingester-processor -dbConnection=postgresql://postgres:password@localhost:5432/ingester?binary_parameters=yes -port $WORKFLOW_PORT -namespace ingester -downloader-rc ingester-downloader -processor-rc ingester-processor -geocube-server $GEOCUBE_SERVER -geocube-apikey $GEOCUBE_CLIENTAPIKEY
 ```
 
 For more information concerning flags and downloader argument, you can run:
