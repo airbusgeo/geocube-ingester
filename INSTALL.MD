@@ -4,6 +4,7 @@
 
 - [Presentation](#presentation)
 - [Prerequisites](#prerequisites)
+  - [Developpement Environment](#developpement-environment)
 - [Interfaces](#interfaces)
   - [Storage](#storage)
     - [Interface](#interface)
@@ -52,6 +53,16 @@ The ingester needs:
 - an Object Storage, readable and writable (currently supported: local storage or GCS)
 - a catalogue service, to get the list of products available over an AOI (currently supported: Scihub for Sentinel 1 and 2 with an appropriate user account)
 - an image provider, to download the products returned by the catalogue service (currently supported : Sobloo, PEPS, Creodias, Onda, Mundis, GCS, local provider for Sentinel 1 and 2 with an appropriate user account)
+
+## Developpement Environment
+|   Name     | Version  |     link                                          |
+|:----------:|:--------:|:-------------------------------------------------:|
+|   Golang   | >= 1.16  |      https://golang.org/doc/install               |
+|    GDAL    |  >= 3.2  |             https://gdal.org                      |
+|   Python   |  >= 3.7  |    https://www.python.org/downloads/              |
+| PostgreSQL |  >= 11   |   https://www.postgresql.org/download/            |
+|   Docker   |    NC    | https://docs.docker.com/engine/install/           |
+|  ESA SNAP  |  >=8.0   | https://step.esa.int/main/download/snap-download/ |
 
 # Interfaces 
 
@@ -189,16 +200,22 @@ $ ls -l
 -rw-rw-r-- 1 user user    11214 juin   9 16:09 main.go
 ```
 
+Downloader needs the path of the local install of ESA SNAP and the `graph` folder (at the root of geocube-ingester).
+
 Run application:
 
 ```bash
+$ export GRAPHPATH=<geocube-ingester>/graph
+$ export SNAPPATH=<path to ESA SNAP gpt binary>
 $ ./downloader -flag value
 ```
 
 Example (run):
 
 ```bash
-$ ./downloader -psSubscription=ingester-downloader -psEvent=ingester-events -storage-uri=$STORAGE_URI -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{UTM}/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE} -scihub-username=$SCIHUB_USERNAME -scihub-password=$SCIHUB_PASSWORD
+$ export GRAPHPATH=/home/user/geocube-ingester/graph
+$ export SNAPPATH=/usr/local/snap/bin/gpt
+$ ./downloader --project geocube-emulator --psSubscription=ingester-downloader --psEvent=ingester-events --storage-uri=$STORAGE_URI -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{UTM}/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE} --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -257,16 +274,22 @@ $ ls -l
 -rw-rw-r-- 1 user user    11214 juin   9 16:09 main.go
 ```
 
+Processor needs the path of the local install of ESA SNAP and the `graph` folder (at the root of geocube-ingester).
+
 Run application:
 
 ```bash
+$ export GRAPHPATH=./data/graph
+$ export SNAPPATH=<path to ESA SNAP gpt binary>
 $ ./processor -flag value
 ```
 
 Example running command:
 
 ```bash
-$ ./processor -psSubscription=ingester-processor -psEvent=ingester-events -storage-uri=$STORAGE_URI -geocube-server=$GEOCUBE_SERVER -geocube-apikey=$GEOCUBE_CLIENTAPI
+$ export GRAPHPATH=./data/graph
+$ export SNAPPATH=/usr/local/snap/bin/gpt
+$ ./processor --project geocube-emulator --psSubscription=ingester-processor --psEvent=ingester-events --storage-uri=$STORAGE_URI --geocube-server=$GEOCUBE_SERVER --geocube-insecure
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -313,7 +336,7 @@ $ ./workflow -flag value
 Example running command:
 
 ```bash
-$ ./workflow -psSubscription ingester-events -psDownloader-topic ingester-downloader -psProcessor-topic ingester-processor -dbConnection=postgresql://postgres:password@localhost:5432/ingester?binary_parameters=yes -port $WORKFLOW_PORT -namespace ingester -downloader-rc ingester-downloader -processor-rc ingester-processor -geocube-server $GEOCUBE_SERVER -geocube-apikey $GEOCUBE_CLIENTAPIKEY
+$ ./workflow --project geocube-emulator --psSubscription ingester-events --psDownloader-topic ingester-downloader --psProcessor-topic ingester-processor --dbConnection=postgresql://postgres:password@localhost:5432/ingester?binary_parameters=yes --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --geocube-insecure
 ```
 
 For more information concerning flags and downloader argument, you can run:

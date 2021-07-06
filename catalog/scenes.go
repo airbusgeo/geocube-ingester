@@ -76,8 +76,12 @@ func (c *Catalog) IngestedScenesInventoryFromTile(ctx context.Context, tiles []c
 }
 
 // ScenesToIngest creates the payload for each scene
-func (c *Catalog) ScenesToIngest(ctx context.Context, scenes []*entities.Scene) ([]common.SceneToIngest, error) {
+func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest, scenes []*entities.Scene) ([]common.SceneToIngest, error) {
 	var scenesToIngest []common.SceneToIngest
+
+	c.ValidateArea(&area)
+	instances := area.InstancesID()
+
 	for _, scene := range scenes {
 		if len(scene.Tiles) == 0 || scene.Ingested {
 			continue
@@ -124,6 +128,7 @@ func (c *Catalog) ScenesToIngest(ctx context.Context, scenes []*entities.Scene) 
 			return nil, fmt.Errorf("scenesToIngest.%w", err)
 		}
 		sceneToIngest.Scene.Data.RecordID = scene.Data.RecordID
+		sceneToIngest.Scene.Data.InstancesID = instances
 		scenesToIngest = append(scenesToIngest, sceneToIngest)
 	}
 

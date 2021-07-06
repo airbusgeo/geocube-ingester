@@ -118,23 +118,23 @@ func (wf *Workflow) findTiles(ctx context.Context, w http.ResponseWriter, area c
 	return nil
 }
 
-func (wf *Workflow) postScenes(ctx context.Context, scenes []*catalog.Scene, aoiID string) (map[string]int, error) {
+func (wf *Workflow) postScenes(ctx context.Context, area catalog.AreaToIngest, scenes []*catalog.Scene) (map[string]int, error) {
 	ids := map[string]int{}
 
 	// Prepare scenes
-	scenesToIngest, err := wf.catalog.ScenesToIngest(ctx, scenes)
+	scenesToIngest, err := wf.catalog.ScenesToIngest(ctx, area, scenes)
 	if err != nil {
 		return ids, err
 	}
 
 	// First, create AOI
-	if err := wf.CreateAOI(ctx, aoiID); err != nil && !errors.Is(err, db.ErrAlreadyExists) {
+	if err := wf.CreateAOI(ctx, area.AOIID); err != nil && !errors.Is(err, db.ErrAlreadyExists) {
 		return ids, err
 	}
 
 	// Then, create scenes
 	for _, scene := range scenesToIngest {
-		nid, err := wf.IngestScene(ctx, aoiID, scene)
+		nid, err := wf.IngestScene(ctx, area.AOIID, scene)
 		if err != nil {
 			if !errors.Is(err, db.ErrAlreadyExists) {
 				return ids, err
@@ -222,7 +222,7 @@ func (wf *Workflow) CatalogPostAOIHandler(w http.ResponseWriter, req *http.Reque
 		wf.catalog.DeletePendingRecords(ctx, scenes, ids)
 	}()
 
-	if ids, err = wf.postScenes(ctx, scenes, area.AOIID); err != nil {
+	if ids, err = wf.postScenes(ctx, area, scenes); err != nil {
 		log.Logger(ctx).Sugar().Warnf("wf.CatalogPostAOIHandler.%v", err)
 		w.WriteHeader(500)
 		fmt.Fprintf(w, "%v", err)

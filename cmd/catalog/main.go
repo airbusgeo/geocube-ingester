@@ -173,7 +173,7 @@ func sendScenes(ctx context.Context, areaJsonPath, scenesJsonPath string) error 
 	defer jsonFile2.Close()
 	byteValue, _ = ioutil.ReadAll(jsonFile2)
 	json.Unmarshal(byteValue, &scenesToIngest)
-	_, err = postScenesToIngest(ctx, c.WorkflowServer, scenesToIngest.Scenes, area)
+	_, err = postScenesToIngest(ctx, c.WorkflowServer, area, scenesToIngest.Scenes)
 	return err
 }
 
@@ -266,7 +266,7 @@ func IngestArea(ctx context.Context, area entities.AreaToIngest) (IngestAreaResu
 
 	// Create scenes to ingest
 	log.Logger(ctx).Debug("Create scenes to ingest")
-	scenesToIngest, err = c.ScenesToIngest(ctx, scenes)
+	scenesToIngest, err = c.ScenesToIngest(ctx, area, scenes)
 	if err != nil {
 		return result, fmt.Errorf("ingestArea.%w", err)
 	}
@@ -274,7 +274,7 @@ func IngestArea(ctx context.Context, area entities.AreaToIngest) (IngestAreaResu
 
 	// Post scenes
 	log.Logger(ctx).Debug("Post scenes to ingest")
-	if result.ScenesID, err = postScenesToIngest(ctx, c.WorkflowServer, scenesToIngest, area); err != nil {
+	if result.ScenesID, err = postScenesToIngest(ctx, c.WorkflowServer, area, scenesToIngest); err != nil {
 		return result, fmt.Errorf("ingestArea.%w", err)
 	}
 	log.Logger(ctx).Debug("Done !")
@@ -331,7 +331,7 @@ func getRootLeafTiles(workflowServer, aoiID string) ([]common.Tile, error) {
 
 // postScenesToIngest sends the sceneToIngest to the workflow server
 // Returns the id of the posted scenes (even if PostScenesToIngest returns an error)
-func postScenesToIngest(ctx context.Context, workflowServer string, scenesToIngest []common.SceneToIngest, area entities.AreaToIngest) (map[string]int, error) {
+func postScenesToIngest(ctx context.Context, workflowServer string, area entities.AreaToIngest, scenesToIngest []common.SceneToIngest) (map[string]int, error) {
 	ids := map[string]int{}
 
 	// First, create AOI

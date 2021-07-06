@@ -93,8 +93,6 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		}
 	}
 
-	instances := area.InstancesID()
-
 	// Parse results
 	scenes := make([]*entities.Scene, len(rawscenes))
 	for i, rawscene := range rawscenes {
@@ -128,7 +126,6 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 					Date:         date,
 					GraphName:    area.SceneGraphName,
 					GraphConfig:  area.GraphConfig,
-					InstancesID:  instances,
 					TileMappings: map[string]common.TileMapping{},
 				},
 			},
