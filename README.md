@@ -10,12 +10,12 @@ Interfaces are provided to add new sources of data or new satellites. See the do
 
 ## Installation
 
-Please read the [Installation guides](https://github.com/airbusgeo/geocube-ingester/INSTALL.MD).
+Please read the [Installation guides](https://github.com/airbusgeo/geocube-ingester/blob/main/INSTALL.MD).
 
 ## Quickstart
 
 
-[Ingester Jupyter notebook](https://github.com/airbusgeo/geocube-ingester/Jupyter/Geocube-Ingester-Demo.ipynb)
+[Ingester Jupyter notebook](https://github.com/airbusgeo/geocube-ingester/blob/main/Jupyter/Geocube-Ingester-Demo.ipynb)
 
 ## Documentation
 
@@ -27,11 +27,11 @@ Geocube-Ingester is under development. The API might evolve in backwards incompa
 
 ## Contributing
 
-Contributions are welcome. Please read the [contributing guidelines](https://github.com/airbusgeo/geocube-ingester/CONTRIBUTING.MD) before submitting fixes or enhancements.
+Contributions are welcome. Please read the [contributing guidelines](https://github.com/airbusgeo/geocube-ingester/blob/main/CONTRIBUTING.md) before submitting fixes or enhancements.
 
 ## Licensing
 
-Geocube-Ingester is licensed under the Apache License, Version 2.0. See [LICENSE](https://github.com/airbusgeo/geocube-ingester/LICENSE) for the full license text.
+Geocube-Ingester is licensed under the Apache License, Version 2.0. See [LICENSE](https://github.com/airbusgeo/geocube-ingester/blob/main/LICENSE) for the full license text.
 
 
 ## Credits
