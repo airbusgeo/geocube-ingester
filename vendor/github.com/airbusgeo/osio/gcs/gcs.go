@@ -12,33 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package osio
+package gcs
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"syscall"
 
 	"cloud.google.com/go/storage"
+	"github.com/airbusgeo/errs"
+	"github.com/airbusgeo/osio/internal"
 	"google.golang.org/api/googleapi"
 )
 
-type GCSHandler struct {
+type Handler struct {
 	ctx              context.Context
 	client           *storage.Client
 	billingProjectID string
 }
 
 //Option is an option that can be passed to RegisterHandler
-type GCSOption func(o *GCSHandler)
+type GCSOption func(o *Handler)
 
 // Client sets the cloud.google.com/go/storage.Client that will be used
 // by the handler
 func GCSClient(cl *storage.Client) GCSOption {
-	return func(o *GCSHandler) {
+	return func(o *Handler) {
 		o.client = cl
 	}
 }
@@ -46,15 +47,15 @@ func GCSClient(cl *storage.Client) GCSOption {
 // BillingProject sets the project name which should be billed for the requests.
 // This is mandatory if the bucket is in requester-pays mode.
 func GCSBillingProject(projectID string) GCSOption {
-	return func(o *GCSHandler) {
+	return func(o *Handler) {
 		o.billingProjectID = projectID
 	}
 }
 
-// GCSHandle creates a KeyReaderAt suitable for constructing an Adapter
+// Handle creates a KeyStreamerAt suitable for constructing an Adapter
 // that accesses objects on Google Cloud Storage
-func GCSHandle(ctx context.Context, opts ...GCSOption) (*GCSHandler, error) {
-	handler := &GCSHandler{
+func Handle(ctx context.Context, opts ...GCSOption) (*Handler, error) {
+	handler := &Handler{
 		ctx: ctx,
 	}
 	for _, o := range opts {
@@ -70,45 +71,49 @@ func GCSHandle(ctx context.Context, opts ...GCSOption) (*GCSHandler, error) {
 	return handler, nil
 }
 
-func gcsparse(gsUri string) (bucket, object string) {
-	gsUri = strings.TrimPrefix(gsUri, "gs://")
-	gsUri = strings.TrimLeft(gsUri, "/")
-	firstSlash := strings.Index(gsUri, "/")
-	if firstSlash == -1 {
-		bucket = gsUri
-		object = ""
-	} else {
-		bucket = gsUri[0:firstSlash]
-		object = gsUri[firstSlash+1:]
-	}
-	return
+type readWrapper struct {
+	io.ReadCloser
 }
 
-func (gcs *GCSHandler) ReadAt(key string, p []byte, off int64) (int, int64, error) {
-	bucket, object := gcsparse(key)
-	if len(bucket) == 0 || len(object) == 0 {
-		return 0, 0, fmt.Errorf("invalid key")
+func (r readWrapper) Read(buf []byte) (int, error) {
+	n, err := r.ReadCloser.Read(buf)
+	if err != nil {
+		return n, errs.AddTemporaryCheck(err)
+	}
+	return n, nil
+}
+func (r readWrapper) Close() error {
+	err := r.ReadCloser.Close()
+	if err != nil {
+		return errs.AddTemporaryCheck(err)
+	}
+	return nil
+}
+
+func (gcs *Handler) StreamAt(key string, off int64, n int64) (io.ReadCloser, int64, error) {
+	bucket, object, err := internal.BucketObject(key)
+	if err != nil {
+		return nil, 0, err
 	}
 	gbucket := gcs.client.Bucket(bucket)
 	if gcs.billingProjectID != "" {
 		gbucket = gbucket.UserProject(gcs.billingProjectID)
 	}
-	r, err := gbucket.Object(object).NewRangeReader(gcs.ctx, off, int64(len(p)))
-	//fmt.Printf("read %s [%d-%d]\n", key, off, off+int64(len(p)))
+	r, err := gbucket.Object(object).NewRangeReader(gcs.ctx, off, n)
 	if err != nil {
 		var gerr *googleapi.Error
 		if off > 0 && errors.As(err, &gerr) && gerr.Code == 416 {
-			return 0, 0, io.EOF
+			return nil, 0, io.EOF
 		}
 		if errors.Is(err, storage.ErrObjectNotExist) || errors.Is(err, storage.ErrBucketNotExist) {
-			return 0, -1, syscall.ENOENT
+			return nil, -1, syscall.ENOENT
 		}
-		return 0, 0, fmt.Errorf("new reader for gs://%s/%s: %w", bucket, object, err)
+		err = errs.AddTemporaryCheck(err)
+		return nil, 0, fmt.Errorf("new reader for gs://%s/%s: %w", bucket, object, err)
 	}
-	defer r.Close()
-	n, err := io.ReadFull(r, p)
-	if err == io.ErrUnexpectedEOF {
-		err = io.EOF
-	}
-	return n, r.Attrs.Size, err
+	return readWrapper{r}, r.Attrs.Size, nil
+}
+
+func (gcs *Handler) ReadAt(key string, p []byte, off int64) (int, int64, error) {
+	panic("deprecated (kept for retrocompatibility)")
 }

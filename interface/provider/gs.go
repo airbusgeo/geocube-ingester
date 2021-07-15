@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
 
 	"cloud.google.com/go/storage"
 	"github.com/airbusgeo/geocube-ingester/service"
+	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/airbusgeo/geocube/interface/storage/gcs"
 	"google.golang.org/api/iterator"
 )
@@ -51,10 +52,32 @@ func (ip *GSImageProvider) Download(ctx context.Context, sceneName, sceneUUID, l
 	}
 	var format map[string]string
 	switch constellation {
+	case Sentinel1:
+		// MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC.SAFE
+		format = map[string]string{
+			"SCENE":         sceneName,
+			"MISSION_ID":    sceneName[0:3],
+			"MODE":          sceneName[4:6],
+			"PRODUCT_TYPE":  sceneName[7:10],
+			"RESOLUTION":    sceneName[10:11],
+			"PRODUCT_LEVEL": sceneName[12:13],
+			"PRODUCT_CLASS": sceneName[13:14],
+			"POLARISATION":  sceneName[14:16],
+			"DATE":          sceneName[17:25],
+			"YEAR":          sceneName[17:21],
+			"MONTH":         sceneName[21:23],
+			"DAY":           sceneName[23:25],
+			"TIME":          sceneName[26:32],
+			"HOUR":          sceneName[26:28],
+			"MINUTE":        sceneName[28:30],
+			"SECOND":        sceneName[30:32],
+			"ORBIT":         sceneName[49:55],
+			"MISSION":       sceneName[56:62],
+			"UNIQUE_ID":     sceneName[63:67],
+		}
 	case Sentinel2:
 		//MMM_MSIXXX_YYYYMMDDHHMMSS_Nxxyy_ROOO_Txxxxx_<Product Discriminator>.SAFE
 		//MMM_CCCC_FFFFDDDDDD_ssss_YYYYMMDDTHHMMSS_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS.SAFE
-		// /tiles/UTM_ZONE/LATITUDE_BAND/GRID_SQUARE/GRANULE_ID/
 		format = map[string]string{
 			"SCENE":         sceneName,
 			"MISSION_ID":    sceneName[0:3],
@@ -62,8 +85,8 @@ func (ip *GSImageProvider) Download(ctx context.Context, sceneName, sceneUUID, l
 			"DATE":          sceneName[11:19],
 			"YEAR":          sceneName[11:15],
 			"MONTH":         sceneName[15:17],
-			"TIME":          sceneName[19:25],
 			"DAY":           sceneName[17:19],
+			"TIME":          sceneName[19:25],
 			"HOUR":          sceneName[19:21],
 			"MINUTE":        sceneName[21:23],
 			"SECOND":        sceneName[23:25],
@@ -83,7 +106,12 @@ func (ip *GSImageProvider) Download(ctx context.Context, sceneName, sceneUUID, l
 		url = strings.ReplaceAll(url, "{"+k+"}", v)
 	}
 
-	if _, err := ip.downloadDirectory(ctx, url, localDir); err != nil {
+	log.Logger(ctx).Debug("GSImageProvider starts downloading " + url)
+	if filepath.Ext(url) == "."+string(service.ExtensionZIP) {
+		if err := ip.downloadZip(ctx, url, localDir); err != nil {
+			return fmt.Errorf("GSImageProvider.%w", err)
+		}
+	} else if _, err := ip.downloadDirectory(ctx, url, localDir); err != nil {
 		return fmt.Errorf("GSImageProvider.%w", err)
 	}
 	return nil
@@ -98,27 +126,23 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 		}
 	}()
 
-	gs, derr := gcs.NewGsStrategy(ctx)
-	if derr != nil {
-		err = fmt.Errorf("downloadDirectory: %w", err)
-		return
+	gs, err := gcs.NewGsStrategy(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("downloadDirectory: %w", err)
 	}
 
-	bucket, prefix, derr := gcs.Parse(uri)
-	if derr != nil {
-		err = fmt.Errorf("downloadDirectory: %w", err)
-		return
+	bucket, prefix, err := gcs.Parse(uri)
+	if err != nil {
+		return nil, fmt.Errorf("downloadDirectory: %w", err)
 	}
 	if len(bucket) == 0 {
-		err = fmt.Errorf("missing bucket")
-		return
+		return nil, fmt.Errorf("missing bucket")
 	}
 	prefix = strings.TrimRight(prefix, "/")
 	if dstDir == "" {
 		dstDir, err = ioutil.TempDir("", "gcs")
 		if err != nil {
-			err = fmt.Errorf("ioutil.tempdir: %w", err)
-			return
+			return nil, fmt.Errorf("ioutil.tempdir: %w", err)
 		}
 	}
 	type gsUriToDownload struct {
@@ -136,9 +160,6 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 		go func(i int) {
 			defer wg.Done()
 			for {
-				if err != nil {
-					return
-				}
 				select {
 				case <-ctx.Done():
 					return
@@ -146,10 +167,7 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 					if !ok {
 						return
 					}
-					//log.Printf("worker %d download gs://%s/%s to %s", i, uri.bucket, uri.object, uri.file)
-					derr := gs.DownloadToFile(ctx, uri.bucket+"/"+uri.object, uri.file)
-					if derr != nil {
-						err = derr
+					if err = gs.DownloadToFile(ctx, uri.bucket+"/"+uri.object, uri.file); err != nil {
 						return
 					}
 					filemu.Lock()
@@ -161,7 +179,7 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 	}
 	client, err := storage.NewClient(ctx)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	q := &storage.Query{Prefix: prefix, Versions: false}
 	q.SetAttrSelection([]string{"Name"})
@@ -172,18 +190,15 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 			break
 		}
 		if iterr != nil {
-			err = fmt.Errorf("bucket iterate: %w", iterr)
 			close(downloads)
-			return
+			return nil, fmt.Errorf("bucket iterate: %w", iterr)
 		}
 		if objectAttrs.Prefix != "" {
-			//log.Printf("make dir %s", filepath.Join(dstDirectory, objectAttrs.Prefix))
 			mkdir := filepath.Join(dstDir, objectAttrs.Prefix)
 			ferr := os.MkdirAll(mkdir, 0700)
 			if ferr != nil {
 				close(downloads)
-				err = fmt.Errorf("mkdirall %s: %w", mkdir, ferr)
-				return
+				return nil, fmt.Errorf("mkdirall %s: %w", mkdir, ferr)
 			}
 		} else {
 			filename := objectAttrs.Name
@@ -197,8 +212,7 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 			ferr := os.MkdirAll(dirname, 0700)
 			if ferr != nil {
 				close(downloads)
-				err = fmt.Errorf("mkdirall %s: %w", dirname, ferr)
-				return
+				return nil, fmt.Errorf("mkdirall %s: %w", dirname, ferr)
 			}
 			filename = filepath.Join(dstDir, filename)
 			downloads <- gsUriToDownload{
@@ -211,4 +225,21 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 	close(downloads)
 	wg.Wait()
 	return
+}
+
+//downloadZip to destination
+func (ip *GSImageProvider) downloadZip(ctx context.Context, uri string, dstDir string) error {
+	gs, err := gcs.NewGsStrategy(ctx)
+	if err != nil {
+		return fmt.Errorf("GSImageProvider.NewGsStrategy: %w", err)
+	}
+	localZip := path.Join(dstDir, filepath.Base(uri))
+	if err := gs.DownloadToFile(ctx, uri, localZip); err != nil {
+		return fmt.Errorf("GSImageProvider.%w", err)
+	}
+	defer os.Remove(localZip)
+	if err := unarchive(localZip, dstDir); err != nil {
+		return fmt.Errorf("GSImageProvider.Unarchive: %w", err)
+	}
+	return nil
 }

@@ -12,6 +12,7 @@ import (
 
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/osio"
+	osioGcs "github.com/airbusgeo/osio/gcs"
 )
 
 type AnnotationsProvider struct {
@@ -36,7 +37,7 @@ func (ap AnnotationsProvider) AnnotationsFiles(ctx context.Context, scene *entit
 
 // extract files from archive in gcs
 func extract(ctx context.Context, gcsFile string, reg regexp.Regexp) (map[string][]byte, error) {
-	gcsr, err := osio.GCSHandle(ctx)
+	gcsr, err := osioGcs.Handle(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("extract.GCSHandle: %w", err)
 	}

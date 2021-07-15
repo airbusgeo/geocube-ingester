@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/storage v1.16.0
 	github.com/airbusgeo/geocube v0.2.0
 	github.com/airbusgeo/geocube-client-go v0.2.0
-	github.com/airbusgeo/osio v0.0.1
+	github.com/airbusgeo/osio v0.1.1
 	github.com/cavaliercoder/grab v2.0.0+incompatible
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/frankban/quicktest v1.11.1 // indirect
@@ -26,7 +26,7 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	google.golang.org/api v0.49.0
+	google.golang.org/api v0.52.0
 	google.golang.org/grpc v1.39.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	honnef.co/go/tools v0.1.3 // indirect
