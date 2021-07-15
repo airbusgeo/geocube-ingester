@@ -170,9 +170,14 @@ The Ingester is currently able to connect to the following catalogs:
 
 A Pub/Sub emulator is available to use PubSub in a local system (with limited capacities).
 
-Please follow the [documentation](https://cloud.google.com/pubsub/docs/emulator) to install and start the emulator.
+Please follow the [documentation](https://cloud.google.com/pubsub/docs/emulator) to start the emulator.
 
-After starting pubsub emulator server (make sure that it's running on port 8085), the following script creates ingester topics and subscriptions: `tools/pubsub_emulator/main.go`.
+Example:
+```bash
+gcloud beta emulators pubsub start --project=geocube-emulator --host-port $PUBSUB_EMULATOR_HOST
+```
+
+After starting pubsub emulator server, the following script creates ingester topics and subscriptions: `tools/pubsub_emulator/main.go`.
 
 ```bash
 $ go run tools/pubsub_emulator/main.go --project geocube-emulator
@@ -210,12 +215,13 @@ $ export SNAPPATH=<path to ESA SNAP gpt binary>
 $ ./downloader -flag value
 ```
 
-Example (run):
+Example:
 
 ```bash
 $ export GRAPHPATH=/home/user/geocube-ingester/graph
 $ export SNAPPATH=/usr/local/snap/bin/gpt
-$ ./downloader --project geocube-emulator --psSubscription=ingester-downloader --psEvent=ingester-events --storage-uri=$STORAGE_URI -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{UTM}/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE} --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
+$ export WORKING_DIR=/home/user/geocube-ingester/data/
+$ ./downloader --project geocube-emulator --psSubscription ingester-downloader --psEvent ingester-events --local-path $WORKING_DIR/data --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{UTM}/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE} --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -284,12 +290,13 @@ $ export SNAPPATH=<path to ESA SNAP gpt binary>
 $ ./processor -flag value
 ```
 
-Example running command:
+Example:
 
 ```bash
 $ export GRAPHPATH=./data/graph
 $ export SNAPPATH=/usr/local/snap/bin/gpt
-$ ./processor --project geocube-emulator --psSubscription=ingester-processor --psEvent=ingester-events --storage-uri=$STORAGE_URI --geocube-server=$GEOCUBE_SERVER --geocube-insecure
+$ export WORKING_DIR=/home/user/geocube-ingester/data/
+$ ./processor --project geocube-emulator --psSubscription ingester-processor --psEvent ingester-events --geocube-server $GEOCUBE_SERVER --geocube-insecure --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -333,10 +340,12 @@ Run application:
 $ ./workflow -flag value
 ```
 
-Example running command:
+Example:
 
 ```bash
-$ ./workflow --project geocube-emulator --psSubscription ingester-events --psDownloader-topic ingester-downloader --psProcessor-topic ingester-processor --dbConnection=postgresql://postgres:password@localhost:5432/ingester?binary_parameters=yes --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --geocube-insecure
+$ export DB_CONNECTION=postgresql://postgres:password@localhost:5432/ingester?binary_parameters=yes
+$ export WORKFLOW_PORT=8082
+$ ./workflow --project geocube-emulator --psSubscription ingester-events --psDownloader-topic ingester-downloader --psProcessor-topic ingester-processor --dbConnection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --geocube-insecure --scihub-username "$SCIHUB_USERNAME" --scihub-password "$SCIHUB_PASSWORD"
 ```
 
 For more information concerning flags and downloader argument, you can run:
