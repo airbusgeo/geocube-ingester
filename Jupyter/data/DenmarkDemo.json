@@ -1,5 +1,6 @@
 {
     "aoi":"DenmarkDemo",
+    "type":"Feature",
     "geometry":{
         "type": "MultiPolygon",
         "coordinates":

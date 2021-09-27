@@ -147,7 +147,9 @@ func ingestArea(ctx context.Context, jsonPath string) error {
 	}
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
-	json.Unmarshal(byteValue, &area)
+	if err = json.Unmarshal(byteValue, &area); err != nil {
+		return err
+	}
 
 	_, err = IngestArea(ctx, area)
 	return err

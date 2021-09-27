@@ -54,7 +54,7 @@ func (wf *Workflow) loadArea(w http.ResponseWriter, req *http.Request, validate 
 	}
 	if err := json.Unmarshal(areaJSON, &area); err != nil {
 		w.WriteHeader(400)
-		fmt.Fprintf(w, "%s %v", areaJSON, err)
+		fmt.Fprintf(w, "%v\nJSON:\n%s", err, areaJSON)
 		return area, err
 	}
 	if validate {

@@ -31,7 +31,7 @@ func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
 		return fmt.Errorf("validateArea.AOI: %w", err)
 	}
 	if !matched {
-		return fmt.Errorf("validateArea: wrong format for AOI (must be chars, numbers and -:_): %w", err)
+		return fmt.Errorf("validateArea: wrong format for AOIID (must be chars, numbers and -:_): %w", err)
 	}
 
 	// Check constellation
@@ -64,7 +64,7 @@ func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
 // DoScenesInventory lists scenes for a given AOI, satellites and interval of time
 func (c *Catalog) DoScenesInventory(ctx context.Context, area entities.AreaToIngest) ([]*entities.Scene, error) {
 	// geos AOI
-	aoi, err := geos.FromWKT(wkt.MustEncode(area.AOI.Geometry))
+	aoi, err := geos.FromWKT(wkt.MustEncode(area.AOI))
 	if err != nil {
 		return nil, fmt.Errorf("DoScenesInventory.FromWKT: %w", err)
 	}
@@ -86,7 +86,7 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 	switch entities.GetConstellation(area.SceneType.Constellation) {
 	case entities.Sentinel1:
 		// geos AOI
-		aoi, err := geos.FromWKT(wkt.MustEncode(area.AOI.Geometry))
+		aoi, err := geos.FromWKT(wkt.MustEncode(area.AOI))
 		if err != nil {
 			return 0, fmt.Errorf("DoTilesInventory.FromWKT: %w", err)
 		}

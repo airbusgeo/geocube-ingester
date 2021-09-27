@@ -1,11 +1,13 @@
 package entities
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/common"
-	"github.com/go-spatial/geom/encoding/geojson"
+	"github.com/airbusgeo/geocube-ingester/service"
+	"github.com/go-spatial/geom"
 )
 
 // TileLite defined only the needed fields for a Previous or Reference Tile
@@ -45,8 +47,8 @@ type SceneType struct {
 
 // AreaToIngest is the input of the catalog
 type AreaToIngest struct {
-	AOIID          string            `json:"aoi"`
-	AOI            geojson.Geometry  `json:"geometry"`
+	AOIID          string `json:"aoi"`
+	AOI            geom.Geometry
 	StartTime      time.Time         `json:"start_time"`
 	EndTime        time.Time         `json:"end_time"`
 	SceneType      SceneType         `json:"scene_type"`
@@ -113,4 +115,19 @@ func (a *AreaToIngest) InstancesID() map[string]string {
 		instances[k] = s.InstanceID
 	}
 	return instances
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface for AreaToIngest
+func (area *AreaToIngest) UnmarshalJSON(data []byte) error {
+	var err error
+	if area.AOI, err = service.UnmarshalGeometry(data); err != nil {
+		return err
+	}
+
+	type AreaToIngesterUnmarshaller AreaToIngest
+	if err := json.Unmarshal(data, (*AreaToIngesterUnmarshaller)(area)); err != nil {
+		return err
+	}
+
+	return nil
 }
