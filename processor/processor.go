@@ -58,6 +58,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 	log.Logger(ctx).Sugar().Infof("import tile %s_%s", tile.Scene.Data.Date.Format("20060102"), tile.SourceID)
 	for i, infiles := range g.InFiles {
 		for _, infile := range infiles {
+			log.Logger(ctx).Sugar().Debugf("import layer %s_%s_%s", tiles[i].Scene.Data.Date.Format("20060102"), tiles[i].SourceID, infile.Layer)
 			if err := storageService.ImportLayer(ctx, tiles[i], infile.Layer, infile.Extension, workdir); err != nil {
 				if infile.Optional && errors.As(err, &service.ErrFileNotFound{}) {
 					log.Logger(ctx).Debug(err.Error())

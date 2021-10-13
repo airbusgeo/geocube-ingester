@@ -197,10 +197,6 @@ func (wf *Workflow) UpdateTileStatus(ctx context.Context, id int, status common.
 			tile.Status = status
 			err = wf.UpdateTile(ctx, id, status, &tile.Message, false)
 		case common.StatusPENDING:
-			//sanity check
-			if sceneStatus != common.StatusDONE {
-				return false, fmt.Errorf("cannot retry tile with scene status %s", sceneStatus)
-			}
 			tile.Status = common.StatusPENDING
 			err = wf.RetryTile(ctx, tile)
 		case common.StatusFAILED:
@@ -210,7 +206,9 @@ func (wf *Workflow) UpdateTileStatus(ctx context.Context, id int, status common.
 			})
 		}
 
+		return err == nil, err
 	}
+
 	if tile.Status == status {
 		lg.Warnf("update tile %d: status already %s", id, status)
 		return false, nil
