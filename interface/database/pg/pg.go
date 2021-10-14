@@ -321,13 +321,38 @@ func (b Backend) Tiles(ctx context.Context, aoi string, sceneID int, status stri
 	return tiles, nil
 }
 
-// RootLeafTiles implements WorkflowBackend
-func (b Backend) RootLeafTiles(ctx context.Context, aoi string) ([]common.Tile, error) {
+// RootTiles implements WorkflowBackend
+func (b Backend) RootTiles(ctx context.Context, aoi string) ([]common.Tile, error) {
 	tiles := []common.Tile{}
 	rows, err := b.QueryContext(ctx,
 		`select t.id, t.source_id, t.data, s.id, s.source_id, s.data
 			from tile t join scene s on t.scene_id = s.id
-			where t.status != $1 AND (t.ref IS NULL OR NOT EXISTS (SELECT NULL FROM tile t2 WHERE t.id = t2.prev)) and s.aoi_id=$2`, common.StatusFAILED, aoi)
+			where t.status != $1 AND t.ref IS NULL AND t.prev IS NULL AND s.aoi_id=$2`, common.StatusFAILED, aoi)
+	if err != nil {
+		return nil, fmt.Errorf("RootTiles.Scan: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		tile := common.Tile{}
+		tile.Scene = common.Scene{AOI: aoi}
+		if err := rows.Scan(&tile.ID, &tile.SourceID, &tile.Data, &tile.Scene.ID, &tile.Scene.SourceID, &tile.Scene.Data); err != nil {
+			return nil, fmt.Errorf("RootTiles.Scan: %w", err)
+		}
+		tiles = append(tiles, tile)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("RootTiles.Rows.err: %w", err)
+	}
+	return tiles, nil
+}
+
+// LeafTiles implements WorkflowBackend
+func (b Backend) LeafTiles(ctx context.Context, aoi string) ([]common.Tile, error) {
+	tiles := []common.Tile{}
+	rows, err := b.QueryContext(ctx,
+		`select t.id, t.source_id, t.data, s.id, s.source_id, s.data
+			from tile t join scene s on t.scene_id = s.id
+			where t.status != $1 AND NOT EXISTS (SELECT NULL FROM tile t2 WHERE t.id = t2.prev) AND s.aoi_id=$2`, common.StatusFAILED, aoi)
 	if err != nil {
 		return nil, fmt.Errorf("scan: %w", err)
 	}
@@ -336,12 +361,12 @@ func (b Backend) RootLeafTiles(ctx context.Context, aoi string) ([]common.Tile, 
 		tile := common.Tile{}
 		tile.Scene = common.Scene{AOI: aoi}
 		if err := rows.Scan(&tile.ID, &tile.SourceID, &tile.Data, &tile.Scene.ID, &tile.Scene.SourceID, &tile.Scene.Data); err != nil {
-			return nil, fmt.Errorf("RootLeafTiles.Scan: %w", err)
+			return nil, fmt.Errorf("LeafTiles.Scan: %w", err)
 		}
 		tiles = append(tiles, tile)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("RootLeafTiles.Rows.err: %w", err)
+		return nil, fmt.Errorf("LeafTiles.Rows.err: %w", err)
 	}
 	return tiles, nil
 }

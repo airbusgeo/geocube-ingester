@@ -34,7 +34,8 @@ func (wf *Workflow) NewHandler() http.Handler {
 	r.HandleFunc("/aoi/{aoi}/scenes", wf.ListScenesHandler).Methods("GET")
 	r.HandleFunc("/aoi/{aoi}/scenes/{status}", wf.ListScenesHandler).Methods("GET")
 	r.HandleFunc("/aoi/{aoi}/tiles/{status}", wf.ListAOITilesHandler).Methods("GET")
-	r.HandleFunc("/aoi/{aoi}/rootleaftiles", wf.ListRootLeafTilesHandler).Methods("GET")
+	r.HandleFunc("/aoi/{aoi}/roottiles", wf.ListRootTilesHandler).Methods("GET")
+	r.HandleFunc("/aoi/{aoi}/leaftiles", wf.ListLeafTilesHandler).Methods("GET")
 	r.HandleFunc("/aoi/{aoi}/retry", wf.RetryAOIHandler).Methods("PUT")
 	r.HandleFunc("/aoi/{aoi}/retry/{force}", wf.RetryAOIHandler).Methods("PUT")
 	return r
@@ -305,7 +306,13 @@ func (wf *Workflow) GetAOIStatusHandler(w http.ResponseWriter, req *http.Request
 		fmt.Fprintf(w, "%v", err)
 		return
 	}
-	rootLeafTiles, err := wf.RootLeafTiles(ctx, aoi)
+	rootTiles, err := wf.RootTiles(ctx, aoi)
+	if err != nil {
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "%v", err)
+		return
+	}
+	leafTiles, err := wf.LeafTiles(ctx, aoi)
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Fprintf(w, "%v", err)
@@ -313,10 +320,12 @@ func (wf *Workflow) GetAOIStatusHandler(w http.ResponseWriter, req *http.Request
 	}
 	from := time.Now()
 	to := time.Time{}
-	for _, tile := range rootLeafTiles {
+	for _, tile := range rootTiles {
 		if tile.Scene.Data.Date.Before(from) {
 			from = tile.Scene.Data.Date
 		}
+	}
+	for _, tile := range leafTiles {
 		if tile.Scene.Data.Date.After(to) {
 			to = tile.Scene.Data.Date
 		}
@@ -329,7 +338,7 @@ func (wf *Workflow) GetAOIStatusHandler(w http.ResponseWriter, req *http.Request
 	fmt.Fprintf(w, "Tiles:\n  new:     %d\n  pending: %d\n  done:    %d\n  retry:   %d\n  failed:  %d\n  Total:   %d\n",
 		tilesStatus.New, tilesStatus.Pending, tilesStatus.Done, tilesStatus.Retry, tilesStatus.Failed,
 		tilesStatus.New+tilesStatus.Pending+tilesStatus.Done+tilesStatus.Retry+tilesStatus.Failed)
-	fmt.Fprintf(w, "\nRoot tiles : %d\n  From: %s\n  To:   %s\n", len(rootLeafTiles)/2, from.Format("2006-01-02"), to.Format("2006-01-02"))
+	fmt.Fprintf(w, "\nRoot tiles : %d\n  From: %s\n  To:   %s\n", len(rootTiles), from.Format("2006-01-02"), to.Format("2006-01-02"))
 }
 
 // CreateAOIHandler creates a new aoi
@@ -404,18 +413,36 @@ func (wf *Workflow) ListScenesHandler(w http.ResponseWriter, req *http.Request) 
 	json.NewEncoder(w).Encode(ss)
 }
 
-// ListRootLeafTilesHandler lists all the tiles of the AOI that
-// have no ref tile (root) or is the previous of no tile (leaf)
-func (wf *Workflow) ListRootLeafTilesHandler(w http.ResponseWriter, req *http.Request) {
+// ListRootTilesHandler lists all the tiles of the AOI that
+// have no ref tile (root)
+func (wf *Workflow) ListRootTilesHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	aoi := mux.Vars(req)["aoi"]
-	ims, err := wf.RootLeafTiles(ctx, aoi)
+	ims, err := wf.RootTiles(ctx, aoi)
 	if err == db.ErrNotFound {
 		w.WriteHeader(404)
 		return
 	}
 	if err != nil {
-		log.Logger(ctx).Sugar().Warnf("wf.ListRootLeafTilesHandler: %v", err)
+		log.Logger(ctx).Sugar().Warnf("wf.ListRootTilesHandler: %v", err)
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "%v", err)
+		return
+	}
+	json.NewEncoder(w).Encode(ims)
+}
+
+// ListLeaftTilesHandler lists all the tiles of the AOI that are the previous of no tile (leaf)
+func (wf *Workflow) ListLeafTilesHandler(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	aoi := mux.Vars(req)["aoi"]
+	ims, err := wf.LeafTiles(ctx, aoi)
+	if err == db.ErrNotFound {
+		w.WriteHeader(404)
+		return
+	}
+	if err != nil {
+		log.Logger(ctx).Sugar().Warnf("wf.ListLeafTilesHandler: %v", err)
 		w.WriteHeader(500)
 		fmt.Fprintf(w, "%v", err)
 		return

@@ -102,12 +102,19 @@ func (wf *Workflow) findTiles(ctx context.Context, w http.ResponseWriter, area c
 	var err error
 	switch catalog.GetConstellation(area.SceneType.Constellation) {
 	case catalog.Sentinel1:
-		rootLeafTiles, err = wf.RootLeafTiles(ctx, area.AOIID)
+		rootLeafTiles, err = wf.RootTiles(ctx, area.AOIID)
 		if err != nil {
 			w.WriteHeader(500)
 			fmt.Fprintf(w, "%v", err)
 			return err
 		}
+		leafTiles, err := wf.LeafTiles(ctx, area.AOIID)
+		if err != nil {
+			w.WriteHeader(500)
+			fmt.Fprintf(w, "%v", err)
+			return err
+		}
+		rootLeafTiles = append(rootLeafTiles, leafTiles...)
 	}
 
 	if _, err = wf.catalog.DoTilesInventory(ctx, area, scenes, rootLeafTiles); err != nil {

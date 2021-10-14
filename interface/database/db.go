@@ -92,8 +92,10 @@ type WorkflowBackend interface {
 	// status [optional=""] status of the tile
 	// loadScene also loads the scenes
 	Tiles(ctx context.Context, aoi string, sceneID int, status string, loadScene bool) ([]Tile, error)
-	// Get tiles that are either root or leaf tile and their scene.
-	RootLeafTiles(ctx context.Context, aoi string) ([]common.Tile, error)
+	// Get root tiles (no prev and no ref tiles) and their scene.
+	RootTiles(ctx context.Context, aoi string) ([]common.Tile, error)
+	// Get leaf tiles (no next tiles) and their scene.
+	LeafTiles(ctx context.Context, aoi string) ([]common.Tile, error)
 	// Update tile status & message (if != nil)
 	UpdateTile(ctx context.Context, id int, status common.Status, message *string, resetPrev bool) error
 	// Set status of given tiles

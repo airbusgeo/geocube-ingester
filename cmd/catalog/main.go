@@ -249,10 +249,16 @@ func IngestArea(ctx context.Context, area entities.AreaToIngest) (IngestAreaResu
 
 	switch entities.GetConstellation(area.SceneType.Constellation) {
 	case entities.Sentinel1:
-		// Get RootLeafTiles
-		if rootLeafTiles, err = getRootLeafTiles(c.WorkflowServer, area.AOIID); err != nil {
+		// Get RootTiles
+		if rootLeafTiles, err = getRootTiles(c.WorkflowServer, area.AOIID); err != nil {
 			return result, fmt.Errorf("ingestArea.%w", err)
 		}
+		// Get LeafTiles
+		leafTiles, err := getLeafTiles(c.WorkflowServer, area.AOIID)
+		if err != nil {
+			return result, fmt.Errorf("ingestArea.%w", err)
+		}
+		rootLeafTiles = append(rootLeafTiles, leafTiles...)
 	}
 
 	// Tiles inventory
@@ -313,20 +319,36 @@ func scenesFromJSON(workingdir, filename string) ([]*Scene, error) {
 }
 */
 
-// getRootLeafTiles gets rootleaftiles from the workflow server
-func getRootLeafTiles(workflowServer, aoiID string) ([]common.Tile, error) {
-
-	resp, err := http.Get(workflowServer + "/aoi/" + aoiID + "/rootleaftiles")
+// getRootTiles form the workflow server
+func getRootTiles(workflowServer, aoiID string) ([]common.Tile, error) {
+	resp, err := http.Get(workflowServer + "/aoi/" + aoiID + "/roottiles")
 	if err != nil {
-		return nil, fmt.Errorf("IngestedRootScenesInventory.Get: %w", err)
+		return nil, fmt.Errorf("getRootTiles.Get: %w", err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("IngestedRootScenesInventory.ReadAll: %w", err)
+		return nil, fmt.Errorf("getRootTiles.ReadAll: %w", err)
 	}
 	tiles := []common.Tile{}
 	if err = json.Unmarshal(body, &tiles); err != nil {
-		return nil, fmt.Errorf("IngestedRootScenesInventory.Unmarshal: %w", err)
+		return nil, fmt.Errorf("getRootTiles.Unmarshal: %w", err)
+	}
+	return tiles, nil
+}
+
+// getLeafTiles form the workflow server
+func getLeafTiles(workflowServer, aoiID string) ([]common.Tile, error) {
+	resp, err := http.Get(workflowServer + "/aoi/" + aoiID + "/leaftiles")
+	if err != nil {
+		return nil, fmt.Errorf("getLeafTiles.Get: %w", err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("getLeafTiles.ReadAll: %w", err)
+	}
+	tiles := []common.Tile{}
+	if err = json.Unmarshal(body, &tiles); err != nil {
+		return nil, fmt.Errorf("getLeafTiles.Unmarshal: %w", err)
 	}
 	return tiles, nil
 }

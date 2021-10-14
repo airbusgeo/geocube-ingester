@@ -161,6 +161,23 @@ var _ = Describe("Workflow", func() {
 		return ids0, ids1, ids2, idb0, idb1, idb2
 	}
 
+	expectTileToProcessToBeIngested := func(tile common.TileToProcess, scene common.SceneToIngest) {
+		tileToIngest, ok := scene.Tiles[tile.SourceID]
+		Expect(ok).To(BeTrue())
+		Expect(tile.Scene.SourceID).To(Equal(scene.SourceID))
+		Expect(tile.Previous.SourceID).To(Equal(tileToIngest.PreviousTileID))
+		Expect(tile.Previous.Scene.SourceID).To(Equal(tileToIngest.PreviousSceneID))
+		Expect(tile.Reference.SourceID).To(Equal(tileToIngest.ReferenceTileID))
+		Expect(tile.Reference.Scene.SourceID).To(Equal(tileToIngest.ReferenceSceneID))
+	}
+
+	expectTileToBeIngested := func(tile common.Tile, scene common.SceneToIngest) {
+		tileToIngest, ok := scene.Tiles[tile.SourceID]
+		Expect(ok).To(BeTrue())
+		Expect(tile.Scene.SourceID).To(Equal(scene.SourceID))
+		Expect(tile.Data).To(Equal(tileToIngest.Data))
+	}
+
 	BeforeEach(func() {
 		tileQueue.messages = nil
 		sceneQueue.messages = nil
@@ -397,12 +414,7 @@ var _ = Describe("Workflow", func() {
 					for _, m := range tileQueue.messages {
 						tile := common.TileToProcess{}
 						Expect(json.Unmarshal(m, &tile)).NotTo(HaveOccurred())
-						tileToIngest := rootSceneToIngest.Tiles[tile.SourceID]
-						Expect(tile.Scene.SourceID).To(Equal(rootSceneToIngest.SourceID))
-						Expect(tile.Previous.SourceID).To(Equal(tileToIngest.PreviousTileID))
-						Expect(tile.Previous.Scene.SourceID).To(Equal(tileToIngest.PreviousSceneID))
-						Expect(tile.Reference.SourceID).To(Equal(tileToIngest.ReferenceTileID))
-						Expect(tile.Reference.Scene.SourceID).To(Equal(tileToIngest.ReferenceSceneID))
+						expectTileToProcessToBeIngested(tile, rootSceneToIngest)
 					}
 				})
 			})
@@ -492,12 +504,7 @@ var _ = Describe("Workflow", func() {
 					Expect(len(tileQueue.messages)).To(Equal(1))
 					tile := common.TileToProcess{}
 					Expect(json.Unmarshal(tileQueue.messages[0], &tile)).NotTo(HaveOccurred())
-					tileToIngest := leaf1SceneToIngest.Tiles[tile.SourceID]
-					Expect(tile.Scene.SourceID).To(Equal(leaf1SceneToIngest.SourceID))
-					Expect(tile.Previous.SourceID).To(Equal(tileToIngest.PreviousTileID))
-					Expect(tile.Previous.Scene.SourceID).To(Equal(tileToIngest.PreviousSceneID))
-					Expect(tile.Reference.SourceID).To(Equal(tileToIngest.ReferenceTileID))
-					Expect(tile.Reference.Scene.SourceID).To(Equal(tileToIngest.ReferenceSceneID))
+					expectTileToProcessToBeIngested(tile, leaf1SceneToIngest)
 				})
 			})
 		})
@@ -564,8 +571,8 @@ var _ = Describe("Workflow", func() {
 		})
 	})
 
-	Describe("Getting Root and Leaf tiles", func() {
-		var rootLeaf []common.Tile
+	Describe("Getting Root tiles", func() {
+		var roots []common.Tile
 		BeforeEach(func() {
 			_, _, _, idb0, idb1, _ := initDbScenesTiles(true)
 			tileQueue.messages = nil
@@ -583,11 +590,47 @@ var _ = Describe("Workflow", func() {
 				Message: "error",
 			})
 
-			rootLeaf, err = wf.RootLeafTiles(ctx, aoi)
+			roots, err = wf.RootTiles(ctx, aoi)
 			Expect(err).NotTo(HaveOccurred())
 		})
-		It("should returns three tiles", func() {
-			Expect(len(rootLeaf)).To(Equal(3))
+		It("should returns two tiles", func() {
+			Expect(len(roots)).To(Equal(2))
+			if roots[0].Scene.SourceID == "S1B_IW_SLC__1SDV_20180806T170022_20180806T170050_012145_0165D7_27D6" {
+				expectTileToBeIngested(roots[0], rootSceneToIngest)
+				expectTileToBeIngested(roots[1], leaf2SceneToIngest)
+			} else {
+				expectTileToBeIngested(roots[0], leaf2SceneToIngest)
+				expectTileToBeIngested(roots[1], rootSceneToIngest)
+			}
+		})
+	})
+
+	Describe("Getting Leaf tiles", func() {
+		var leaves []common.Tile
+		BeforeEach(func() {
+			_, _, _, idb0, idb1, _ := initDbScenesTiles(true)
+			tileQueue.messages = nil
+			sceneQueue.messages = nil
+			wf.ResultHandler(ctx, common.Result{
+				Type:    common.ResultTypeTile,
+				ID:      idb0,
+				Status:  common.StatusFAILED,
+				Message: "error",
+			})
+			wf.ResultHandler(ctx, common.Result{
+				Type:    common.ResultTypeTile,
+				ID:      idb1,
+				Status:  common.StatusFAILED,
+				Message: "error",
+			})
+
+			leaves, err = wf.LeafTiles(ctx, aoi)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("should returns two leaf tiles", func() {
+			Expect(len(leaves)).To(Equal(2))
+			expectTileToBeIngested(leaves[0], leaf2SceneToIngest)
+			expectTileToBeIngested(leaves[1], leaf2SceneToIngest)
 		})
 	})
 })
