@@ -106,7 +106,7 @@
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <file>${outputVV}</file>
-      <formatName>GeoTIFF-BigTIFF</formatName>
+      <formatName>GeoTIFF</formatName>
     </parameters>
   </node>
   <node id="BandSelectVH">
@@ -127,7 +127,7 @@
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <file>${outputVH}</file>
-      <formatName>GeoTIFF-BigTIFF</formatName>
+      <formatName>GeoTIFF</formatName>
     </parameters>
   </node>
   <applicationData id="Presentation">
