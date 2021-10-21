@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	neturl "net/url"
 	"syscall"
 
@@ -64,4 +65,27 @@ func Fatal(err error) bool {
 		return tmp.Fatal()
 	}
 	return false
+}
+
+// MergeErrors, appending texts
+// if priorityToErr is true, priority to the fatal error then to the temporary
+// else, priority to no error, then to the temporary and finally to the fatal error.
+func MergeErrors(priorityToError bool, err error, newErrs ...error) error {
+	if len(newErrs) == 0 {
+		return err
+	}
+	newErr := newErrs[0]
+
+	if err == nil {
+		err = newErr
+	} else if newErr == nil {
+		if !priorityToError {
+			err = nil
+		}
+	} else if priorityToError != Temporary(err) {
+		err = fmt.Errorf("%w\n %v", err, newErr)
+	} else {
+		err = fmt.Errorf("%w\n %v", newErr, err)
+	}
+	return MergeErrors(priorityToError, err, newErrs[1:]...)
 }

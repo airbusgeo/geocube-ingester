@@ -29,17 +29,11 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 
 	// Download with the first successful imageProvider
 	log.Logger(ctx).Sugar().Infof("downloading %s", scene.SourceID)
-	var err, e error
+	var err error
 	for _, imageProvider := range imageProviders {
-		if e = imageProvider.Download(ctx, scene.SourceID, scene.Data.UUID, workdir); e == nil {
-			err = nil
+		e := imageProvider.Download(ctx, scene.SourceID, scene.Data.UUID, workdir)
+		if err = service.MergeErrors(false, err, e); err == nil {
 			break
-		} else if err == nil {
-			err = e
-		} else if service.Temporary(err) {
-			err = fmt.Errorf("%w\n%v", err, e)
-		} else {
-			err = fmt.Errorf("%w\n%v", e, err)
 		}
 		log.Logger(ctx).Sugar().Warnf("%v", e)
 	}
