@@ -25,6 +25,7 @@ require (
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	go.uber.org/zap v1.16.0
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/api v0.49.0
 	google.golang.org/grpc v1.39.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect

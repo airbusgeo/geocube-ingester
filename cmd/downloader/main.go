@@ -124,7 +124,7 @@ func run(ctx context.Context) error {
 			}
 		}
 		if config.PsEventTopic != "" {
-			logMessaging += fmt.Sprintf(" pulling on %s/%s", config.Project, config.PsEventTopic)
+			logMessaging += fmt.Sprintf(" pushing on %s/%s", config.Project, config.PsEventTopic)
 			eventTopic, err := pubsub.NewPublisher(ctx, config.Project, config.PsEventTopic, pubsub.WithMaxRetries(5))
 			if err != nil {
 				return fmt.Errorf("pubsub.NewPublisher: %w", err)

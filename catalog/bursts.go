@@ -7,7 +7,6 @@ import (
 	"math"
 	"runtime"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
@@ -17,33 +16,8 @@ import (
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/gcs"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/paulsmith/gogeos/geos"
+	"golang.org/x/sync/errgroup"
 )
-
-// WaitGroup overload sync.WaitGroup, adding error management
-type WaitGroup struct {
-	sync.WaitGroup
-	cancel func()
-
-	errOnce sync.Once
-	err     error
-}
-
-// Error cancels the wait groupe and sets error
-func (wg *WaitGroup) Error(err error) {
-	if err != nil {
-		wg.errOnce.Do(func() {
-			wg.err = err
-			wg.cancel()
-		})
-	}
-}
-
-// Wait overload WaitGroup.Wait
-func (wg *WaitGroup) Wait() error {
-	wg.WaitGroup.Wait()
-	wg.cancel()
-	return wg.err
-}
 
 func sceneBurstsInventory(ctx context.Context, scene *entities.Scene, pareaAOI *geos.PGeometry, annotationsProvider catalog.AnnotationsProvider) error {
 	log.Logger(ctx).Debug("Load annotations of " + scene.SourceID)
@@ -71,17 +45,17 @@ func sceneBurstsInventory(ctx context.Context, scene *entities.Scene, pareaAOI *
 	return nil
 }
 
-func sceneBurstsInventoryWorker(ctx context.Context, wg *WaitGroup, jobs <-chan *entities.Scene, pareaAOI *geos.PGeometry, annotationsProvider catalog.AnnotationsProvider) {
+func sceneBurstsInventoryWorker(ctx context.Context, jobs <-chan *entities.Scene, pareaAOI *geos.PGeometry, annotationsProvider catalog.AnnotationsProvider) error {
 	for scene := range jobs {
 		select {
 		case <-ctx.Done():
 		default:
 			if err := sceneBurstsInventory(ctx, scene, pareaAOI, annotationsProvider); err != nil {
-				wg.Error(err)
+				return err
 			}
 		}
-		wg.Done()
 	}
+	return nil
 }
 
 // BurstsInventory creates an inventory of all the bursts of the given scenes
@@ -95,9 +69,7 @@ func (c *Catalog) BurstsInventory(ctx context.Context, aoi geos.Geometry, scenes
 	pareaAOI := areaAOI.Prepare()
 
 	// Create group
-	ctx, cancel := context.WithCancel(ctx)
-	wg := WaitGroup{cancel: cancel}
-	wg.Add(len(scenes))
+	wg, ctx := errgroup.WithContext(ctx)
 	jobChan := make(chan *entities.Scene, len(scenes))
 
 	var annotationsProvider catalog.AnnotationsProvider
@@ -109,7 +81,7 @@ func (c *Catalog) BurstsInventory(ctx context.Context, aoi geos.Geometry, scenes
 
 	// Start 10 workers
 	for i := 0; i < 10 && i < len(scenes); i++ {
-		go sceneBurstsInventoryWorker(ctx, &wg, jobChan, pareaAOI, annotationsProvider)
+		wg.Go(func() error { return sceneBurstsInventoryWorker(ctx, jobChan, pareaAOI, annotationsProvider) })
 	}
 
 	// Push jobs
