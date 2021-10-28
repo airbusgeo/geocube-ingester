@@ -24,45 +24,8 @@ type Provider struct {
 }
 
 func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) ([]*entities.Scene, error) {
-	var platformname string
-
-	// Lower case
-	for k, v := range area.SceneType.Parameters {
-		area.SceneType.Parameters[k] = strings.ToLower(v)
-	}
-
 	// Construct Query
-	switch entities.GetConstellation(area.SceneType.Constellation) {
-	case entities.Sentinel1:
-		platformname = "Sentinel-1"
-		// Default values
-		if _, ok := area.SceneType.Parameters["producttype"]; !ok {
-			area.SceneType.Parameters["producttype"] = "SLC"
-		}
-		if _, ok := area.SceneType.Parameters["polarisationmode"]; !ok {
-			area.SceneType.Parameters["polarisationmode"] = "VV VH"
-		}
-		if _, ok := area.SceneType.Parameters["sensoroperationalmode"]; !ok {
-			area.SceneType.Parameters["sensoroperationalmode"] = "IW"
-		}
-	case entities.Sentinel2:
-		platformname = "Sentinel-2"
-		// Default values
-		if _, ok := area.SceneType.Parameters["producttype"]; !ok {
-			area.SceneType.Parameters["producttype"] = "S2MSI1C"
-		}
-	default:
-		return nil, fmt.Errorf("constellation not supported: " + area.SceneType.Constellation)
-	}
-
-	parameters := []string{fmt.Sprintf("platformname:%s", platformname)}
-	for k, v := range area.SceneType.Parameters {
-		parameters = append(parameters, fmt.Sprintf("%s:%s", k, v))
-	}
-
-	query := strings.Join(parameters, " AND ")
-
-	// Append aoi
+	var parameters []string
 	{
 		convexhull, err := aoi.ConvexHull()
 		if err != nil {
@@ -74,15 +37,50 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 			return nil, fmt.Errorf("Scihub.searchScenes.ToWKT: %w", err)
 		}
 
-		query += " AND ( footprint:\"Intersects(" + convexhullWKT + ")\")"
+		parameters = append(parameters, "( footprint:\"Intersects("+convexhullWKT+")\")")
 	}
 
 	// Append time
 	{
 		startDate := area.StartTime.Format("2006-01-02") + "T00:00:00.000Z"
 		endDate := area.EndTime.Format("2006-01-02") + "T23:59:59.999Z"
-		query += " AND beginPosition:[" + startDate + " TO " + endDate + "] AND endPosition:[" + startDate + " TO " + endDate + "]"
+		parameters = append(parameters,
+			fmt.Sprintf("(beginPosition:[ %s TO %s ] )", startDate, endDate),
+			fmt.Sprintf("(endPosition:[ %s TO %s ] )", startDate, endDate))
 	}
+
+	// Append parameters (lower case)
+	for k, v := range area.SceneType.Parameters {
+		area.SceneType.Parameters[k] = strings.ToLower(v)
+	}
+	switch entities.GetConstellation(area.SceneType.Constellation) {
+	case entities.Sentinel1:
+		area.SceneType.Parameters["platformname"] = "Sentinel-1"
+		// Default values
+		if _, ok := area.SceneType.Parameters["producttype"]; !ok {
+			area.SceneType.Parameters["producttype"] = "SLC"
+		}
+		if _, ok := area.SceneType.Parameters["polarisationmode"]; !ok {
+			area.SceneType.Parameters["polarisationmode"] = "VV VH"
+		}
+		if _, ok := area.SceneType.Parameters["sensoroperationalmode"]; !ok {
+			area.SceneType.Parameters["sensoroperationalmode"] = "IW"
+		}
+	case entities.Sentinel2:
+		area.SceneType.Parameters["platformname"] = "Sentinel-2"
+		// Default values
+		if _, ok := area.SceneType.Parameters["producttype"]; !ok {
+			area.SceneType.Parameters["producttype"] = "S2MSI1C"
+		}
+	default:
+		return nil, fmt.Errorf("constellation not supported: " + area.SceneType.Constellation)
+	}
+
+	for k, v := range area.SceneType.Parameters {
+		parameters = append(parameters, fmt.Sprintf("( %s:%s )", k, v))
+	}
+
+	query := strings.Join(parameters, " AND ")
 
 	// Execute query
 	rawscenes, err := s.queryScihub(ctx, "https://apihub.copernicus.eu/apihub/search?q=", query)
