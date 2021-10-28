@@ -203,6 +203,10 @@ func (s *Provider) queryScihub(ctx context.Context, baseurl, query string) ([]ma
 		// Read results to retrieve scenes
 		results := struct {
 			XMLName xml.Name `xml:"feed"`
+			Error   struct {
+				Code    string `xml:"code"`
+				Message string `xml:"message"`
+			} `xml:"error"`
 			Entries []struct {
 				StrElements  []Element `xml:"str"`
 				IntElements  []Element `xml:"int"`
@@ -215,6 +219,9 @@ func (s *Provider) queryScihub(ctx context.Context, baseurl, query string) ([]ma
 		}{}
 		if err := xml.Unmarshal(xmlResults, &results); err != nil {
 			return nil, fmt.Errorf("queryScihub.Unmarshal : %w (response: %s)", err, xmlResults)
+		}
+		if results.Error.Code != "" {
+			return nil, fmt.Errorf("queryScihub : %s[code:%s]", results.Error.Message, results.Error.Code)
 		}
 
 		// Merge all elements of the scene into a dict
