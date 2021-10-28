@@ -196,6 +196,60 @@ type MultiLineStringer interface {
 	LineStrings() [][][2]float64
 }
 
+// MultiLineZStringer is a geometry with multiple LineZStrings.
+type MultiLineStringZer interface {
+	Geometry
+	LineStringZs() [][][3]float64
+}
+
+// MultiLineMStringer is a geometry with multiple LineMStrings.
+type MultiLineStringMer interface {
+	Geometry
+	LineStringMs() [][][3]float64
+}
+
+// MultiLineZMStringer is a geometry with multiple LineZMStrings.
+type MultiLineStringZMer interface {
+	Geometry
+	LineStringZMs() [][][4]float64
+}
+
+// MultiLineSStringer is a geometry with multiple LineSStrings.
+type MultiLineStringSer interface {
+	Geometry
+	MultiLineStrings() struct {
+		Srid uint32
+		Mls  MultiLineString
+	}
+}
+
+// MultiLineZSStringer is a geometry with multiple LineZSStrings.
+type MultiLineStringZSer interface {
+	Geometry
+	MultiLineStringZs() struct {
+		Srid uint32
+		Mlsz MultiLineStringZ
+	}
+}
+
+// MultiLineMSStringer is a geometry with multiple LineMSStrings.
+type MultiLineStringMSer interface {
+	Geometry
+	MultiLineStringMs() struct {
+		Srid uint32
+		Mlsm MultiLineStringM
+	}
+}
+
+// MultiLineZMSStringer is a geometry with multiple LineZMSStrings.
+type MultiLineStringZMSer interface {
+	Geometry
+	MultiLineStringZMs() struct {
+		Srid  uint32
+		Mlszm MultiLineStringZM
+	}
+}
+
 // Polygoner is a geometry consisting of multiple Linear Rings.
 // There must be only one exterior LineString with a clockwise winding order.
 // There may be one or more interior LineStrings with a counterclockwise winding orders.
@@ -203,6 +257,53 @@ type MultiLineStringer interface {
 type Polygoner interface {
 	Geometry
 	LinearRings() [][][2]float64
+}
+
+type PolygonZer interface {
+	Geometry
+	LinearRings() [][][3]float64
+}
+
+type PolygonMer interface {
+	Geometry
+	LinearRings() [][][3]float64
+}
+
+type PolygonZMer interface {
+	Geometry
+	LinearRings() [][][4]float64
+}
+
+type PolygonSer interface {
+	Geometry
+	LinearRings() struct {
+		Srid uint32
+		Pol  Polygon
+	}
+}
+
+type PolygonZSer interface {
+	Geometry
+	LinearRings() struct {
+		Srid uint32
+		Polz PolygonZ
+	}
+}
+
+type PolygonMSer interface {
+	Geometry
+	LinearRings() struct {
+		Srid uint32
+		Polm PolygonM
+	}
+}
+
+type PolygonZMSer interface {
+	Geometry
+	LinearRings() struct {
+		Srid  uint32
+		Polzm PolygonZM
+	}
 }
 
 // MultiPolygoner is a geometry of multiple polygons.
@@ -436,51 +537,11 @@ func ExtractLines(g Geometry) (lines []Line, err error) {
 	return lines, err
 }
 
-// helper function to check it the given interface is nil, or the
+// IsNil is a helper function to check it the given interface is nil, or the
 // value store in it is nil
-func isNil(a interface{}) bool {
+func IsNil(a interface{}) bool {
 	defer func() { recover() }()
 	return a == nil || reflect.ValueOf(a).IsNil()
-}
-
-// IsEmpty returns if the geometry represents an empty geometry
-func IsEmpty(geo Geometry) bool {
-	if isNil(geo) {
-		return true
-	}
-	switch g := geo.(type) {
-	case Point:
-		return g[0] == nan && g[1] == nan
-	case Pointer:
-		xy := g.XY()
-		return xy[0] == nan && xy[1] == nan
-	case LineString:
-		return len(g) == 0
-	case LineStringer:
-		return len(g.Vertices()) == 0
-	case Polygon:
-		return len(g) == 0
-	case Polygoner:
-		return len(g.LinearRings()) == 0
-	case MultiPoint:
-		return len(g) == 0
-	case MultiPointer:
-		return len(g.Points()) == 0
-	case MultiLineString:
-		return len(g) == 0
-	case MultiLineStringer:
-		return len(g.LineStrings()) == 0
-	case MultiPolygon:
-		return len(g) == 0
-	case MultiPolygoner:
-		return len(g.Polygons()) == 0
-	case Collection:
-		return len(g) == 0
-	case Collectioner:
-		return len(g.Geometries()) == 0
-	default:
-		return true
-	}
 }
 
 // RoundToPrec will round the given value to the precision value.

@@ -1,21 +1,12 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/go-spatial/geom"
 	"github.com/go-spatial/geom/encoding/geojson"
 )
 
 // UnmarshalGeometry, merging featureCollections and geometryCollections into a multipolygon
 func UnmarshalGeometry(data []byte) (_ geom.Geometry, err error) {
-	defer func() {
-		// recover from panic if one occured. Set err to nil otherwise.
-		if recover() != nil {
-			err = fmt.Errorf("UnmarshalGeometry: panic !! Check json structure (e.g. missing 'type' fields)")
-		}
-	}()
-
 	var g geojson.Geometry
 	if err := g.UnmarshalJSON(data); err != nil {
 		return g.Geometry, err
