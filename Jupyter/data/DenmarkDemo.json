@@ -1,5 +1,5 @@
 {
-    "aoi":"DenmarkDemo",
+    "name":"DenmarkDemo",
     "type":"Feature",
     "geometry":{
         "type": "MultiPolygon",

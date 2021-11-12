@@ -31,7 +31,7 @@ func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
 		return fmt.Errorf("validateArea.AOI: %w", err)
 	}
 	if !matched {
-		return fmt.Errorf("validateArea: wrong format for AOIID (must be chars, numbers and -:_): %w", err)
+		return fmt.Errorf("validateArea: wrong format for AOIID (must be chars, numbers and -:_ found '%s')", area.AOIID)
 	}
 
 	// Check constellation

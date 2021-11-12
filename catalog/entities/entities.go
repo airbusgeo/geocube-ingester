@@ -47,7 +47,7 @@ type SceneType struct {
 
 // AreaToIngest is the input of the catalog
 type AreaToIngest struct {
-	AOIID          string `json:"aoi"`
+	AOIID          string `json:"name"`
 	AOI            geom.Geometry
 	StartTime      time.Time         `json:"start_time"`
 	EndTime        time.Time         `json:"end_time"`
