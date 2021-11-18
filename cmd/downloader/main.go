@@ -207,10 +207,10 @@ func run(ctx context.Context) error {
 		http.ListenAndServe(":9000", nil)
 	}()
 
-	maxTries := 15 //Must be less than the configured number of tries of the pubsub topic
+	maxTries := 15
 	log.Logger(ctx).Debug("downloader starts " + logMessaging + " downloading image from " + strings.Join(providerNames, ", "))
 	for {
-		err := jobConsumer.Pull(ctx, func(ctx context.Context, msg *messaging.Message) (finalerr error) {
+		err := jobConsumer.Pull(ctx, func(ctx context.Context, msg *messaging.Message) (err error) {
 			jobStarted = time.Now()
 			defer func() {
 				jobStarted = time.Time{}
@@ -228,8 +228,13 @@ func run(ctx context.Context) error {
 			}
 
 			defer func() {
-				if finalerr != nil {
+				if err != nil && service.Temporary(err) {
+					log.Logger(ctx).Warn("job temporary failure", zap.Error(err))
 					return
+				}
+				if err != nil {
+					log.Logger(ctx).Warn("job failed", zap.Error(err))
+					message = err.Error()
 				}
 				res := common.Result{
 					Type:    common.ResultTypeScene,
@@ -237,26 +242,22 @@ func run(ctx context.Context) error {
 					Status:  status,
 					Message: message,
 				}
-				resb, err := json.Marshal(res)
-				if err != nil {
-					finalerr = service.MakeTemporary(fmt.Errorf("marshal: %w", err))
-				} else if err := eventPublisher.Publish(ctx, resb); err != nil {
-					finalerr = service.MakeTemporary(fmt.Errorf("failed to enqueue result: %w", err))
+				resb, e := json.Marshal(res)
+				if e != nil {
+					err = service.MakeTemporary(fmt.Errorf("marshal: %w", e))
+				} else if e := eventPublisher.Publish(ctx, resb); e != nil {
+					err = service.MakeTemporary(fmt.Errorf("failed to enqueue result: %w", e))
 				}
 			}()
+			if msg.TryCount > maxTries {
+				return fmt.Errorf("too many retries")
+			}
 
 			if err := downloader.ProcessScene(ctx, imageProviders, storageService, scene, config.WorkingDir); err != nil {
 				if msg.TryCount >= maxTries {
-					log.Logger(ctx).Error("failing job after too many retries", zap.Error(err))
-					message = err.Error()
-				} else if !service.Temporary(err) {
-					log.Logger(ctx).Error("job failed", zap.Error(err))
-					message = err.Error()
-				} else {
-					log.Logger(ctx).Warn("job temporary failure", zap.Error(err))
-					finalerr = err
+					return fmt.Errorf("too many retries: %w", err)
 				}
-				return
+				return err
 			}
 			log.Logger(ctx).Sugar().Infof("successfully processed scene %s", scene.SourceID)
 			status = common.StatusDONE
