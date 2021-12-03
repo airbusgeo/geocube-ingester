@@ -19,8 +19,7 @@ RUN cd cmd && go install .
 
 FROM gcr.io/distroless/base
 
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libgeos_c.so.1 \
-                    /usr/lib/x86_64-linux-gnu/libgeos-3.7.1.so \
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libgeos* \
                     /usr/lib/x86_64-linux-gnu/libstdc++.so.6 \
                     /lib/x86_64-linux-gnu/libgcc_s.so.1 \
                     /usr/lib/x86_64-linux-gnu/

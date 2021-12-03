@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-import gdal
+from osgeo import gdal
 import gdalconst
 import sys
 import numpy as np
