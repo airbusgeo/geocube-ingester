@@ -80,7 +80,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		parameters = append(parameters, fmt.Sprintf("( %s:%s )", k, v))
 	}
 
-	query := strings.Join(parameters, " AND ")
+	query := "(" + strings.Join(parameters, " AND ") + ")"
 
 	// Execute query
 	rawscenes, err := s.queryScihub(ctx, "https://apihub.copernicus.eu/apihub/search?q=", query)
