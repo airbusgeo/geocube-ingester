@@ -14,14 +14,15 @@ import (
 	"github.com/airbusgeo/geocube-ingester/interface/catalog"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/creodias"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/gcs"
+	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/paulsmith/gogeos/geos"
 	"golang.org/x/sync/errgroup"
 )
 
-func sceneBurstsInventory(ctx context.Context, scene *entities.Scene, pareaAOI *geos.PGeometry, annotationsProvider catalog.AnnotationsProvider) error {
+func sceneBurstsInventory(ctx context.Context, scene *entities.Scene, pareaAOI *geos.PGeometry, annotationsProviders []catalog.AnnotationsProvider) error {
 	log.Logger(ctx).Debug("Load annotations of " + scene.SourceID)
-	bursts, err := burstsFromAnnotations(ctx, scene, annotationsProvider)
+	bursts, err := burstsFromAnnotations(ctx, scene, annotationsProviders)
 	if err != nil {
 		return err
 	}
@@ -45,12 +46,12 @@ func sceneBurstsInventory(ctx context.Context, scene *entities.Scene, pareaAOI *
 	return nil
 }
 
-func sceneBurstsInventoryWorker(ctx context.Context, jobs <-chan *entities.Scene, pareaAOI *geos.PGeometry, annotationsProvider catalog.AnnotationsProvider) error {
+func sceneBurstsInventoryWorker(ctx context.Context, jobs <-chan *entities.Scene, pareaAOI *geos.PGeometry, annotationsProviders []catalog.AnnotationsProvider) error {
 	for scene := range jobs {
 		select {
 		case <-ctx.Done():
 		default:
-			if err := sceneBurstsInventory(ctx, scene, pareaAOI, annotationsProvider); err != nil {
+			if err := sceneBurstsInventory(ctx, scene, pareaAOI, annotationsProviders); err != nil {
 				return err
 			}
 		}
@@ -72,16 +73,15 @@ func (c *Catalog) BurstsInventory(ctx context.Context, aoi geos.Geometry, scenes
 	wg, ctx := errgroup.WithContext(ctx)
 	jobChan := make(chan *entities.Scene, len(scenes))
 
-	var annotationsProvider catalog.AnnotationsProvider
+	var annotationsProviders []catalog.AnnotationsProvider
 	if c.GCStorageURL != "" {
-		annotationsProvider = gcs.AnnotationsProvider{Bucket: c.GCStorageURL}
-	} else {
-		annotationsProvider = creodias.AnnotationsProvider{}
+		annotationsProviders = append(annotationsProviders, gcs.AnnotationsProvider{Bucket: c.GCStorageURL})
 	}
+	annotationsProviders = append(annotationsProviders, creodias.AnnotationsProvider{})
 
 	// Start 10 workers
 	for i := 0; i < 10 && i < len(scenes); i++ {
-		wg.Go(func() error { return sceneBurstsInventoryWorker(ctx, jobChan, pareaAOI, annotationsProvider) })
+		wg.Go(func() error { return sceneBurstsInventoryWorker(ctx, jobChan, pareaAOI, annotationsProviders) })
 	}
 
 	// Push jobs
@@ -153,8 +153,15 @@ func (c *Catalog) BurstsSort(ctx context.Context, scenes []*entities.Scene) int 
 }
 
 // burstsFromAnnotations loads bursts features (anxtime, swath and geometry) from annotation files
-func burstsFromAnnotations(ctx context.Context, scene *entities.Scene, annotationsProvider catalog.AnnotationsProvider) ([]*entities.Tile, error) {
-	annotationsFiles, err := annotationsProvider.AnnotationsFiles(ctx, scene)
+func burstsFromAnnotations(ctx context.Context, scene *entities.Scene, annotationsProviders []catalog.AnnotationsProvider) ([]*entities.Tile, error) {
+	var err, e error
+	var annotationsFiles map[string][]byte
+	for _, annotationsProvider := range annotationsProviders {
+		annotationsFiles, e = annotationsProvider.AnnotationsFiles(ctx, scene)
+		if err = service.MergeErrors(false, err, e); err == nil {
+			break
+		}
+	}
 	if err != nil {
 		return nil, fmt.Errorf("burstsFromAnnotations.%w", err)
 	}
