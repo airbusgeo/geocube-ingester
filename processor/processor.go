@@ -32,7 +32,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 	}
 
 	// Graph
-	g, config, err := graph.LoadGraph(tile.Data.GraphName)
+	g, config, err := graph.LoadGraph(ctx, tile.Data.GraphName)
 	if err != nil {
 		return fmt.Errorf("ProcessTile[%s_%s].%w", tile.Scene.Data.Date.Format("20060102"), tile.SourceID, err)
 	}
@@ -80,7 +80,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 	for i, outtilefile := range outfiles {
 		logtilename := fmt.Sprintf("%s_%s", tiles[i].Scene.Data.Date.Format("20060102"), tiles[i].SourceID)
 		for _, f := range outtilefile {
-			switch f.Status {
+			switch f.Action {
 			case graph.ToCreate, graph.ToIndex:
 				// Export output layers to storage
 				log.Logger(ctx).Sugar().Infof("save tile %s.%s", logtilename, f.Layer)
@@ -89,7 +89,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 					return fmt.Errorf("ProcessTile[%s].%w", logtilename, err)
 				}
 				// Index tile
-				if f.Status == graph.ToIndex {
+				if f.Action == graph.ToIndex {
 					if err := indexTile(ctx, gcclient, tiles[i], tiles[i].Scene.Data.InstancesID, tiles[i].Scene.Data.RecordID, f, uri); err != nil {
 						if geocube.Code(err) == codes.AlreadyExists {
 							log.Logger(ctx).Sugar().Warnf("ProcessTile[%s].indexTile already exists", logtilename)
@@ -155,7 +155,7 @@ func indexTile(ctx context.Context, gcclient *geocube.Client, tile common.Tile, 
 	}
 
 	// Index
-	if err := gcclient.IndexDataset(uri, true, "", recordID, instanceID, []int64{1}, &dformat, file.RealMin, file.RealMax, file.Exponent); err != nil {
+	if err := gcclient.IndexDataset(uri, true, "", recordID, instanceID, []int64{1}, &dformat, file.ExtMin, file.ExtMax, file.Exponent); err != nil {
 		return err
 	}
 	return nil

@@ -1,0 +1,95 @@
+{
+ "config": {
+  "bs_erode_iterations": "10",
+  "coh_erode_iterations": "10",
+  "coherence_azimuth": "4",
+  "coherence_range": "16",
+  "dem_egm_correction": "True",
+  "dem_file": "",
+  "dem_name": "SRTM 3Sec",
+  "dem_nodata": "0",
+  "dem_resampling": "BILINEAR_INTERPOLATION",
+  "dformat-out": "float32,0,0,1",
+  "img_resampling": "BICUBIC_INTERPOLATION",
+  "projection": "EPSG:4326",
+  "resolution": "20",
+  "snap_cpu_parallelism": "1",
+  "terrain_correction_azimuth": "1",
+  "terrain_correction_range": "4"
+ },
+ "processing_steps": [
+  {
+   "engine": "snap",
+   "command": "snap/S1_SLC_BkG.xml",
+   "args": {
+     "dem_file": { "type": "config", "value": "dem_file" },
+     "dem_name": { "type": "config", "value": "dem_name" },
+     "dem_nodata": { "type": "config", "value": "dem_nodata" },
+     "dem_resampling": { "type": "config", "value": "dem_resampling" },
+     "master": { "type": "in", "tile_index": 2, "layer": "preprocessed", "extension": "dim" },
+     "output": { "type": "out", "layer": "coregistred", "extension": "dim" },
+     "output_deramp": { "type": "fixed", "value": "true" },
+     "slave": { "type": "in", "tile_index": 0, "layer": "preprocessed", "extension": "dim" }
+   },
+   "condition": "pass"
+  },
+  {
+   "engine": "snap",
+   "command": "snap/S1_SLC_SlvExtract.xml",
+   "args": {
+     "input": { "type": "in", "tile_index": 0, "layer": "coregistred", "extension": "dim" },
+     "output": { "type": "out", "layer": "coregextract", "extension": "dim" }
+   },
+   "condition": "different_T0_T1"
+  }
+ ],
+ "in_files": [
+  [
+   {
+     "layer": "preprocessed",
+     "extension": "dim",
+     "optional": false
+   }
+  ],
+  [],
+  [
+   {
+     "layer": "preprocessed",
+     "extension": "dim",
+     "optional": false
+   }
+  ]
+ ],
+ "out_files": [
+  [
+   {
+     "layer": "coregextract",
+     "extension": "dim",
+     "action": "to_create"
+   },
+   {
+    "layer": "preprocessed",
+    "extension": "dim",
+    "action": "to_delete"
+   }
+  ],
+  [
+    {
+      "layer": "coregextract",
+      "extension": "dim",
+      "action": "to_delete"
+     }
+  ],
+  []
+ ],
+ "out_files_conditions": [
+  [
+    "different_T0_T1",
+    "different_T0_T1"
+  ],
+  [
+    "different_T1_T2"
+  ],
+  []
+ ]
+}

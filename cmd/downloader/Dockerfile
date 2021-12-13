@@ -19,6 +19,7 @@ RUN echo -e "\nsnap.versionCheck.interval=NEVER" >> /usr/local/snap/etc/snap.pro
     echo "$line"; [ "$line" == "updates=0" ] && pkill -f "snap/jre/bin/java"; done'; exit 0
 
 COPY ./graph/snap/*.xml /data/graph/snap/
+COPY ./graph/library/*.json /data/graph/library/
 COPY --from=builder /go/bin/cmd /downloader
 
 ENTRYPOINT ["/downloader"]

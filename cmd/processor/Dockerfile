@@ -23,6 +23,7 @@ RUN apt-get update && \
 
 COPY ./graph/snap/*.xml /data/graph/snap/
 COPY ./graph/python/*.py /data/graph/python/
+COPY ./graph/library/*.json /data/graph/library/
 COPY --from=builder /go/bin/cmd /processor
 
 

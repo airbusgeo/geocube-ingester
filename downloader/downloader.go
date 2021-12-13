@@ -56,7 +56,7 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 // ProcessTile extracts the tile from the scene and preprocesses it
 func ProcessTile(ctx context.Context, storageService service.Storage, scene common.Scene, tile string) error {
 	// Load the graph
-	g, config, err := graph.LoadGraph(scene.Data.GraphName)
+	g, config, err := graph.LoadGraph(ctx, scene.Data.GraphName)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, scene comm
 	for i, outtilefiles := range outfiles {
 		logtilename := fmt.Sprintf("%s_%s", tiles[i].Scene.Data.Date.Format("20060102"), tiles[i].SourceID)
 		for _, f := range outtilefiles {
-			switch f.Status {
+			switch f.Action {
 			case graph.ToCreate:
 				if _, err := storageService.SaveLayer(ctx, tiles[i], f.Layer, f.Extension, ""); err != nil {
 					return fmt.Errorf("ProcessTile[%s].%w", logtilename, err)

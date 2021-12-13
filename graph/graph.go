@@ -2,7 +2,10 @@ package graph
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -12,6 +15,7 @@ import (
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
+	"github.com/airbusgeo/geocube/interface/storage/uri"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -29,40 +33,40 @@ const (
 	snapDateFormat = "02Jan2006"
 )
 
-func condDiffB0B1(tiles []common.Tile) bool {
-	return tiles[0].Scene.SourceID != tiles[1].Scene.SourceID
+// TileCondition is a condition on tiles to do an action (execute a step, create a file...)
+type TileCondition struct {
+	Name string
+	pass func([]common.Tile) bool
 }
 
-func condDiffB1B2(tiles []common.Tile) bool {
-	return tiles[1].Scene.SourceID != tiles[2].Scene.SourceID
+// condPass is a tileCondition always true
+var pass = TileCondition{"pass", func(tiles []common.Tile) bool { return true }}
+
+// condDiffTile returns true if tile1 != tile2
+var condDiffT0T1 = TileCondition{"different_T0_T1", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[1].Scene.SourceID }}
+var condDiffT0T2 = TileCondition{"different_T0_T2", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[2].Scene.SourceID }}
+var condDiffT1T2 = TileCondition{"different_T1_T2", func(tiles []common.Tile) bool { return tiles[1].Scene.SourceID != tiles[2].Scene.SourceID }}
+
+type Arg interface{}
+
+type ArgIn struct { // input of the graph
+	Input     int               `json:"tile_index"` // Index of input [0, 1, 2]
+	Layer     service.Layer     `json:"layer"`
+	Extension service.Extension `json:"extension"`
 }
-
-type arg interface{}
-
-type argTileIn struct { // argTileIn : tile input of the graph
-	Input     int // Num of input [0, 1, 2]
-	Layer     service.Layer
-	Extension service.Extension
+type ArgOut struct { // output of the graph
+	service.Layer `json:"layer"`
+	Extension     service.Extension `json:"extension"`
 }
-type argOut struct { // output of the graph
-	service.Layer
-	Extension service.Extension
-}
-type argFixed string  // fixed arg
-type argConfig string // arg from config
-type argTile string   // arg from tile info
+type ArgFixed string  // fixed arg
+type ArgConfig string // arg from config
+type ArgTile string   // arg from tile info
 
-// tileCondition is a condition on tiles to execute a step or to create an outfile
-type tileCondition func([]common.Tile) bool
-
-// pass is a tileCondition always true
-var pass tileCondition = func([]common.Tile) bool { return true }
-
-type processingStep struct {
+type ProcessingStep struct {
 	Engine    string // Python or Snap
 	Command   string
-	Args      map[string]arg
-	Condition tileCondition
+	Args      map[string]Arg
+	Condition TileCondition
 }
 
 // DType of an output file
@@ -104,12 +108,12 @@ func DTypeFromString(dtype string) DType {
 	}
 }
 
-// OutFileStatus
-type OutFileStatus int32
+// OutFileAction
+type OutFileAction int32
 
-// OutFileStatus
+// OutFileAction
 const (
-	ToIgnore OutFileStatus = iota
+	ToIgnore OutFileAction = iota
 	ToCreate
 	ToIndex
 	ToDelete
@@ -117,39 +121,41 @@ const (
 
 // File is a layer with an extension
 type File struct {
-	Layer     service.Layer
-	Extension service.Extension
+	Layer     service.Layer     `json:"layer"`
+	Extension service.Extension `json:"extension"`
 }
 
 // InFile describes an input file of the processing
 type InFile struct {
 	File
-	Optional bool
+	Optional bool `json:"optional"`
 }
 
 // OutFile describes an output file of the processing
 type OutFile struct {
 	File
-	dformatOut       arg // argFixed or argConfig
-	DType            DType
-	NoData           float64
-	Min, Max         float64
-	RealMin, RealMax float64
-	Exponent         float64
-	Status           OutFileStatus
+	dformatOut Arg           // argFixed or argConfig
+	DType      DType         `json:"datatype"`
+	NoData     float64       `json:"nodata"`
+	Min        float64       `json:"min_value"`
+	Max        float64       `json:"max_value"`
+	ExtMin     float64       `json:"ext_min_value"`
+	ExtMax     float64       `json:"ext_max_value"`
+	Exponent   float64       `json:"exponent"`
+	Action     OutFileAction `json:"action"`
 }
 
-func newOutFile(layer service.Layer, ext service.Extension, dformatOut arg, realmin, realmax, exponent float64, status OutFileStatus) OutFile {
+func newOutFile(layer service.Layer, ext service.Extension, dformatOut Arg, realmin, realmax, exponent float64, status OutFileAction) OutFile {
 	return OutFile{
 		File: File{
 			Layer:     layer,
 			Extension: ext,
 		},
 		dformatOut: dformatOut,
-		RealMin:    realmin,
-		RealMax:    realmax,
+		ExtMin:     realmin,
+		ExtMax:     realmax,
 		Exponent:   exponent,
-		Status:     status,
+		Action:     status,
 	}
 }
 
@@ -185,20 +191,31 @@ type GraphConfig map[string]string
 
 // ProcessingGraph is a set of steps
 type ProcessingGraph struct {
-	steps        []processingStep
+	steps        []ProcessingStep
 	snap         string
 	InFiles      [3][]InFile
 	outFiles     [][]OutFile
-	outfilesCond [][]tileCondition // Conditions to output a file (must have the same dimension as outFiles)
+	outfilesCond [][]TileCondition // Conditions to output a file (must have the same dimension as outFiles)
 }
 
-func newProcessingGraph(snapPath string, steps []processingStep, infiles [3][]InFile, outfiles [][]OutFile, outfilesCond [][]tileCondition) (*ProcessingGraph, error) {
+func fileExists(cwd, file string) (string, error) {
+	if _, err := os.Stat(file); err == nil || !errors.Is(err, os.ErrNotExist) || cwd == "" {
+		return file, err
+	}
+	file = path.Join(cwd, file)
+	return fileExists("", file)
+}
+
+func newProcessingGraph(snapPath string, steps []ProcessingStep, infiles [3][]InFile, outfiles [][]OutFile, outfilesCond [][]TileCondition) (*ProcessingGraph, error) {
 	// Check commands
-	snapRequired := true
-	for _, step := range steps {
-		if _, err := os.Stat(step.Command); err != nil {
+	graphPath := Getenv("GRAPHPATH", "/data/graph")
+	snapRequired := false
+	for i, step := range steps {
+		cmd, err := fileExists(graphPath, step.Command)
+		if err != nil {
 			return nil, fmt.Errorf("newProcessingGraph: Command not found: %s", step.Command)
 		}
+		steps[i].Command = cmd
 		if step.Engine == snap {
 			snapRequired = true
 		}
@@ -220,7 +237,7 @@ func newProcessingGraph(snapPath string, steps []processingStep, infiles [3][]In
 }
 
 // LoadGraph returns the graph from its name and its default configuration
-func LoadGraph(graphName string) (*ProcessingGraph, GraphConfig, error) {
+func LoadGraph(ctx context.Context, graphName string) (*ProcessingGraph, GraphConfig, error) {
 	switch graphName {
 	case "S1Preprocessing":
 		g, err := newS1PreProcessingGraph()
@@ -247,7 +264,55 @@ func LoadGraph(graphName string) (*ProcessingGraph, GraphConfig, error) {
 		}
 		return g, S1DefaultConfig(), nil
 	}
-	return nil, nil, fmt.Errorf("unknown graph: %s", graphName)
+
+	return LoadGraphFromFile(ctx, graphName)
+}
+
+// LoadGraphFromFile returns the graph from a filename
+func LoadGraphFromFile(ctx context.Context, graphFile string) (*ProcessingGraph, GraphConfig, error) {
+	f, err := fileExists(Getenv("GRAPHPATH", "/data/graph"), graphFile)
+	if err != nil {
+		// Try to download it
+		graphFileUri, e := uri.ParseUri(graphFile)
+		if e != nil {
+			return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: unknown graph (%w-%v)", graphFile, err, e)
+		}
+		graphFilePath, err := ioutil.TempFile("", "")
+		if err != nil {
+			return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: unable to create temp file: %w", graphFile, err)
+		}
+		graphFilePath.Close()
+		defer os.Remove(graphFilePath.Name())
+		if err = graphFileUri.DownloadToFile(ctx, graphFilePath.Name()); err != nil {
+			return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: unable to download graph: %w", graphFile, err)
+		}
+
+		return LoadGraphFromFile(ctx, graphFilePath.Name())
+	}
+	graphFile = f
+	jsonFile, err := os.Open(graphFile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
+	}
+	defer jsonFile.Close()
+
+	byteValue, err := ioutil.ReadAll(jsonFile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
+	}
+
+	var graphJSON ProcessingGraphJSON
+	if err := json.Unmarshal(byteValue, &graphJSON); err != nil {
+		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
+	}
+
+	snapPath := Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
+	graph, err := newProcessingGraph(snapPath, graphJSON.Steps, graphJSON.InFiles, graphJSON.OutFiles, graphJSON.OutfilesCond)
+	if err != nil {
+		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
+	}
+
+	return graph, graphJSON.Config, nil
 }
 
 // S1DefaultConfig returns a basic configuration
@@ -284,34 +349,33 @@ func Getenv(key, def string) string {
 // newS1PreProcessingGraph creates a new preprocessing graph for S1 (to use with )
 func newS1PreProcessingGraph() (*ProcessingGraph, error) {
 	snapPath := Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
-	graphPath := Getenv("GRAPHPATH", "/data/graph")
 
 	// Define inputs
 	infiles := [3][]InFile{}
 
 	// Define outputs
 	outfiles := [][]OutFile{
-		{newOutFile(service.LayerPreprocessed, service.ExtensionDIMAP, argFixed("float32,0,0,1"), 0, 1, 1, ToCreate)},
+		{newOutFile(service.LayerPreprocessed, service.ExtensionDIMAP, ArgFixed("float32,0,0,1"), 0, 1, 1, ToCreate)},
 		{},
 		{},
 	}
 
-	outfilesCond := [][]tileCondition{{pass}, {}, {}}
+	outfilesCond := [][]TileCondition{{pass}, {}, {}}
 
 	// Create processing steps
-	steps := []processingStep{
+	steps := []ProcessingStep{
 		// Extract burst from image and preprocess
 		{
 			Engine:    snap,
-			Command:   path.Join(graphPath, snap, "S1_SLC_BurstSplit_AO_CAL.xml"),
+			Command:   path.Join(snap, "S1_SLC_BurstSplit_AO_CAL.xml"),
 			Condition: pass,
 
-			Args: map[string]arg{
-				"input":  argTile(sceneName),
-				"output": argOut{service.LayerPreprocessed, service.ExtensionDIMAP},
-				"swath":  argTile(burstSwath),
-				"polar":  argFixed("\"VV VH\""),
-				"burst":  argTile(tileNumber),
+			Args: map[string]Arg{
+				"input":  ArgTile(sceneName),
+				"output": ArgOut{service.LayerPreprocessed, service.ExtensionDIMAP},
+				"swath":  ArgTile(burstSwath),
+				"polar":  ArgFixed("\"VV VH\""),
+				"burst":  ArgTile(tileNumber),
 			},
 		},
 	}
@@ -322,7 +386,6 @@ func newS1PreProcessingGraph() (*ProcessingGraph, error) {
 // newS1BsCohGraph creates a new processing graph to compute Backscatter and Coherence of S1 images
 func newS1BsCohGraph() (*ProcessingGraph, error) {
 	snapPath := Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
-	graphPath := Getenv("GRAPHPATH", "/data/graph")
 
 	// Define inputs
 	infiles := [3][]InFile{
@@ -334,230 +397,230 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			newOutFile(service.LayerBackscatterVV, service.ExtensionGTiff, argConfig("dformat-out"), 0, 1, 1, ToIndex),
-			newOutFile(service.LayerBackscatterVH, service.ExtensionGTiff, argConfig("dformat-out"), 0, 1, 1, ToIndex),
-			newOutFile(service.LayerCoherenceVV, service.ExtensionGTiff, argConfig("dformat-out"), 0, 1, 1, ToIndex),
-			newOutFile(service.LayerCoherenceVH, service.ExtensionGTiff, argConfig("dformat-out"), 0, 1, 1, ToIndex),
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Status: ToCreate},
-			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Status: ToDelete},
+			newOutFile(service.LayerBackscatterVV, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex),
+			newOutFile(service.LayerBackscatterVH, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex),
+			newOutFile(service.LayerCoherenceVV, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex),
+			newOutFile(service.LayerCoherenceVH, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex),
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate},
+			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete},
 		},
 		{
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Status: ToDelete},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete},
 		},
 		{},
 	}
 
-	outfilesCond := [][]tileCondition{
-		{pass, pass, condDiffB0B1, condDiffB0B1, condDiffB0B1, condDiffB0B1},
-		{condDiffB1B2},
+	outfilesCond := [][]TileCondition{
+		{pass, pass, condDiffT0T1, condDiffT0T1, condDiffT0T1, condDiffT0T1},
+		{condDiffT1T2},
 		{},
 	}
 
 	// Create processing steps
-	steps := []processingStep{
+	steps := []ProcessingStep{
 		// Coregistration with ref burst
 		{
 			Engine:    snap,
-			Command:   path.Join(graphPath, snap, "S1_SLC_BkG.xml"),
+			Command:   path.Join(snap, "S1_SLC_BkG.xml"),
 			Condition: pass,
 
-			Args: map[string]arg{
-				"master":         argTileIn{Input: 2, Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP},
-				"slave":          argTileIn{Input: 0, Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP},
-				"output":         argOut{service.LayerCoregistrated, service.ExtensionDIMAP},
-				"dem_name":       argConfig("dem_name"),
-				"dem_file":       argConfig("dem_file"),
-				"dem_nodata":     argConfig("dem_nodata"),
-				"dem_resampling": argConfig("dem_resampling"),
-				"output_deramp":  argFixed("true"),
+			Args: map[string]Arg{
+				"master":         ArgIn{Input: 2, Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP},
+				"slave":          ArgIn{Input: 0, Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP},
+				"output":         ArgOut{service.LayerCoregistrated, service.ExtensionDIMAP},
+				"dem_name":       ArgConfig("dem_name"),
+				"dem_file":       ArgConfig("dem_file"),
+				"dem_nodata":     ArgConfig("dem_nodata"),
+				"dem_resampling": ArgConfig("dem_resampling"),
+				"output_deramp":  ArgFixed("true"),
 			},
 		},
 
 		// Extraction of coregistred slave
 		{
 			Engine:    snap,
-			Command:   path.Join(graphPath, snap, "S1_SLC_SlvExtract.xml"),
-			Condition: condDiffB0B1,
+			Command:   path.Join(snap, "S1_SLC_SlvExtract.xml"),
+			Condition: condDiffT0T1,
 
-			Args: map[string]arg{
-				"input":  argTileIn{Input: 0, Layer: service.LayerCoregistrated, Extension: service.ExtensionDIMAP},
-				"output": argOut{service.LayerCoregExtract, service.ExtensionDIMAP},
+			Args: map[string]Arg{
+				"input":  ArgIn{Input: 0, Layer: service.LayerCoregistrated, Extension: service.ExtensionDIMAP},
+				"output": ArgOut{service.LayerCoregExtract, service.ExtensionDIMAP},
 			},
 		},
 
 		// Backscatter computation
 		{
 			Engine:    snap,
-			Command:   path.Join(graphPath, snap, "S1_SLC_Deb_BetaSigma_ML_TC_RNKELL.xml"),
+			Command:   path.Join(snap, "S1_SLC_Deb_BetaSigma_ML_TC_RNKELL.xml"),
 			Condition: pass,
 
-			Args: map[string]arg{
-				"input":             argTileIn{Input: 0, Layer: service.LayerCoregistrated, Extension: service.ExtensionDIMAP},
-				"outputVV":          argOut{service.LayerBackscatterVV, service.ExtensionGTiff},
-				"outputVH":          argOut{service.LayerBackscatterVH, service.ExtensionGTiff},
-				"range_multilook":   argConfig("terrain_correction_range"),
-				"azimuth_multilook": argConfig("terrain_correction_azimuth"),
-				"dem_name":          argConfig("dem_name"),
-				"dem_file":          argConfig("dem_file"),
-				"dem_nodata":        argConfig("dem_nodata"),
-				"dem_egm":           argConfig("dem_egm_correction"),
-				"dem_resampling":    argConfig("dem_resampling"),
-				"img_resampling":    argConfig("img_resampling"),
-				"projection":        argConfig("projection"),
-				"resolution":        argConfig("resolution"),
-				"grid_align":        argFixed("true"),
-				"band":              argFixed("Sigma0"),
-				"trig":              argFixed("sin"),
-				"swath":             argTile(burstSwath),
-				"img_suffix":        argTile(sceneDate),
+			Args: map[string]Arg{
+				"input":             ArgIn{Input: 0, Layer: service.LayerCoregistrated, Extension: service.ExtensionDIMAP},
+				"outputVV":          ArgOut{service.LayerBackscatterVV, service.ExtensionGTiff},
+				"outputVH":          ArgOut{service.LayerBackscatterVH, service.ExtensionGTiff},
+				"range_multilook":   ArgConfig("terrain_correction_range"),
+				"azimuth_multilook": ArgConfig("terrain_correction_azimuth"),
+				"dem_name":          ArgConfig("dem_name"),
+				"dem_file":          ArgConfig("dem_file"),
+				"dem_nodata":        ArgConfig("dem_nodata"),
+				"dem_egm":           ArgConfig("dem_egm_correction"),
+				"dem_resampling":    ArgConfig("dem_resampling"),
+				"img_resampling":    ArgConfig("img_resampling"),
+				"projection":        ArgConfig("projection"),
+				"resolution":        ArgConfig("resolution"),
+				"grid_align":        ArgFixed("true"),
+				"band":              ArgFixed("Sigma0"),
+				"trig":              ArgFixed("sin"),
+				"swath":             ArgTile(burstSwath),
+				"img_suffix":        ArgTile(sceneDate),
 			},
 		},
 
 		{
 			Engine:    python,
-			Command:   path.Join(graphPath, python, "erodeMask.py"),
+			Command:   path.Join(python, "erodeMask.py"),
 			Condition: pass,
 
-			Args: map[string]arg{
-				"file-in":    argOut{service.LayerBackscatterVV, service.ExtensionGTiff},
-				"file-out":   argOut{service.LayerBackscatterVV, service.ExtensionGTiff},
-				"no-data":    argFixed("0"),
-				"iterations": argConfig("bs_erode_iterations"),
+			Args: map[string]Arg{
+				"file-in":    ArgOut{service.LayerBackscatterVV, service.ExtensionGTiff},
+				"file-out":   ArgOut{service.LayerBackscatterVV, service.ExtensionGTiff},
+				"no-data":    ArgFixed("0"),
+				"iterations": ArgConfig("bs_erode_iterations"),
 			},
 		},
 
 		{
 			Engine:    command,
-			Command:   path.Join(graphPath, python, "convert.py"),
+			Command:   path.Join(python, "convert.py"),
 			Condition: pass,
 
-			Args: map[string]arg{
-				"file-in":     argOut{service.LayerBackscatterVV, service.ExtensionGTiff},
-				"file-out":    argOut{service.LayerBackscatterVV, service.ExtensionGTiff},
-				"range-in":    argFixed("0,1"),
-				"dformat-out": argConfig("dformat-out"),
+			Args: map[string]Arg{
+				"file-in":     ArgOut{service.LayerBackscatterVV, service.ExtensionGTiff},
+				"file-out":    ArgOut{service.LayerBackscatterVV, service.ExtensionGTiff},
+				"range-in":    ArgFixed("0,1"),
+				"dformat-out": ArgConfig("dformat-out"),
 			},
 		},
 
 		{
 			Engine:    python,
-			Command:   path.Join(graphPath, python, "erodeMask.py"),
+			Command:   path.Join(python, "erodeMask.py"),
 			Condition: pass,
 
-			Args: map[string]arg{
-				"file-in":    argOut{service.LayerBackscatterVH, service.ExtensionGTiff},
-				"file-out":   argOut{service.LayerBackscatterVH, service.ExtensionGTiff},
-				"no-data":    argFixed("0"),
-				"iterations": argConfig("bs_erode_iterations"),
+			Args: map[string]Arg{
+				"file-in":    ArgOut{service.LayerBackscatterVH, service.ExtensionGTiff},
+				"file-out":   ArgOut{service.LayerBackscatterVH, service.ExtensionGTiff},
+				"no-data":    ArgFixed("0"),
+				"iterations": ArgConfig("bs_erode_iterations"),
 			},
 		},
 
 		{
 			Engine:    command,
-			Command:   path.Join(graphPath, python, "convert.py"),
+			Command:   path.Join(python, "convert.py"),
 			Condition: pass,
 
-			Args: map[string]arg{
-				"file-in":     argOut{service.LayerBackscatterVH, service.ExtensionGTiff},
-				"file-out":    argOut{service.LayerBackscatterVH, service.ExtensionGTiff},
-				"range-in":    argFixed("0,1"),
-				"dformat-out": argConfig("dformat-out"),
+			Args: map[string]Arg{
+				"file-in":     ArgOut{service.LayerBackscatterVH, service.ExtensionGTiff},
+				"file-out":    ArgOut{service.LayerBackscatterVH, service.ExtensionGTiff},
+				"range-in":    ArgFixed("0,1"),
+				"dformat-out": ArgConfig("dformat-out"),
 			},
 		},
 
 		// Coregistration with prev burst
 		{
 			Engine:    snap,
-			Command:   path.Join(graphPath, snap, "S1_SLC_BkG.xml"),
-			Condition: condDiffB1B2,
+			Command:   path.Join(snap, "S1_SLC_BkG.xml"),
+			Condition: condDiffT1T2,
 
-			Args: map[string]arg{
-				"master":         argTileIn{Input: 0, Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP},
-				"slave":          argTileIn{Input: 1, Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP},
-				"output":         argOut{service.LayerCoregistrated, service.ExtensionDIMAP},
-				"dem_name":       argConfig("dem_name"),
-				"dem_file":       argConfig("dem_file"),
-				"dem_nodata":     argConfig("dem_nodata"),
-				"dem_resampling": argConfig("dem_resampling"),
-				"output_deramp":  argFixed("false"),
+			Args: map[string]Arg{
+				"master":         ArgIn{Input: 0, Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP},
+				"slave":          ArgIn{Input: 1, Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP},
+				"output":         ArgOut{service.LayerCoregistrated, service.ExtensionDIMAP},
+				"dem_name":       ArgConfig("dem_name"),
+				"dem_file":       ArgConfig("dem_file"),
+				"dem_nodata":     ArgConfig("dem_nodata"),
+				"dem_resampling": ArgConfig("dem_resampling"),
+				"output_deramp":  ArgFixed("false"),
 			},
 		},
 
 		// Coherence computation
 		{
 			Engine:    snap,
-			Command:   path.Join(graphPath, snap, "S1_SLC_Coh_BSel_Deb_ML_TC.xml"),
-			Condition: condDiffB0B1,
+			Command:   path.Join(snap, "S1_SLC_Coh_BSel_Deb_ML_TC.xml"),
+			Condition: condDiffT0T1,
 
-			Args: map[string]arg{
-				"input":             argTileIn{Input: 0, Layer: service.LayerCoregistrated, Extension: service.ExtensionDIMAP},
-				"outputVV":          argOut{service.LayerCoherenceVV, service.ExtensionGTiff},
-				"outputVH":          argOut{service.LayerCoherenceVH, service.ExtensionGTiff},
-				"coherence_range":   argConfig("coherence_range"),
-				"coherence_azimuth": argConfig("coherence_azimuth"),
-				"sel_date":          argTile(burstCohDate),
-				"range_multilook":   argConfig("terrain_correction_range"),
-				"azimuth_multilook": argConfig("terrain_correction_azimuth"),
-				"dem_name":          argConfig("dem_name"),
-				"dem_file":          argConfig("dem_file"),
-				"dem_nodata":        argConfig("dem_nodata"),
-				"dem_egm":           argConfig("dem_egm_correction"),
-				"dem_resampling":    argConfig("dem_resampling"),
-				"img_resampling":    argConfig("img_resampling"),
-				"projection":        argConfig("projection"),
-				"resolution":        argConfig("resolution"),
-				"grid_align":        argFixed("true"),
+			Args: map[string]Arg{
+				"input":             ArgIn{Input: 0, Layer: service.LayerCoregistrated, Extension: service.ExtensionDIMAP},
+				"outputVV":          ArgOut{service.LayerCoherenceVV, service.ExtensionGTiff},
+				"outputVH":          ArgOut{service.LayerCoherenceVH, service.ExtensionGTiff},
+				"coherence_range":   ArgConfig("coherence_range"),
+				"coherence_azimuth": ArgConfig("coherence_azimuth"),
+				"sel_date":          ArgTile(burstCohDate),
+				"range_multilook":   ArgConfig("terrain_correction_range"),
+				"azimuth_multilook": ArgConfig("terrain_correction_azimuth"),
+				"dem_name":          ArgConfig("dem_name"),
+				"dem_file":          ArgConfig("dem_file"),
+				"dem_nodata":        ArgConfig("dem_nodata"),
+				"dem_egm":           ArgConfig("dem_egm_correction"),
+				"dem_resampling":    ArgConfig("dem_resampling"),
+				"img_resampling":    ArgConfig("img_resampling"),
+				"projection":        ArgConfig("projection"),
+				"resolution":        ArgConfig("resolution"),
+				"grid_align":        ArgFixed("true"),
 			},
 		},
 		{
 			Engine:    python,
-			Command:   path.Join(graphPath, python, "erodeMask.py"),
-			Condition: condDiffB0B1,
+			Command:   path.Join(python, "erodeMask.py"),
+			Condition: condDiffT0T1,
 
-			Args: map[string]arg{
-				"file-in":    argOut{service.LayerCoherenceVV, service.ExtensionGTiff},
-				"file-out":   argOut{service.LayerCoherenceVV, service.ExtensionGTiff},
-				"no-data":    argFixed("0"),
-				"iterations": argConfig("coh_erode_iterations"),
+			Args: map[string]Arg{
+				"file-in":    ArgOut{service.LayerCoherenceVV, service.ExtensionGTiff},
+				"file-out":   ArgOut{service.LayerCoherenceVV, service.ExtensionGTiff},
+				"no-data":    ArgFixed("0"),
+				"iterations": ArgConfig("coh_erode_iterations"),
 			},
 		},
 
 		{
 			Engine:    command,
-			Command:   path.Join(graphPath, python, "convert.py"),
-			Condition: condDiffB0B1,
+			Command:   path.Join(python, "convert.py"),
+			Condition: condDiffT0T1,
 
-			Args: map[string]arg{
-				"file-in":     argOut{service.LayerCoherenceVV, service.ExtensionGTiff},
-				"file-out":    argOut{service.LayerCoherenceVV, service.ExtensionGTiff},
-				"range-in":    argFixed("0,1"),
-				"dformat-out": argConfig("dformat-out"),
+			Args: map[string]Arg{
+				"file-in":     ArgOut{service.LayerCoherenceVV, service.ExtensionGTiff},
+				"file-out":    ArgOut{service.LayerCoherenceVV, service.ExtensionGTiff},
+				"range-in":    ArgFixed("0,1"),
+				"dformat-out": ArgConfig("dformat-out"),
 			},
 		},
 
 		{
 			Engine:    python,
-			Command:   path.Join(graphPath, python, "erodeMask.py"),
-			Condition: condDiffB0B1,
+			Command:   path.Join(python, "erodeMask.py"),
+			Condition: condDiffT0T1,
 
-			Args: map[string]arg{
-				"file-in":    argOut{service.LayerCoherenceVH, service.ExtensionGTiff},
-				"file-out":   argOut{service.LayerCoherenceVH, service.ExtensionGTiff},
-				"no-data":    argFixed("0"),
-				"iterations": argConfig("coh_erode_iterations"),
+			Args: map[string]Arg{
+				"file-in":    ArgOut{service.LayerCoherenceVH, service.ExtensionGTiff},
+				"file-out":   ArgOut{service.LayerCoherenceVH, service.ExtensionGTiff},
+				"no-data":    ArgFixed("0"),
+				"iterations": ArgConfig("coh_erode_iterations"),
 			},
 		},
 
 		{
 			Engine:    command,
-			Command:   path.Join(graphPath, python, "convert.py"),
-			Condition: condDiffB0B1,
+			Command:   path.Join(python, "convert.py"),
+			Condition: condDiffT0T1,
 
-			Args: map[string]arg{
-				"file-in":     argOut{service.LayerCoherenceVH, service.ExtensionGTiff},
-				"file-out":    argOut{service.LayerCoherenceVH, service.ExtensionGTiff},
-				"range-in":    argFixed("0,1"),
-				"dformat-out": argConfig("dformat-out"),
+			Args: map[string]Arg{
+				"file-in":     ArgOut{service.LayerCoherenceVH, service.ExtensionGTiff},
+				"file-out":    ArgOut{service.LayerCoherenceVH, service.ExtensionGTiff},
+				"range-in":    ArgFixed("0,1"),
+				"dformat-out": ArgConfig("dformat-out"),
 			},
 		},
 	}
@@ -568,7 +631,6 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 // newS1CoregExtractGraph creates a new processing graph to compute Coherence of S1 images
 func newS1CoregExtractGraph() (*ProcessingGraph, error) {
 	snapPath := Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
-	graphPath := Getenv("GRAPHPATH", "/data/graph")
 
 	// Define inputs
 	infiles := [3][]InFile{
@@ -580,50 +642,50 @@ func newS1CoregExtractGraph() (*ProcessingGraph, error) {
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Status: ToCreate},
-			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Status: ToDelete},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate},
+			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete},
 		},
 		{
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Status: ToDelete},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete},
 		},
 		{},
 	}
 
-	outfilesCond := [][]tileCondition{
-		{condDiffB0B1, condDiffB0B1},
-		{condDiffB1B2},
+	outfilesCond := [][]TileCondition{
+		{condDiffT0T1, condDiffT0T1},
+		{condDiffT1T2},
 		{},
 	}
 
 	// Create processing steps
-	steps := []processingStep{
+	steps := []ProcessingStep{
 		// Coregistration with ref burst
 		{
 			Engine:    snap,
-			Command:   path.Join(graphPath, snap, "S1_SLC_BkG.xml"),
-			Condition: pass,
+			Command:   path.Join(snap, "S1_SLC_BkG.xml"),
+			Condition: condDiffT0T1,
 
-			Args: map[string]arg{
-				"master":         argTileIn{Input: 2, Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP},
-				"slave":          argTileIn{Input: 0, Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP},
-				"output":         argOut{service.LayerCoregistrated, service.ExtensionDIMAP},
-				"dem_name":       argConfig("dem_name"),
-				"dem_file":       argConfig("dem_file"),
-				"dem_nodata":     argConfig("dem_nodata"),
-				"dem_resampling": argConfig("dem_resampling"),
-				"output_deramp":  argFixed("true"),
+			Args: map[string]Arg{
+				"master":         ArgIn{Input: 2, Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP},
+				"slave":          ArgIn{Input: 0, Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP},
+				"output":         ArgOut{service.LayerCoregistrated, service.ExtensionDIMAP},
+				"dem_name":       ArgConfig("dem_name"),
+				"dem_file":       ArgConfig("dem_file"),
+				"dem_nodata":     ArgConfig("dem_nodata"),
+				"dem_resampling": ArgConfig("dem_resampling"),
+				"output_deramp":  ArgFixed("true"),
 			},
 		},
 
 		// Extraction of coregistred slave
 		{
 			Engine:    snap,
-			Command:   path.Join(graphPath, snap, "S1_SLC_SlvExtract.xml"),
-			Condition: condDiffB0B1,
+			Command:   path.Join(snap, "S1_SLC_SlvExtract.xml"),
+			Condition: condDiffT0T1,
 
-			Args: map[string]arg{
-				"input":  argTileIn{Input: 0, Layer: service.LayerCoregistrated, Extension: service.ExtensionDIMAP},
-				"output": argOut{service.LayerCoregExtract, service.ExtensionDIMAP},
+			Args: map[string]Arg{
+				"input":  ArgIn{Input: 0, Layer: service.LayerCoregistrated, Extension: service.ExtensionDIMAP},
+				"output": ArgOut{service.LayerCoregExtract, service.ExtensionDIMAP},
 			},
 		},
 	}
@@ -641,20 +703,20 @@ func newS1CleanGraph() (*ProcessingGraph, error) {
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Status: ToDelete},
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Status: ToDelete},
+			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete},
 		},
 		{},
 		{},
 	}
 
-	outfilesCond := [][]tileCondition{
+	outfilesCond := [][]TileCondition{
 		{pass, pass},
 		{},
 		{},
 	}
 
-	return newProcessingGraph(snapPath, []processingStep{}, infiles, outfiles, outfilesCond)
+	return newProcessingGraph(snapPath, []ProcessingStep{}, infiles, outfiles, outfilesCond)
 }
 
 func cmdToString(cmd *exec.Cmd) string {
@@ -672,7 +734,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, tiles
 	pythonFilter := PythonLogFilter{}
 	snapFilter := SNAPLogFilter{}
 	for _, step := range g.steps {
-		if !step.Condition(tiles) {
+		if !step.Condition.pass(tiles) {
 			continue
 		}
 
@@ -713,7 +775,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, tiles
 	outfiles := make([][]OutFile, len(tiles))
 	for i, outfs := range g.outFiles {
 		for j, f := range outfs {
-			if g.outfilesCond[i][j](tiles) {
+			if g.outfilesCond[i][j].pass(tiles) {
 				if err := f.setDFormatOut(config); err != nil {
 					return nil, fmt.Errorf("Process: %w", err)
 				}
@@ -801,7 +863,7 @@ func (f *SNAPLogFilter) Filter(msg string, defaultLevel zapcore.Level) (string, 
 	return msg, defaultLevel, false
 }
 
-func (step processingStep) formatArgs(config GraphConfig, tiles []common.Tile) ([]string, error) {
+func (step ProcessingStep) formatArgs(config GraphConfig, tiles []common.Tile) ([]string, error) {
 
 	var args []string
 	switch step.Engine {
@@ -838,26 +900,26 @@ func (step processingStep) formatArgs(config GraphConfig, tiles []common.Tile) (
 	return args, nil
 }
 
-func formatArgs(arg arg, config GraphConfig, tiles []common.Tile) (string, error) {
+func formatArgs(arg Arg, config GraphConfig, tiles []common.Tile) (string, error) {
 	var valstr string
 	switch key := arg.(type) {
 	// Input (tile)
-	case argTileIn:
+	case ArgIn:
 		if key.Input >= len(tiles) {
-			return "", fmt.Errorf("argTileIn: not enough tiles provided")
+			return "", fmt.Errorf("ArgIn: not enough tiles provided")
 		}
 		valstr = service.LayerFileName(tiles[key.Input], key.Layer, key.Extension)
 
 	// Output
-	case argOut:
+	case ArgOut:
 		valstr = service.LayerFileName(tiles[0], service.Layer(key.Layer), key.Extension)
 
 	// Fixed arg
-	case argFixed:
+	case ArgFixed:
 		valstr = string(key)
 
 	// Specific args from tile
-	case argTile:
+	case ArgTile:
 		switch key {
 		case burstSwath:
 			valstr = tiles[0].Data.SwathID
@@ -878,7 +940,7 @@ func formatArgs(arg arg, config GraphConfig, tiles []common.Tile) (string, error
 		}
 
 	// Specific args from config
-	case argConfig:
+	case ArgConfig:
 		var ok bool
 		if valstr, ok = config[string(key)]; !ok {
 			return "", fmt.Errorf("key '%s' not found in config", key)
