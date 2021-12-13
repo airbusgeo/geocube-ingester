@@ -21,11 +21,13 @@ func (wf *Workflow) NewRouter() *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/", wf.GetStatus).Methods("GET")
 	r.HandleFunc("/scene/{scene}", wf.GetSceneHandler).Methods("GET")
+	r.HandleFunc("/scene/{scene}/data", wf.UpdateSceneDataHandler).Methods("PUT")
 	r.HandleFunc("/scene/{scene}/tiles", wf.ListSceneTilesHandler).Methods("GET")
 	r.HandleFunc("/scene/{scene}/retry", wf.RetrySceneHandler).Methods("PUT")
 	r.HandleFunc("/scene/{scene}/fail", wf.FailSceneHandler).Methods("PUT")
 	r.HandleFunc("/scene/{scene}/force/{status}", wf.ForceSceneStatusHandler).Methods("PUT")
 	r.HandleFunc("/tile/{tile}", wf.GetTileHandler).Methods("GET")
+	r.HandleFunc("/tile/{tile}/data", wf.UpdateTileDataHandler).Methods("PUT")
 	r.HandleFunc("/tile/{tile}/retry", wf.RetryTileHandler).Methods("PUT")
 	r.HandleFunc("/tile/{tile}/fail", wf.FailTileHandler).Methods("PUT")
 	r.HandleFunc("/tile/{tile}/force/{status}", wf.ForceTileStatusHandler).Methods("PUT")
@@ -93,6 +95,31 @@ func (wf *Workflow) GetSceneHandler(w http.ResponseWriter, req *http.Request) {
 	}
 	json.NewEncoder(w).Encode(im)
 
+}
+
+// UpdateSceneDataHandler update the data of a scene
+func (wf *Workflow) UpdateSceneDataHandler(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	scstr := mux.Vars(req)["scene"]
+	scene, err := strconv.Atoi(scstr)
+	if err != nil {
+		w.WriteHeader(400)
+		return
+	}
+	sceneData := common.SceneAttrs{}
+	dec := json.NewDecoder(req.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&sceneData); err != nil {
+		w.WriteHeader(400)
+		return
+	}
+	if err = wf.UpdateSceneData(ctx, scene, sceneData); err != nil {
+		log.Logger(ctx).Sugar().Warnf("update: %v", err)
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "%v", err)
+		return
+	}
+	w.WriteHeader(204)
 }
 
 // ListSceneTilesHandler lists the tiles of the scene
@@ -223,6 +250,31 @@ func (wf *Workflow) GetTileHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(im)
+}
+
+// UpdateTileDataHandler update the data of a tile
+func (wf *Workflow) UpdateTileDataHandler(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	tilestr := mux.Vars(req)["tile"]
+	tile, err := strconv.Atoi(tilestr)
+	if err != nil {
+		w.WriteHeader(400)
+		return
+	}
+	tileData := common.TileAttrs{}
+	dec := json.NewDecoder(req.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&tileData); err != nil {
+		w.WriteHeader(400)
+		return
+	}
+	if err = wf.UpdateTileData(ctx, tile, tileData); err != nil {
+		log.Logger(ctx).Sugar().Warnf("update: %v", err)
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "%v", err)
+		return
+	}
+	w.WriteHeader(204)
 }
 
 // RetryTileHandler retries the tile if its status is RETRY
@@ -415,6 +467,7 @@ func (wf *Workflow) CreateSceneHandler(w http.ResponseWriter, req *http.Request)
 		fmt.Fprintf(w, "%v", err)
 		return
 	}
+	w.WriteHeader(200)
 	fmt.Fprintf(w, "{\"id\":%d}", nid)
 }
 

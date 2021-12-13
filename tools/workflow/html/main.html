@@ -242,6 +242,19 @@
       })
     }
 
+    function updateData(type, id, input_id){
+      type = type.toLowerCase();
+      var data=$('#'+input_id).val();
+      try {
+        JSON.parse(data)
+        if (confirm("Are you sure to update the data of " + type + "[" + id + "] appending " + data + "?")){
+          putAction("data", type, id, null, data)
+        }
+      } catch(error){
+        window.alert("Parsing " + data + ": " + error)
+      }
+    }
+
     function deleteAOI(aoi){
       if (confirm("Are you sure to delete the aoi '" + aoi + "' and all its scenes and tiles from the database ?\nIt does not delete the layers from the Geocube.")){
         $("body").css("cursor", "progress");
@@ -267,37 +280,43 @@
     }
 
     function retryTile(id){
-      putAction("retry", "tile", id)
+      putAction("retry", "tile", id, "#tile"+id)
     }
     
     function retryScene(id){
-      putAction("retry", "scene", id)
+      putAction("retry", "scene", id, "#scene"+id)
     }
 
     function failScene(id){
-      putAction("fail", "scene", id)
+      putAction("fail", "scene", id, "#scene"+id)
     }
 
     function failTile(id){
-      putAction("fail", "tile", id)
+      putAction("fail", "tile", id, "#tile"+id)
     }
 
-    function putAction(action, type, id){
+    function putAction(action, type, id, div_id=null, data=null){
       $("body").css("cursor", "progress");
       $.ajax({
         headers: authHeaders(),
         url: url(type + "/" + id + "/" + action),
         type: 'PUT',
+        data: data,
       })
       .done(function(data) {
-        $( "#"+type+id ).html("action sent");
+        if (div_id != null){
+          $( div_id ).html("action sent");
+        }
+      })
+      .fail(function(data){
+        window.alert(data.statusText);
       })
       .always(function(){
         $("body").css("cursor", "default");
       });
     }
 
-    function formatJson(json, type_id, hidden_lvl=100000){
+    function formatJson(json, type_id, hidden_lvl=100000, addLine=null){
       if (json == null || json.length == 0){
         return ""
       }
@@ -305,10 +324,11 @@
       var first = true
       var cur_id = null
       $.each( json, function( key, val ) {
-        if ((key == "id" || key == "PreviousID" || key == "ReferenceID") && type_id != null && typeof(val) == "number"){
+        if ((key == "id"/* || key == "PreviousID" || key == "ReferenceID"*/) &&type_id != null && typeof(val) == "number"){
           cur_id = val
           val = formatLink("load" + type_id, val, val)
         }
+        var addLineNextLvl = null
         switch (key){
           case "scene":
             val_type_id = "Scene";
@@ -320,12 +340,17 @@
             if (val=="RETRY" && type_id != null && cur_id != null){
               val += "<div id=\"" + type_id.toLowerCase()+cur_id + "\">(" + formatLink("retry" + type_id, "retry", cur_id) + " or " + formatLink("fail" + type_id, "fail", cur_id) + ")</div>"
             }
+            break;
+          case "data":
+            input_id = type_id+cur_id+"_"+Math.floor(Math.random()*100000)+"_data"
+            addLineNextLvl = "<td><button onclick=\"updateData('"+type_id+"', "+cur_id+", '"+input_id+"')\" style='width:100px'>Edit Data</button></td><td><textarea style='width:300px;height:20px' id=\"" + input_id+"\">" +  JSON.stringify(json["data"], null, 2) + "</textarea></td>"
+            break;
           default:
             val_type_id = type_id;
         }
 
         if (typeof(val) == "object"){
-          val = formatJson(val, val_type_id, hidden_lvl-1)
+          val = formatJson(val, val_type_id, hidden_lvl-1, addLineNextLvl)
           if (hidden_lvl-1<=0){
             val = "<div>" + val + "</div>"
           }
@@ -337,6 +362,9 @@
           res += "</thead><tbody" + (hidden_lvl <= 0 ? " class=\"hidden\" style=\"display: none;\"":"") +">"
         }
       })
+      if (addLine != null){
+        res += "<tr style=\"vertical-align:top\">" + addLine + "</tr>"
+      }
       return res + (first ? "</thead>" : "</tbody>") + "</table>"
     }
 

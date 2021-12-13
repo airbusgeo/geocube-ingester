@@ -90,8 +90,10 @@ type WorkflowBackend interface {
 	Scenes(ctx context.Context, aoi string) ([]Scene, error)
 	// Update scene status & message (if != nil)
 	UpdateScene(ctx context.Context, id int, status common.Status, message *string) error
-	// Returns true if a scene with the given source exists
-	SceneExists(ctx context.Context, aoi, sourceID string) (bool, error)
+	// Update scene data
+	UpdateSceneAttrs(ctx context.Context, id int, data common.SceneAttrs) error
+	// Returns the id of a scene. May return ErrNotFound
+	SceneId(ctx context.Context, aoi, sourceID string) (int, error)
 
 	// Returns the status of the tiles of the aoi
 	TilesStatus(ctx context.Context, aoi string) (Status, error)
@@ -129,6 +131,8 @@ type WorkflowBackend interface {
 	// Update ref tile, setting newRefID
 	// Returns list of modified tiles
 	UpdateRefTiles(ctx context.Context, oldRefID int, newRefID int) error
+	// Update tile data
+	UpdateTileAttrs(ctx context.Context, id int, data common.TileAttrs) error
 }
 
 // UnitOfWork runs a function and commit the database at the end or rollback if the function returns an error

@@ -229,13 +229,28 @@ func (b Backend) UpdateScene(ctx context.Context, id int, status common.Status, 
 	return nil
 }
 
-// SceneExists implements WorkflowBackend
-func (b Backend) SceneExists(ctx context.Context, aoi, sourceID string) (bool, error) {
-	count := 0
-	if err := b.QueryRowContext(ctx, "select count(*) from scene where aoi_id=$1 and source_id=$2", aoi, sourceID).Scan(&count); err != nil {
-		return false, fmt.Errorf("SceneExists.QueryRowContext: %w", err)
+// UpdateSceneAttrs implements WorkflowBackend
+func (b Backend) UpdateSceneAttrs(ctx context.Context, id int, data common.SceneAttrs) error {
+	if _, err := b.ExecContext(ctx, "update scene set data=$1 where id=$2", data, id); err != nil {
+		return fmt.Errorf("UpdateSceneAttrs: %w", err)
 	}
-	return count != 0, nil
+	return nil
+}
+
+// SceneId implements WorkflowBackend
+func (b Backend) SceneId(ctx context.Context, aoi, sourceID string) (int, error) {
+	id := 0
+	err := b.QueryRowContext(ctx, "select id from scene where aoi_id=$1 and source_id=$2", aoi, sourceID).Scan(&id)
+
+	switch {
+	case err == sql.ErrNoRows:
+		return 0, db.ErrNotFound{Type: "Scene", ID: sourceID}
+
+	case err != nil:
+		return 0, fmt.Errorf("SceneExists.QueryRowContext: %w", err)
+	}
+
+	return id, nil
 }
 
 // TilesStatus implements WorkflowBackend
@@ -569,6 +584,14 @@ func (b Backend) UpdateRefTiles(ctx context.Context, oldRefID int, newRefID int)
 	// Other tiles
 	if _, err := b.ExecContext(ctx, "update tile set ref=$1 where ref=$2", newRefID, oldRefID); err != nil {
 		return fmt.Errorf("UpdateRefTiles.QueryContext: %w", err)
+	}
+	return nil
+}
+
+// UpdateTileAttrs implements WorkflowBackend
+func (b Backend) UpdateTileAttrs(ctx context.Context, id int, data common.TileAttrs) error {
+	if _, err := b.ExecContext(ctx, "update tile set data=$1 where id=$2", data, id); err != nil {
+		return fmt.Errorf("UpdateTileAttrs: %w", err)
 	}
 	return nil
 }

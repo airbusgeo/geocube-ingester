@@ -489,9 +489,9 @@ func (wf *Workflow) IngestScene(ctx context.Context, aoi string, scene common.Sc
 	}
 
 	// Check that the scene does not already exists
-	if exists, err := wf.SceneExists(ctx, aoi, scene.SourceID); err != nil {
+	if _, err := wf.SceneId(ctx, aoi, scene.SourceID); err != nil && !errors.As(err, &db.ErrNotFound{}) {
 		return 0, fmt.Errorf("query scene: %w", err)
-	} else if exists {
+	} else if err == nil {
 		return 0, db.ErrAlreadyExists{Type: "scene", ID: scene.SourceID}
 	}
 
@@ -514,6 +514,32 @@ func (wf *Workflow) IngestScene(ctx context.Context, aoi string, scene common.Sc
 	}
 
 	return scene.ID, nil
+}
+
+// UpdateSceneData update the data of a scene
+func (wf *Workflow) UpdateSceneData(ctx context.Context, sceneID int, data common.SceneAttrs) error {
+	wf.dbmu.Lock()
+	defer wf.dbmu.Unlock()
+	if err := db.UnitOfWork(ctx, wf, func(tx db.WorkflowTxBackend) error {
+		return tx.UpdateSceneAttrs(ctx, sceneID, data)
+	}); err != nil {
+		return fmt.Errorf("UpdateSceneData.%w", err)
+	}
+
+	return nil
+}
+
+// UpdateTileData update the data of a tile
+func (wf *Workflow) UpdateTileData(ctx context.Context, tileID int, data common.TileAttrs) error {
+	wf.dbmu.Lock()
+	defer wf.dbmu.Unlock()
+	if err := db.UnitOfWork(ctx, wf, func(tx db.WorkflowTxBackend) error {
+		return tx.UpdateTileAttrs(ctx, tileID, data)
+	}); err != nil {
+		return fmt.Errorf("UpdateTileData.%w", err)
+	}
+
+	return nil
 }
 
 func (wf *Workflow) publishScene(ctx context.Context, scene common.Scene) error {
