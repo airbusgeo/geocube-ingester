@@ -11,6 +11,7 @@ import (
 
 	"github.com/airbusgeo/geocube-ingester/common"
 	db "github.com/airbusgeo/geocube-ingester/interface/database"
+	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -71,7 +72,7 @@ func (wf *Workflow) GetSceneHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	im, err := wf.Scene(ctx, scene, nil)
-	if err == db.ErrNotFound {
+	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
 	}
@@ -95,7 +96,7 @@ func (wf *Workflow) ListSceneTilesHandler(w http.ResponseWriter, req *http.Reque
 		return
 	}
 	ims, err := wf.Tiles(ctx, "", scene, "", false)
-	if err == db.ErrNotFound {
+	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
 	}
@@ -114,7 +115,7 @@ func (wf *Workflow) ListAOITilesHandler(w http.ResponseWriter, req *http.Request
 	aoi := mux.Vars(req)["aoi"]
 	status := mux.Vars(req)["status"]
 	ims, err := wf.Tiles(ctx, aoi, 0, status, false)
-	if err == db.ErrNotFound {
+	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
 	}
@@ -202,7 +203,7 @@ func (wf *Workflow) GetTileHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	im, _, err := wf.Tile(ctx, tile, true)
-	if err == db.ErrNotFound {
+	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
 	}
@@ -345,7 +346,7 @@ func (wf *Workflow) GetAOIStatusHandler(w http.ResponseWriter, req *http.Request
 func (wf *Workflow) CreateAOIHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	if err := wf.CreateAOI(ctx, mux.Vars(req)["aoi"]); err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
+		if errors.As(err, &db.ErrAlreadyExists{}) {
 			w.WriteHeader(409)
 			return
 		}
@@ -370,7 +371,7 @@ func (wf *Workflow) CreateSceneHandler(w http.ResponseWriter, req *http.Request)
 	}
 	nid, err := wf.IngestScene(ctx, mux.Vars(req)["aoi"], sc)
 	if err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
+		if errors.As(err, &db.ErrAlreadyExists{}) {
 			w.WriteHeader(409)
 			return
 		}
@@ -400,7 +401,7 @@ func (wf *Workflow) ListScenesHandler(w http.ResponseWriter, req *http.Request) 
 		ss = ss[0:j]
 	}
 
-	if err == db.ErrNotFound {
+	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
 	}
@@ -419,7 +420,7 @@ func (wf *Workflow) ListRootTilesHandler(w http.ResponseWriter, req *http.Reques
 	ctx := req.Context()
 	aoi := mux.Vars(req)["aoi"]
 	ims, err := wf.RootTiles(ctx, aoi)
-	if err == db.ErrNotFound {
+	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
 	}
@@ -437,7 +438,7 @@ func (wf *Workflow) ListLeafTilesHandler(w http.ResponseWriter, req *http.Reques
 	ctx := req.Context()
 	aoi := mux.Vars(req)["aoi"]
 	ims, err := wf.LeafTiles(ctx, aoi)
-	if err == db.ErrNotFound {
+	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
 	}
@@ -454,7 +455,7 @@ func (wf *Workflow) ListLeafTilesHandler(w http.ResponseWriter, req *http.Reques
 func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	ss, err := wf.Scenes(ctx, mux.Vars(req)["aoi"])
-	if err == db.ErrNotFound {
+	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
 	}
@@ -467,16 +468,13 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 	force := mux.Vars(req)["force"] == "force"
 	nbScenes, nbTiles := 0, 0
 	emptyMessage := ""
+	var errs error
 	for _, scene := range ss {
 		if force || scene.Status == common.StatusRETRY {
 			done, err := wf.UpdateSceneStatus(ctx, scene.ID, common.StatusPENDING, &emptyMessage, force)
 			if err != nil {
-				log.Logger(ctx).Sugar().Warnf("wf.retryaoihandler.%v", err)
-				w.WriteHeader(500)
-				fmt.Fprintf(w, "%v", err)
-				return
-			}
-			if done {
+				errs = service.MergeErrors(false, errs, err)
+			} else if done {
 				nbScenes++
 			}
 		}
@@ -484,26 +482,26 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 		if scene.Status == common.StatusDONE {
 			tiles, err := wf.Tiles(ctx, "", scene.ID, "", false)
 			if err != nil {
-				log.Logger(ctx).Sugar().Warnf("wf.tiles: %v", err)
-				w.WriteHeader(500)
-				fmt.Fprintf(w, "%v", err)
-				return
+				errs = service.MergeErrors(false, errs, err)
+				continue
 			}
 			for _, tile := range tiles {
 				if force || tile.Status == common.StatusRETRY {
 					done, err := wf.UpdateTileStatus(ctx, tile.ID, common.StatusPENDING, &emptyMessage, force)
 					if err != nil {
-						log.Logger(ctx).Sugar().Warnf("wf.retryaoihandler.%v", err)
-						w.WriteHeader(500)
-						fmt.Fprintf(w, "%v", err)
-						return
-					}
-					if done {
+						errs = service.MergeErrors(false, errs, err)
+					} else if done {
 						nbTiles++
 					}
 				}
 			}
 		}
+	}
+	if errs != nil {
+		log.Logger(ctx).Sugar().Warnf("wf.retryaoihandler.%v", errs)
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "%v", errs)
+		return
 	}
 	if nbScenes == 0 && nbTiles == 0 {
 		w.WriteHeader(204)

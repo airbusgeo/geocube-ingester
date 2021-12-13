@@ -176,8 +176,8 @@ func (wf *Workflow) UpdateTileStatus(ctx context.Context, id int, status common.
 
 	tile, sceneStatus, err := wf.Tile(ctx, id, true)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			lg.Errorf("update tile %d: not found", id)
+		if errors.As(err, &db.ErrNotFound{}) {
+			lg.Errorf("update: %v", err)
 			return false, nil
 		}
 		return false, fmt.Errorf("UpdateTileStatus: %w", err)
@@ -413,8 +413,8 @@ func (wf *Workflow) UpdateSceneStatus(ctx context.Context, id int, status common
 	defer wf.dbmu.Unlock()
 
 	scene, err := wf.Scene(ctx, id, nil)
-	if err == db.ErrNotFound {
-		lg.Errorf("update scene %d: not found", id)
+	if errors.As(err, &db.ErrNotFound{}) {
+		lg.Errorf("update: %v", err)
 		return false, nil
 	}
 	if message != nil {
@@ -492,7 +492,7 @@ func (wf *Workflow) IngestScene(ctx context.Context, aoi string, scene common.Sc
 	if exists, err := wf.SceneExists(ctx, aoi, scene.SourceID); err != nil {
 		return 0, fmt.Errorf("query scene: %w", err)
 	} else if exists {
-		return 0, db.ErrAlreadyExists
+		return 0, db.ErrAlreadyExists{Type: "scene", ID: scene.SourceID}
 	}
 
 	err := db.UnitOfWork(ctx, wf, func(tx db.WorkflowTxBackend) error {

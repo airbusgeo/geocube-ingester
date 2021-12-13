@@ -92,7 +92,7 @@ func (b Backend) CreateAOI(ctx context.Context, aoi string) error {
 	case noError:
 		return nil
 	case uniqueViolation:
-		return db.ErrAlreadyExists
+		return db.ErrAlreadyExists{Type: "aoi", ID: aoi}
 	default:
 		return fmt.Errorf("CreateAOI.exec: %w", err)
 	}
@@ -143,7 +143,7 @@ func (b Backend) Scene(ctx context.Context, id int, scenesCache *map[int]db.Scen
 	if err := b.QueryRowContext(ctx, "select source_id,aoi_id,status,message,data from scene where id=$1", id).Scan(
 		&scene.SourceID, &scene.AOI, &scene.Status, &scene.Message, &scene.Data); err != nil {
 		if err == sql.ErrNoRows {
-			return scene, db.ErrNotFound
+			return scene, db.ErrNotFound{Type: "scene", ID: fmt.Sprintf("%d", id)}
 		}
 		return scene, fmt.Errorf("Scene.QueryRowContext: %w", err)
 	}
@@ -256,7 +256,7 @@ func (b Backend) Tile(ctx context.Context, tile int, loadScene bool) (db.Tile, c
 	}
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return ti, sceneStatus, db.ErrNotFound
+			return ti, sceneStatus, db.ErrNotFound{Type: "tile", ID: fmt.Sprintf("%d", tile)}
 		}
 		return ti, sceneStatus, fmt.Errorf("Tile.Scan: %w", err)
 	}

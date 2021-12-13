@@ -135,7 +135,7 @@ func (wf *Workflow) postScenes(ctx context.Context, area catalog.AreaToIngest, s
 	}
 
 	// First, create AOI
-	if err := wf.CreateAOI(ctx, area.AOIID); err != nil && !errors.Is(err, db.ErrAlreadyExists) {
+	if err := wf.CreateAOI(ctx, area.AOIID); err != nil && !errors.As(err, &db.ErrAlreadyExists{}) {
 		return ids, err
 	}
 
@@ -143,7 +143,7 @@ func (wf *Workflow) postScenes(ctx context.Context, area catalog.AreaToIngest, s
 	for _, scene := range scenesToIngest {
 		nid, err := wf.IngestScene(ctx, area.AOIID, scene)
 		if err != nil {
-			if !errors.Is(err, db.ErrAlreadyExists) {
+			if !errors.As(err, &db.ErrAlreadyExists{}) {
 				return ids, err
 			}
 		} else {

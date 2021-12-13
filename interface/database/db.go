@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -22,10 +21,21 @@ type Tile struct {
 	ReferenceID *int
 }
 
-var (
-	ErrAlreadyExists = errors.New("Already exists")
-	ErrNotFound      = errors.New("Not found")
-)
+type ErrAlreadyExists struct {
+	Type, ID string
+}
+
+func (e ErrAlreadyExists) Error() string {
+	return fmt.Sprintf("%s alreay exists: %s", e.Type, e.ID)
+}
+
+type ErrNotFound struct {
+	Type, ID string
+}
+
+func (e ErrNotFound) Error() string {
+	return fmt.Sprintf("%s not found: %s", e.Type, e.ID)
+}
 
 type WorkflowTxBackend interface {
 	WorkflowBackend

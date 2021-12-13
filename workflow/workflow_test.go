@@ -209,7 +209,7 @@ var _ = Describe("Workflow", func() {
 				err = wf.CreateAOI(ctx, aoi)
 			})
 			It("should return an AlreadyExists error", func() {
-				Expect(err).To(Equal(db.ErrAlreadyExists))
+				Expect(err).To(Equal(db.ErrAlreadyExists{Type: "aoi", ID: aoi}))
 			})
 		})
 	})
