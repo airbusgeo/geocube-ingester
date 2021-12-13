@@ -16,12 +16,12 @@ import (
 
 // Catalog is the main class of this package
 type Catalog struct {
-	GeocubeClient  *geocube.Client
-	WorkflowServer string
-	ScihubUser     string
-	ScihubPword    string
-	GCStorageURL   string
-	WorkingDir     string
+	GeocubeClient        *geocube.Client
+	WorkflowServer       string
+	ScihubUser           string
+	ScihubPword          string
+	GCSAnnotationsBucket string
+	WorkingDir           string
 }
 
 func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
@@ -92,7 +92,7 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 		}
 
 		log.Logger(ctx).Debug("Create burst inventory")
-		scenes, burstsNb, err := c.BurstsInventory(ctx, *aoi, scenes)
+		scenes, burstsNb, err := c.BurstsInventory(ctx, area, *aoi, scenes)
 		if err != nil {
 			return 0, fmt.Errorf("DoTilesInventory.%w", err)
 		}

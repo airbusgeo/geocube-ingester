@@ -194,7 +194,7 @@ func run(ctx context.Context) error {
 		catalog.ScihubUser = config.CatalogConfig.ScihubUsername
 		catalog.ScihubPword = config.CatalogConfig.ScihubPassword
 		// GCStorage
-		catalog.GCStorageURL = config.CatalogConfig.GCStorage
+		catalog.GCSAnnotationsBucket = config.CatalogConfig.GCStorage
 	}
 
 	// Create Workflow Server

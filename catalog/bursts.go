@@ -61,7 +61,7 @@ func sceneBurstsInventoryWorker(ctx context.Context, jobs <-chan *entities.Scene
 
 // BurstsInventory creates an inventory of all the bursts of the given scenes
 // Returns the number of bursts
-func (c *Catalog) BurstsInventory(ctx context.Context, aoi geos.Geometry, scenes []*entities.Scene) ([]*entities.Scene, int, error) {
+func (c *Catalog) BurstsInventory(ctx context.Context, area entities.AreaToIngest, aoi geos.Geometry, scenes []*entities.Scene) ([]*entities.Scene, int, error) {
 	// Prepare geometry for intersection
 	areaAOI, err := aoi.Buffer(0.05)
 	if err != nil {
@@ -74,8 +74,11 @@ func (c *Catalog) BurstsInventory(ctx context.Context, aoi geos.Geometry, scenes
 	jobChan := make(chan *entities.Scene, len(scenes))
 
 	var annotationsProviders []catalog.AnnotationsProvider
-	if c.GCStorageURL != "" {
-		annotationsProviders = append(annotationsProviders, gcs.AnnotationsProvider{Bucket: c.GCStorageURL})
+	if c.GCSAnnotationsBucket != "" {
+		annotationsProviders = append(annotationsProviders, gcs.AnnotationsProvider{Bucket: c.GCSAnnotationsBucket})
+	}
+	if area.GCSAnnotationsBucket != "" {
+		annotationsProviders = append(annotationsProviders, gcs.AnnotationsProvider{Bucket: area.GCSAnnotationsBucket})
 	}
 	annotationsProviders = append(annotationsProviders, creodias.AnnotationsProvider{})
 

@@ -32,7 +32,7 @@ type config struct {
 	GeocubeServerApiKey   string
 	ScihubUsername        string
 	ScihubPassword        string
-	GCStorage             string
+	GCSAnnotationsBucket  string
 	WorkflowServer        string
 	ProcessingDir         string
 }
@@ -46,7 +46,7 @@ func newAppConfig() (*config, error) {
 	geocubeServerApiKey := flag.String("geocube-apikey", "", "geocube server api key")
 	scihubUsername := flag.String("scihub-username", "", "username to connect to the scihub catalog service")
 	scihubPassword := flag.String("scihub-password", "", "password to connect to the scihub catalog service")
-	gcstorage := flag.String("gcstorage", "", "GCS url where scenes are stored (for annotations) (optional)")
+	gcsAnnotations := flag.String("gcs-annotations-bucket", "", "GCS bucket where scenes are stored (for annotations) (optional)")
 	workflowServer := flag.String("workflow-server", "", "address of workflow server")
 	processingDir := flag.String("workdir", "", "working directory to store intermediate results (could be empty or temporary)")
 	flag.Parse()
@@ -65,7 +65,7 @@ func newAppConfig() (*config, error) {
 		GeocubeServerApiKey:   *geocubeServerApiKey,
 		ScihubUsername:        *scihubUsername,
 		ScihubPassword:        *scihubPassword,
-		GCStorage:             *gcstorage,
+		GCSAnnotationsBucket:  *gcsAnnotations,
 		WorkflowServer:        *workflowServer,
 		ProcessingDir:         *processingDir,
 	}, nil
@@ -103,7 +103,7 @@ func run(ctx context.Context) error {
 		c.ScihubUser = config.ScihubUsername
 		c.ScihubPword = config.ScihubPassword
 		// GCS Storage
-		c.GCStorageURL = config.GCStorage
+		c.GCSAnnotationsBucket = config.GCSAnnotationsBucket
 
 		// Workflow Server
 		c.WorkflowServer = config.WorkflowServer
