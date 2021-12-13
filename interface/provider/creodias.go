@@ -24,6 +24,11 @@ type CreoDiasImageProvider struct {
 	expire time.Time
 }
 
+// Name implements ImageProvider
+func (ip *CreoDiasImageProvider) Name() string {
+	return "CreoDias"
+}
+
 // LoadCreoDiasToken loads the download token
 func (ip *CreoDiasImageProvider) LoadCreoDiasToken() error {
 	// Ask for token
@@ -93,7 +98,7 @@ func (ip *CreoDiasImageProvider) Download(ctx context.Context, sceneName, sceneU
 	}
 
 	url += "?token=" + ip.token
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, "creodias", &ip.user, &ip.pword, "", nil); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil); err != nil {
 		return fmt.Errorf("CreoDiasImageProvider.%w", err)
 	}
 	return nil

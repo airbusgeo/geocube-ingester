@@ -26,6 +26,10 @@ func NewSoblooImageProvider(apikey string) *SoblooImageProvider {
 	return &SoblooImageProvider{apikey: apikey}
 }
 
+func (ip *SoblooImageProvider) Name() string {
+	return "Sobloo"
+}
+
 func (ip *SoblooImageProvider) NewRequestWithAuth(ctx context.Context, method, url string) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
@@ -82,7 +86,7 @@ func (ip *SoblooImageProvider) Download(ctx context.Context, sceneName, sceneUUI
 
 	url := fmt.Sprintf(SoblooHost+SoblooDownloadProduct, iid)
 	authorization_key := "Apikey " + ip.apikey
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, "sobloo", nil, nil, "Authorization", &authorization_key); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), nil, nil, "Authorization", &authorization_key); err != nil {
 		return fmt.Errorf("SoblooImageProvider.%w", err)
 	}
 	return nil

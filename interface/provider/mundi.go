@@ -16,6 +16,11 @@ type MundiImageProvider struct {
 	seeedToken string
 }
 
+// Name implements ImageProvider
+func (ip *MundiImageProvider) Name() string {
+	return "Mundi"
+}
+
 // NewMundiImageProvider creates a new ImageProvider from Mundi
 func NewMundiImageProvider(seeedToken string) *MundiImageProvider {
 	return &MundiImageProvider{seeedToken: seeedToken}
@@ -47,7 +52,7 @@ func (ip *MundiImageProvider) Download(ctx context.Context, sceneName, sceneUUID
 	}
 
 	authorizationToken := "seeedtoken=" + ip.seeedToken
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, "mundi", nil, nil, "Cookie", &authorizationToken); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), nil, nil, "Cookie", &authorizationToken); err != nil {
 		return fmt.Errorf("MundiImageProvider.%w", err)
 	}
 	return nil

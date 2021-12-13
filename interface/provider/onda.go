@@ -15,6 +15,11 @@ type ONDADiasImageProvider struct {
 	pword string
 }
 
+// Name implements ImageProvider
+func (ip *ONDADiasImageProvider) Name() string {
+	return "Onda"
+}
+
 // NewONDADiasImageProvider creates a new ImageProvider from ONDADias
 func NewONDADiasImageProvider(user, pword string) *ONDADiasImageProvider {
 	return &ONDADiasImageProvider{user: user, pword: pword}
@@ -31,7 +36,7 @@ func (ip *ONDADiasImageProvider) Download(ctx context.Context, sceneName, sceneU
 
 	url := fmt.Sprintf(OndaDownloadProduct, sceneUUID)
 
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, "onda", &ip.user, &ip.pword, "", nil); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil); err != nil {
 		return fmt.Errorf("ONDADiasImageProvider.%w", err)
 	}
 	return nil

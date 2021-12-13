@@ -13,6 +13,11 @@ type ScihubImageProvider struct {
 	pword string
 }
 
+// Name implements ImageProvider
+func (ip *ScihubImageProvider) Name() string {
+	return "Scihub"
+}
+
 // NewScihubImageProvider creates a new ImageProvider from Scihub
 func NewScihubImageProvider(user, pword string) *ScihubImageProvider {
 	return &ScihubImageProvider{user: user, pword: pword}
@@ -28,7 +33,7 @@ func (ip *ScihubImageProvider) Download(ctx context.Context, sceneName, sceneUUI
 	}
 
 	url := fmt.Sprintf(scihubDownloadProduct, sceneUUID)
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, "scihub", &ip.user, &ip.pword, "", nil); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil); err != nil {
 		return fmt.Errorf("ScihubImageProvider.%w", err)
 	}
 	return nil

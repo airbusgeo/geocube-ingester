@@ -13,6 +13,11 @@ type LocalImageProvider struct {
 	path string
 }
 
+// Name implements ImageProvider
+func (ip *LocalImageProvider) Name() string {
+	return "FileSystem (" + ip.path + ")"
+}
+
 // NewLocalImageProvider creates a new ImageProvider from local storage
 func NewLocalImageProvider(path string) *LocalImageProvider {
 	return &LocalImageProvider{path: path}

@@ -12,7 +12,6 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/airbusgeo/geocube-ingester/service"
-	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/airbusgeo/geocube/interface/storage/gcs"
 	"google.golang.org/api/iterator"
 )
@@ -20,6 +19,11 @@ import (
 // GSImageProvider implements ImageProvider for Google Storage Sentinel2 and LANDSAT buckets
 type GSImageProvider struct {
 	buckets map[constellation]string
+}
+
+// Name implements ImageProvider
+func (ip *GSImageProvider) Name() string {
+	return "GoogleStorage"
 }
 
 // NewGSImageProvider creates a new ImageProvider from Google Storage Sentinel2 and LANDSAT buckets
@@ -106,13 +110,12 @@ func (ip *GSImageProvider) Download(ctx context.Context, sceneName, sceneUUID, l
 		url = strings.ReplaceAll(url, "{"+k+"}", v)
 	}
 
-	log.Logger(ctx).Debug("GSImageProvider starts downloading " + url)
 	if filepath.Ext(url) == "."+string(service.ExtensionZIP) {
 		if err := ip.downloadZip(ctx, url, localDir); err != nil {
-			return fmt.Errorf("GSImageProvider.%w", err)
+			return fmt.Errorf("GSImageProvider[%s].%w", url, err)
 		}
 	} else if _, err := ip.downloadDirectory(ctx, url, localDir); err != nil {
-		return fmt.Errorf("GSImageProvider.%w", err)
+		return fmt.Errorf("GSImageProvider[%s].%w", url, err)
 	}
 	return nil
 }
@@ -231,15 +234,15 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 func (ip *GSImageProvider) downloadZip(ctx context.Context, uri string, dstDir string) error {
 	gs, err := gcs.NewGsStrategy(ctx)
 	if err != nil {
-		return fmt.Errorf("GSImageProvider.NewGsStrategy: %w", err)
+		return fmt.Errorf("downloadZip.NewGsStrategy: %w", err)
 	}
 	localZip := path.Join(dstDir, filepath.Base(uri))
 	if err := gs.DownloadToFile(ctx, uri, localZip); err != nil {
-		return fmt.Errorf("GSImageProvider.%w", err)
+		return fmt.Errorf("downloadZip.%w", err)
 	}
 	defer os.Remove(localZip)
 	if err := unarchive(localZip, dstDir); err != nil {
-		return fmt.Errorf("GSImageProvider.Unarchive: %w", err)
+		return fmt.Errorf("downloadZip.Unarchive: %w", err)
 	}
 	return nil
 }

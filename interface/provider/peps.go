@@ -16,6 +16,11 @@ type PEPSDiasImageProvider struct {
 	pword string
 }
 
+// Name implements ImageProvider
+func (ip *PEPSDiasImageProvider) Name() string {
+	return "PEPS"
+}
+
 // NewPEPSDiasImageProvider creates a new ImageProvider from PEPSDias
 func NewPEPSDiasImageProvider(user, pword string) *PEPSDiasImageProvider {
 	return &PEPSDiasImageProvider{user: user, pword: pword}
@@ -38,7 +43,7 @@ func (ip *PEPSDiasImageProvider) Download(ctx context.Context, sceneName, sceneU
 		return fmt.Errorf("PEPSDiasImageProvider.%w", err)
 	}
 
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, "peps", &ip.user, &ip.pword, "", nil); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil); err != nil {
 		return fmt.Errorf("PEPSDiasImageProvider.%w", err)
 	}
 	return nil
