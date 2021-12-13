@@ -405,7 +405,7 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 				"img_resampling":    argConfig("img_resampling"),
 				"projection":        argConfig("projection"),
 				"resolution":        argConfig("resolution"),
-				"grid_align":        argFixed("false"),
+				"grid_align":        argFixed("true"),
 				"band":              argFixed("Sigma0"),
 				"trig":              argFixed("sin"),
 				"swath":             argTile(burstSwath),
@@ -506,7 +506,7 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 				"img_resampling":    argConfig("img_resampling"),
 				"projection":        argConfig("projection"),
 				"resolution":        argConfig("resolution"),
-				"grid_align":        argFixed("false"),
+				"grid_align":        argFixed("true"),
 			},
 		},
 		{
