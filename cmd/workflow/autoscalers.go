@@ -62,7 +62,7 @@ func runAutoscalers(ctx context.Context, project string, config autoscalerConfig
 		MinRatio:     1,
 		MaxInstances: config.MaxProcessorInstances,
 		MinInstances: 0,
-		MaxStep:      5,
+		MaxStep:      40,
 	}
 	as = autoscaler.New(queue, controller, cfg, log.Logger(bctx))
 	log.Logger(bctx).Sugar().Infof("starting autoscaler")
