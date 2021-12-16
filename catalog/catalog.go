@@ -36,7 +36,7 @@ func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
 
 	// Check constellation
 	if entities.GetConstellation(area.SceneType.Constellation) == entities.UndefinedConstellation {
-		return fmt.Errorf("validateArea:unrecognized constellation: %s", area.SceneType.Constellation)
+		return fmt.Errorf("validateArea: unrecognized constellation: %s", area.SceneType.Constellation)
 	}
 
 	// Check that instances exist
@@ -105,8 +105,8 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 		scenes = append(scenes, ingestedScenes...)
 
 		log.Logger(ctx).Debug("Sort burst inventory")
-		nTracks := c.BurstsSort(ctx, scenes)
-		log.Logger(ctx).Sugar().Debugf("%d bursts found in %d tracks", burstsNb, nTracks)
+		nTrackSwaths := c.BurstsSort(ctx, scenes)
+		log.Logger(ctx).Sugar().Debugf("%d bursts found in %d tracks and swaths", burstsNb, nTrackSwaths)
 
 		runtime.KeepAlive(aoi)
 

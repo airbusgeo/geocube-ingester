@@ -52,7 +52,8 @@ func sceneBurstsInventoryWorker(ctx context.Context, jobs <-chan *entities.Scene
 		case <-ctx.Done():
 		default:
 			if err := sceneBurstsInventory(ctx, scene, pareaAOI, annotationsProviders); err != nil {
-				return err
+				log.Logger(ctx).Sugar().Errorf("%v", err)
+				//return err
 			}
 		}
 	}
@@ -106,6 +107,8 @@ func (c *Catalog) BurstsInventory(ctx context.Context, area entities.AreaToInges
 			scenes[j] = scenes[i]
 			n += t
 			j++
+		} else {
+			log.Logger(ctx).Sugar().Infof("Remove empty scene: %s", scenes[i].SourceID)
 		}
 	}
 
@@ -113,19 +116,20 @@ func (c *Catalog) BurstsInventory(ctx context.Context, area entities.AreaToInges
 }
 
 // BurstsSort defines for each burst the previous and reference bursts
-// Returns the number of tracks
+// Returns the number of tracks and swaths
 func (c *Catalog) BurstsSort(ctx context.Context, scenes []*entities.Scene) int {
-	// Sort bursts by track
-	burstsPerTrack := map[string][]*entities.Tile{}
+	// Sort bursts by track and swath
+	burstsPerTrackSwath := map[string][]*entities.Tile{}
 	for _, scene := range scenes {
 		for _, burst := range scene.Tiles {
 			track := burst.SourceID[0:4]
-			burstsPerTrack[track] = append(burstsPerTrack[track], burst)
+			trackSwath := track + burst.Data.SwathID
+			burstsPerTrackSwath[trackSwath] = append(burstsPerTrackSwath[trackSwath], burst)
 		}
 	}
 
 	// Find previous and reference for each bursts
-	for _, bursts := range burstsPerTrack {
+	for _, bursts := range burstsPerTrackSwath {
 		// Sort by AnxTime
 		sort.Slice(bursts, func(i, j int) bool { return bursts[i].AnxTime < bursts[j].AnxTime })
 		// Create pools of burst with similar AnxTime, sort by date and find ref and prev burst
@@ -152,7 +156,7 @@ func (c *Catalog) BurstsSort(ctx context.Context, scenes []*entities.Scene) int 
 
 	}
 
-	return len(burstsPerTrack)
+	return len(burstsPerTrackSwath)
 }
 
 // burstsFromAnnotations loads bursts features (anxtime, swath and geometry) from annotation files
