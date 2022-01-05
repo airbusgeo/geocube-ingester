@@ -6,9 +6,9 @@ import (
 )
 
 var ConditionPass = pass
-var ConditionT0T1 = condDiffT0T1
-var ConditionT1T2 = condDiffT1T2
-var ConditionT0T2 = condDiffT0T2
+var ConditionDiffT0T1 = condDiffT0T1
+var ConditionDiffT1T2 = condDiffT1T2
+var ConditionDiffT0T2 = condDiffT0T2
 
 var NewS1PreProcessingGraph = newS1PreProcessingGraph
 

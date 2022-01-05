@@ -36,7 +36,7 @@ const (
 // TileCondition is a condition on tiles to do an action (execute a step, create a file...)
 type TileCondition struct {
 	Name string
-	pass func([]common.Tile) bool
+	Pass func([]common.Tile) bool
 }
 
 // condPass is a tileCondition always true
@@ -46,6 +46,21 @@ var pass = TileCondition{"pass", func(tiles []common.Tile) bool { return true }}
 var condDiffT0T1 = TileCondition{"different_T0_T1", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[1].Scene.SourceID }}
 var condDiffT0T2 = TileCondition{"different_T0_T2", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[2].Scene.SourceID }}
 var condDiffT1T2 = TileCondition{"different_T1_T2", func(tiles []common.Tile) bool { return tiles[1].Scene.SourceID != tiles[2].Scene.SourceID }}
+
+// condEqualTile returns true if tile1 == tile2
+var condEqualT0T1 = TileCondition{"equal_T0_T1", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID == tiles[1].Scene.SourceID }}
+var condEqualT0T2 = TileCondition{"equal_T0_T2", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID == tiles[2].Scene.SourceID }}
+var condEqualT1T2 = TileCondition{"equal_T1_T2", func(tiles []common.Tile) bool { return tiles[1].Scene.SourceID == tiles[2].Scene.SourceID }}
+
+var tileConditionJSON = map[string]TileCondition{
+	pass.Name:          pass,
+	condDiffT0T1.Name:  condDiffT0T1,
+	condDiffT0T2.Name:  condDiffT0T2,
+	condDiffT1T2.Name:  condDiffT1T2,
+	condEqualT0T1.Name: condEqualT0T1,
+	condEqualT0T2.Name: condEqualT0T2,
+	condEqualT1T2.Name: condEqualT1T2,
+}
 
 type Arg interface{}
 
@@ -128,7 +143,7 @@ type File struct {
 // InFile describes an input file of the processing
 type InFile struct {
 	File
-	Optional bool `json:"optional"`
+	Condition TileCondition `json:"condition"`
 }
 
 // OutFile describes an output file of the processing
@@ -143,9 +158,10 @@ type OutFile struct {
 	ExtMax     float64       `json:"ext_max_value"`
 	Exponent   float64       `json:"exponent"`
 	Action     OutFileAction `json:"action"`
+	Condition  TileCondition `json:"condition"`
 }
 
-func newOutFile(layer service.Layer, ext service.Extension, dformatOut Arg, realmin, realmax, exponent float64, status OutFileAction) OutFile {
+func newOutFile(layer service.Layer, ext service.Extension, dformatOut Arg, realmin, realmax, exponent float64, status OutFileAction, condition TileCondition) OutFile {
 	return OutFile{
 		File: File{
 			Layer:     layer,
@@ -156,6 +172,7 @@ func newOutFile(layer service.Layer, ext service.Extension, dformatOut Arg, real
 		ExtMax:     realmax,
 		Exponent:   exponent,
 		Action:     status,
+		Condition:  condition,
 	}
 }
 
@@ -191,11 +208,10 @@ type GraphConfig map[string]string
 
 // ProcessingGraph is a set of steps
 type ProcessingGraph struct {
-	steps        []ProcessingStep
-	snap         string
-	InFiles      [3][]InFile
-	outFiles     [][]OutFile
-	outfilesCond [][]TileCondition // Conditions to output a file (must have the same dimension as outFiles)
+	steps    []ProcessingStep
+	snap     string
+	InFiles  [3][]InFile
+	outFiles [][]OutFile
 }
 
 func fileExists(cwd, file string) (string, error) {
@@ -206,7 +222,7 @@ func fileExists(cwd, file string) (string, error) {
 	return fileExists("", file)
 }
 
-func newProcessingGraph(snapPath string, steps []ProcessingStep, infiles [3][]InFile, outfiles [][]OutFile, outfilesCond [][]TileCondition) (*ProcessingGraph, error) {
+func newProcessingGraph(snapPath string, steps []ProcessingStep, infiles [3][]InFile, outfiles [][]OutFile) (*ProcessingGraph, error) {
 	// Check commands
 	graphPath := Getenv("GRAPHPATH", "/data/graph")
 	snapRequired := false
@@ -228,11 +244,10 @@ func newProcessingGraph(snapPath string, steps []ProcessingStep, infiles [3][]In
 	}
 
 	return &ProcessingGraph{
-		snap:         snapPath,
-		steps:        steps,
-		InFiles:      infiles,
-		outFiles:     outfiles,
-		outfilesCond: outfilesCond,
+		snap:     snapPath,
+		steps:    steps,
+		InFiles:  infiles,
+		outFiles: outfiles,
 	}, nil
 }
 
@@ -307,7 +322,7 @@ func LoadGraphFromFile(ctx context.Context, graphFile string) (*ProcessingGraph,
 	}
 
 	snapPath := Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
-	graph, err := newProcessingGraph(snapPath, graphJSON.Steps, graphJSON.InFiles, graphJSON.OutFiles, graphJSON.OutfilesCond)
+	graph, err := newProcessingGraph(snapPath, graphJSON.Steps, graphJSON.InFiles, graphJSON.OutFiles)
 	if err != nil {
 		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
@@ -355,12 +370,10 @@ func newS1PreProcessingGraph() (*ProcessingGraph, error) {
 
 	// Define outputs
 	outfiles := [][]OutFile{
-		{newOutFile(service.LayerPreprocessed, service.ExtensionDIMAP, ArgFixed("float32,0,0,1"), 0, 1, 1, ToCreate)},
+		{newOutFile(service.LayerPreprocessed, service.ExtensionDIMAP, ArgFixed("float32,0,0,1"), 0, 1, 1, ToCreate, pass)},
 		{},
 		{},
 	}
-
-	outfilesCond := [][]TileCondition{{pass}, {}, {}}
 
 	// Create processing steps
 	steps := []ProcessingStep{
@@ -380,7 +393,7 @@ func newS1PreProcessingGraph() (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(snapPath, steps, infiles, outfiles, outfilesCond)
+	return newProcessingGraph(snapPath, steps, infiles, outfiles)
 }
 
 // newS1BsCohGraph creates a new processing graph to compute Backscatter and Coherence of S1 images
@@ -389,30 +402,24 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 
 	// Define inputs
 	infiles := [3][]InFile{
-		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, false}},
-		{{File{service.LayerCoregExtract, service.ExtensionDIMAP}, true}},
-		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, false}},
+		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, pass}},
+		{{File{service.LayerCoregExtract, service.ExtensionDIMAP}, condDiffT1T2}},
+		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, condDiffT0T2}},
 	}
 
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			newOutFile(service.LayerBackscatterVV, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex),
-			newOutFile(service.LayerBackscatterVH, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex),
-			newOutFile(service.LayerCoherenceVV, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex),
-			newOutFile(service.LayerCoherenceVH, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex),
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate},
-			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete},
+			newOutFile(service.LayerBackscatterVV, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex, pass),
+			newOutFile(service.LayerBackscatterVH, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex, pass),
+			newOutFile(service.LayerCoherenceVV, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex, condDiffT0T1),
+			newOutFile(service.LayerCoherenceVH, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex, condDiffT0T1),
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate, Condition: condDiffT0T1},
+			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: condDiffT0T1},
 		},
 		{
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: condDiffT1T2},
 		},
-		{},
-	}
-
-	outfilesCond := [][]TileCondition{
-		{pass, pass, condDiffT0T1, condDiffT0T1, condDiffT0T1, condDiffT0T1},
-		{condDiffT1T2},
 		{},
 	}
 
@@ -625,7 +632,7 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(snapPath, steps, infiles, outfiles, outfilesCond)
+	return newProcessingGraph(snapPath, steps, infiles, outfiles)
 }
 
 // newS1CoregExtractGraph creates a new processing graph to compute Coherence of S1 images
@@ -634,26 +641,20 @@ func newS1CoregExtractGraph() (*ProcessingGraph, error) {
 
 	// Define inputs
 	infiles := [3][]InFile{
-		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, false}},
+		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, pass}},
 		{},
-		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, false}},
+		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, condDiffT0T2}},
 	}
 
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate},
-			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate, Condition: condDiffT0T1},
+			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: condDiffT0T1},
 		},
 		{
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: condDiffT1T2},
 		},
-		{},
-	}
-
-	outfilesCond := [][]TileCondition{
-		{condDiffT0T1, condDiffT0T1},
-		{condDiffT1T2},
 		{},
 	}
 
@@ -690,7 +691,7 @@ func newS1CoregExtractGraph() (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(snapPath, steps, infiles, outfiles, outfilesCond)
+	return newProcessingGraph(snapPath, steps, infiles, outfiles)
 }
 
 // newS1CleanGraph creates a new graph to clean temporary images
@@ -703,20 +704,14 @@ func newS1CleanGraph() (*ProcessingGraph, error) {
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete},
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete},
+			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: pass},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: pass},
 		},
 		{},
 		{},
 	}
 
-	outfilesCond := [][]TileCondition{
-		{pass, pass},
-		{},
-		{},
-	}
-
-	return newProcessingGraph(snapPath, []ProcessingStep{}, infiles, outfiles, outfilesCond)
+	return newProcessingGraph(snapPath, []ProcessingStep{}, infiles, outfiles)
 }
 
 func cmdToString(cmd *exec.Cmd) string {
@@ -734,14 +729,14 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, tiles
 	pythonFilter := PythonLogFilter{}
 	snapFilter := SNAPLogFilter{}
 	for _, step := range g.steps {
-		if !step.Condition.pass(tiles) {
+		if !step.Condition.Pass(tiles) {
 			continue
 		}
 
 		// Get args list
 		args, err := step.formatArgs(config, tiles)
 		if err != nil {
-			return nil, fmt.Errorf("Process.%w", err)
+			return nil, fmt.Errorf("process.%w", err)
 		}
 
 		// Create command
@@ -767,17 +762,17 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, tiles
 			if filter != nil {
 				err = filter.WrapError(err)
 			}
-			return nil, fmt.Errorf("Process: %w", err)
+			return nil, fmt.Errorf("process[%s]: %w", cmdToString(cmd), err)
 		}
 	}
 
 	// OutFiles list
 	outfiles := make([][]OutFile, len(tiles))
 	for i, outfs := range g.outFiles {
-		for j, f := range outfs {
-			if g.outfilesCond[i][j].pass(tiles) {
+		for _, f := range outfs {
+			if f.Condition.Pass(tiles) {
 				if err := f.setDFormatOut(config); err != nil {
-					return nil, fmt.Errorf("Process: %w", err)
+					return nil, fmt.Errorf("process.%w", err)
 				}
 				outfiles[i] = append(outfiles[i], f)
 			}

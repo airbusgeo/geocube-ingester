@@ -31,7 +31,7 @@ var _ = Describe("LoadGraph", func() {
 	pythonStep := graph.ProcessingStep{
 		Engine:    "python",
 		Command:   "python_command.py",
-		Condition: graph.ConditionT0T1,
+		Condition: graph.ConditionDiffT0T1,
 
 		Args: map[string]graph.Arg{
 			"file-in":    graph.ArgOut{service.LayerCoherenceVH, service.ExtensionGTiff},
@@ -46,6 +46,16 @@ var _ = Describe("LoadGraph", func() {
 		Expect(final_step.Command).To(Equal(expected_step.Command))
 		Expect(final_step.Args).To(Equal(expected_step.Args))
 		Expect(final_step.Condition.Name).To(Equal(expected_step.Condition.Name))
+	}
+	var inFilesShouldBeEqual = func(final_infile, expected_infile graph.InFile) {
+		final_infile.Condition.Pass = nil
+		expected_infile.Condition.Pass = nil
+		Expect(final_infile).To(Equal(expected_infile))
+	}
+	var outFilesShouldBeEqual = func(final_outfile, expected_outfile graph.OutFile) {
+		final_outfile.Condition.Pass = nil
+		expected_outfile.Condition.Pass = nil
+		Expect(final_outfile).To(Equal(expected_outfile))
 	}
 
 	Describe("Loading tile condition", func() {
@@ -72,21 +82,21 @@ var _ = Describe("LoadGraph", func() {
 
 		Context("T0T1", func() {
 			BeforeEach(func() {
-				expected_condition = graph.TileCondition(graph.ConditionT0T1)
+				expected_condition = graph.TileCondition(graph.ConditionDiffT0T1)
 			})
 			itShouldBeEqual()
 		})
 
 		Context("T1T2", func() {
 			BeforeEach(func() {
-				expected_condition = graph.TileCondition(graph.ConditionT1T2)
+				expected_condition = graph.TileCondition(graph.ConditionDiffT1T2)
 			})
 			itShouldBeEqual()
 		})
 
 		Context("T0T2", func() {
 			BeforeEach(func() {
-				expected_condition = graph.TileCondition(graph.ConditionT0T2)
+				expected_condition = graph.TileCondition(graph.ConditionDiffT0T2)
 			})
 			itShouldBeEqual()
 		})
@@ -179,8 +189,16 @@ var _ = Describe("LoadGraph", func() {
 		var itShouldBeEqual = func() {
 			It("should be equal", func() {
 				Expect(final_graph.Config).To(Equal(expected_graph.Config))
-				Expect(final_graph.InFiles).To(Equal(expected_graph.InFiles))
-				Expect(final_graph.OutFiles).To(Equal(expected_graph.OutFiles))
+				for i, infiles := range final_graph.InFiles {
+					for j, infile := range infiles {
+						inFilesShouldBeEqual(infile, expected_graph.InFiles[i][j])
+					}
+				}
+				for i, outfiles := range final_graph.OutFiles {
+					for j, outfile := range outfiles {
+						outFilesShouldBeEqual(outfile, expected_graph.OutFiles[i][j])
+					}
+				}
 				Expect(len(final_graph.Steps)).To(Equal(len(expected_graph.Steps)))
 				for i, step := range final_graph.Steps {
 					stepsShouldBeEqual(step, final_graph.Steps[i])
@@ -200,23 +218,18 @@ var _ = Describe("LoadGraph", func() {
 				expected_graph = graph.ProcessingGraphJSON{
 					Steps: []graph.ProcessingStep{snapStep, pythonStep},
 					InFiles: [3][]graph.InFile{
-						{{graph.File{service.LayerPreprocessed, service.ExtensionDIMAP}, false}},
+						{{graph.File{service.LayerPreprocessed, service.ExtensionDIMAP}, graph.ConditionPass}},
 						{},
-						{{graph.File{service.LayerPreprocessed, service.ExtensionDIMAP}, false}},
+						{{graph.File{service.LayerPreprocessed, service.ExtensionDIMAP}, graph.ConditionDiffT0T2}},
 					},
 					OutFiles: [][]graph.OutFile{
 						{
-							{File: graph.File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: graph.ToCreate},
-							{File: graph.File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: graph.ToDelete},
+							{File: graph.File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: graph.ToCreate, Condition: graph.ConditionDiffT0T1},
+							{File: graph.File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: graph.ToDelete, Condition: graph.ConditionDiffT1T2},
 						},
 						{
-							{File: graph.File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: graph.ToDelete},
+							{File: graph.File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: graph.ToDelete, Condition: graph.ConditionDiffT0T1},
 						},
-						{},
-					},
-					OutfilesCond: [][]graph.TileCondition{
-						{graph.ConditionT0T1, graph.ConditionT1T2},
-						{graph.ConditionT0T1},
 						{},
 					},
 				}

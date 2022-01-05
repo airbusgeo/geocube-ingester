@@ -47,16 +47,14 @@
   [
    {
      "layer": "preprocessed",
-     "extension": "dim",
-     "optional": false
+     "extension": "dim"
    }
   ],
   [],
   [
    {
      "layer": "preprocessed",
-     "extension": "dim",
-     "optional": false
+     "extension": "dim"
    }
   ]
  ],
@@ -65,30 +63,23 @@
    {
      "layer": "coregextract",
      "extension": "dim",
-     "action": "to_create"
+     "action": "to_create",
+     "condition": "different_T0_T1"
    },
    {
     "layer": "preprocessed",
     "extension": "dim",
-    "action": "to_delete"
+    "action": "to_delete",
+    "condition": "different_T0_T1"
    }
   ],
   [
     {
       "layer": "coregextract",
       "extension": "dim",
-      "action": "to_delete"
+      "action": "to_delete",
+      "condition": "different_T1_T2"
      }
-  ],
-  []
- ],
- "out_files_conditions": [
-  [
-    "different_T0_T1",
-    "different_T0_T1"
-  ],
-  [
-    "different_T1_T2"
   ],
   []
  ]

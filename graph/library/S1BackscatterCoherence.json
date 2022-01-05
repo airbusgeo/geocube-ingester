@@ -199,22 +199,21 @@
   [
    {
      "layer": "preprocessed",
-     "extension": "dim",
-     "optional": false
+     "extension": "dim"
    }
   ],
   [
    {
      "layer": "coregextract",
      "extension": "dim",
-     "optional": true
+     "condition": "different_T1_T2"
    }
   ],
   [
    {
      "layer": "preprocessed",
      "extension": "dim",
-     "optional": false
+     "condition": "different_T0_T2"
    }
   ]
  ],
@@ -254,7 +253,8 @@
      "ext_min_value": 0,
      "ext_max_value": 1,
      "exponent": 1,
-     "action": "to_index"
+     "action": "to_index",
+     "condition": "different_T0_T1"
    },
    {
      "layer": "coh_VH",
@@ -266,39 +266,11 @@
      "ext_min_value": 0,
      "ext_max_value": 1,
      "exponent": 1,
-     "action": "to_index"
-   },
-   {
-    "layer": "coregextract",
-    "extension": "dim",
-    "action": "to_create"
-   },
-   {
-     "layer": "preprocessed",
-     "extension": "dim",
-     "action": "to_delete"
+     "action": "to_index",
+     "condition": "different_T0_T1"
    }
   ],
   [
-   {
-     "layer": "coregextract",
-     "extension": "dim",
-     "action": "to_delete"
-   }
-  ],
-  []
- ],
- "out_files_conditions": [
-  [
-   "pass",
-   "pass",
-   "different_T0_T1",
-   "different_T0_T1",
-   "different_T0_T1",
-   "different_T0_T1"
-  ],
-  [
-   "different_T1_T2"
   ],
   []
  ]

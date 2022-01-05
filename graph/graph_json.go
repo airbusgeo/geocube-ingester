@@ -7,24 +7,43 @@ import (
 )
 
 type ProcessingGraphJSON struct {
-	Config       map[string]string `json:"config"`
-	Steps        []ProcessingStep  `json:"processing_steps"`
-	InFiles      [3][]InFile       `json:"in_files"`
-	OutFiles     [][]OutFile       `json:"out_files"`
-	OutfilesCond [][]TileCondition `json:"out_files_conditions"`
+	Config   map[string]string `json:"config"`
+	Steps    []ProcessingStep  `json:"processing_steps"`
+	InFiles  [3][]InFile       `json:"in_files"`
+	OutFiles [][]OutFile       `json:"out_files"`
 }
 
-var tileConditionJSON = map[string]TileCondition{
-	pass.Name:         pass,
-	condDiffT0T1.Name: condDiffT0T1,
-	condDiffT0T2.Name: condDiffT0T2,
-	condDiffT1T2.Name: condDiffT1T2,
+func (of *OutFile) UnmarshalJSON(data []byte) error {
+	type outFileAlias OutFile
+	alias := &outFileAlias{Condition: pass}
+
+	if err := json.Unmarshal(data, alias); err != nil {
+		return err
+	}
+
+	*of = OutFile(*alias)
+	return nil
+}
+
+func (i *InFile) UnmarshalJSON(data []byte) error {
+	type inFileAlias InFile
+	alias := &inFileAlias{Condition: pass}
+
+	if err := json.Unmarshal(data, alias); err != nil {
+		return err
+	}
+
+	*i = InFile(*alias)
+	return nil
 }
 
 func (t *TileCondition) UnmarshalJSON(data []byte) error {
 	var res string
 	if err := json.Unmarshal(data, &res); err != nil {
 		return err
+	}
+	if res == "" {
+		res = pass.Name
 	}
 
 	var ok bool
