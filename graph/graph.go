@@ -439,7 +439,6 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 				"dem_file":       ArgConfig("dem_file"),
 				"dem_nodata":     ArgConfig("dem_nodata"),
 				"dem_resampling": ArgConfig("dem_resampling"),
-				"output_deramp":  ArgFixed("true"),
 			},
 		},
 
@@ -549,7 +548,6 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 				"dem_file":       ArgConfig("dem_file"),
 				"dem_nodata":     ArgConfig("dem_nodata"),
 				"dem_resampling": ArgConfig("dem_resampling"),
-				"output_deramp":  ArgFixed("false"),
 			},
 		},
 
@@ -674,7 +672,6 @@ func newS1CoregExtractGraph() (*ProcessingGraph, error) {
 				"dem_file":       ArgConfig("dem_file"),
 				"dem_nodata":     ArgConfig("dem_nodata"),
 				"dem_resampling": ArgConfig("dem_resampling"),
-				"output_deramp":  ArgFixed("true"),
 			},
 		},
 

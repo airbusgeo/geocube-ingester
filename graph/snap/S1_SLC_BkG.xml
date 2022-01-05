@@ -29,7 +29,7 @@
       <resamplingType>BISINC_21_POINT_INTERPOLATION</resamplingType>
       <maskOutAreaWithoutElevation>true</maskOutAreaWithoutElevation>
       <outputRangeAzimuthOffset>false</outputRangeAzimuthOffset>
-      <outputDerampDemodPhase>${output_deramp}</outputDerampDemodPhase>
+      <outputDerampDemodPhase>false</outputDerampDemodPhase>
       <disableReramp>false</disableReramp>
     </parameters>
   </node>

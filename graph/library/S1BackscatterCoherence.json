@@ -28,7 +28,6 @@
      "dem_resampling": { "type": "config", "value": "dem_resampling" },
      "master": { "type": "in", "tile_index": 2, "layer": "preprocessed", "extension": "dim" },
      "output": { "type": "out", "layer": "coregistred", "extension": "dim" },
-     "output_deramp": { "type": "fixed", "value": "true" },
      "slave": { "type": "in", "tile_index": 0, "layer": "preprocessed", "extension": "dim" }
    },
    "condition": "pass"
@@ -121,7 +120,6 @@
      "dem_resampling": { "type": "config", "value": "dem_resampling" },
      "master": { "type": "in", "tile_index": 0, "layer": "coregextract", "extension": "dim" },
      "output": { "type": "out", "layer": "coregistred", "extension": "dim" },
-     "output_deramp": { "type": "fixed", "value": "false" },
      "slave": { "type": "in", "tile_index": 1, "layer": "coregextract", "extension": "dim" }
    },
    "condition": "different_T1_T2"
