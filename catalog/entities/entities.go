@@ -2,12 +2,15 @@ package entities
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/go-spatial/geom"
+	"github.com/go-spatial/geom/encoding/geojson"
+	"github.com/go-spatial/geom/encoding/wkt"
 )
 
 // TileLite defined only the needed fields for a Previous or Reference Tile
@@ -131,4 +134,86 @@ func (area *AreaToIngest) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+func (scene *Scene) toFeature() (geojson.Feature, error) {
+	var err error
+	feature := geojson.Feature{}
+
+	feature.Geometry.Geometry, err = wkt.DecodeString(scene.GeometryWKT)
+	if err != nil {
+		return feature, fmt.Errorf("ToFeature.DecodeString: %w", err)
+	}
+	if p, ok := feature.Geometry.Geometry.(geom.Polygon); len(scene.Tiles) != 0 && ok {
+		multipolygon := geom.MultiPolygon{p.LinearRings()}
+		for _, tile := range scene.Tiles {
+			tileGeom, err := wkt.DecodeString(tile.GeometryWKT)
+			if err != nil {
+				return feature, fmt.Errorf("ToFeature.Tile.DecodeString: %w", err)
+			}
+			if p, ok := tileGeom.(geom.Polygon); ok {
+				multipolygon = append(multipolygon, p)
+			}
+		}
+		feature.Geometry.Geometry = multipolygon
+	}
+
+	b, err := json.Marshal(scene)
+	if err != nil {
+		return feature, fmt.Errorf("ToFeature.Marshal: %w", err)
+	}
+	if err := json.Unmarshal(b, &feature.Properties); err != nil {
+		return feature, fmt.Errorf("ToFeature.Unmarshal: %w", err)
+	}
+	return feature, nil
+}
+
+func (scene *Scene) fromFeature(feature geojson.Feature) error {
+	b, err := json.Marshal(feature.Properties)
+	if err != nil {
+		return fmt.Errorf("FromFeature.Marshal: %w", err)
+	}
+	if err := json.Unmarshal(b, scene); err != nil {
+		return fmt.Errorf("FromFeature.Unmarshal: %w", err)
+	}
+	return nil
+}
+
+type Scenes []*Scene
+
+// UnmarshalJSON implements the json.Unmarshaler interface for Scenes
+func (scenes *Scenes) UnmarshalJSON(data []byte) error {
+	// Load FeatureCollection
+	fc := geojson.FeatureCollection{}
+	if err := json.Unmarshal(data, &fc); err != nil {
+		return fmt.Errorf("UnmarshalJSON: %w", err)
+	}
+	// Convert FeatureCollection to a list of scenes
+	*scenes = make([]*Scene, len(fc.Features))
+	for i, feature := range fc.Features {
+		(*scenes)[i] = &Scene{}
+		if err := (*scenes)[i].fromFeature(feature); err != nil {
+			return fmt.Errorf("UnmarshalJSON.%w", err)
+		}
+	}
+	return nil
+}
+
+// MarshalJSON implements the json.Unmarshaler interface for Scenes
+func (scenes Scenes) MarshalJSON() ([]byte, error) {
+	var err error
+
+	// Create FeatureCollection to hold the scene
+	fc := geojson.FeatureCollection{
+		Features: make([]geojson.Feature, len(scenes)),
+	}
+	for i, scene := range scenes {
+		if fc.Features[i], err = scene.toFeature(); err != nil {
+			return nil, fmt.Errorf("MarshalJSON.%w", err)
+		}
+		id := uint64(i)
+		fc.Features[i].ID = &id
+	}
+	// Marshal FeatureCollection
+	return json.Marshal(fc)
 }

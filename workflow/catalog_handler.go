@@ -64,9 +64,7 @@ func (wf *Workflow) loadArea(w http.ResponseWriter, req *http.Request, validate 
 }
 
 func loadScenes(w http.ResponseWriter, req *http.Request, field string, ignore_empty bool) ([]*catalog.Scene, error) {
-	scenes := struct {
-		Scenes []*catalog.Scene
-	}{}
+	scenes := catalog.Scenes{}
 
 	scenesJSON, err := readField(req, field)
 	if err != nil || len(scenesJSON) == 0 {
@@ -77,14 +75,14 @@ func loadScenes(w http.ResponseWriter, req *http.Request, field string, ignore_e
 			}
 			fmt.Fprintf(w, "%v", err)
 		}
-		return scenes.Scenes, err
+		return scenes, err
 	}
 	if err := json.Unmarshal(scenesJSON, &scenes); err != nil {
 		w.WriteHeader(400)
 		fmt.Fprintf(w, "%s %v", scenesJSON, err)
-		return scenes.Scenes, err
+		return scenes, err
 	}
-	return scenes.Scenes, nil
+	return scenes, nil
 }
 
 func (wf *Workflow) findScenes(ctx context.Context, w http.ResponseWriter, area catalog.AreaToIngest) ([]*catalog.Scene, error) {
@@ -169,7 +167,7 @@ func (wf *Workflow) CatalogScenesHandler(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	json.NewEncoder(w).Encode(struct{ Scenes []*catalog.Scene }{Scenes: scenes})
+	json.NewEncoder(w).Encode(catalog.Scenes(scenes))
 }
 
 // CatalogTilesHandler lists tiles for a given list of scenes (previous call of CatalogScenesHandler)
@@ -192,7 +190,7 @@ func (wf *Workflow) CatalogTilesHandler(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	json.NewEncoder(w).Encode(struct{ Scenes []*catalog.Scene }{Scenes: scenes})
+	json.NewEncoder(w).Encode(catalog.Scenes(scenes))
 }
 
 // CatalogPostAOIHandler posts a request to ingest scenes
