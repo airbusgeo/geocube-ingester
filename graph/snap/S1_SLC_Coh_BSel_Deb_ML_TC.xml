@@ -16,10 +16,7 @@
       <cohWinAz>${coherence_azimuth}</cohWinAz>
       <cohWinRg>${coherence_range}</cohWinRg>
       <subtractFlatEarthPhase>true</subtractFlatEarthPhase>
-      <srpPolynomialDegree>5</srpPolynomialDegree>
-      <srpNumberPoints>501</srpNumberPoints>
-      <orbitDegree>3</orbitDegree>
-      <squarePixel>true</squarePixel>
+      <squarePixel>false</squarePixel>
     </parameters>
   </node>
   <node id="BandSelect">
@@ -39,7 +36,6 @@
       <sourceProduct refid="BandSelect"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <selectedPolarisations/>
     </parameters>
   </node>
   <node id="Multilook">
@@ -51,8 +47,7 @@
       <sourceBands/>
       <nRgLooks>${range_multilook}</nRgLooks>
       <nAzLooks>${azimuth_multilook}</nAzLooks>
-      <outputIntensity>false</outputIntensity>
-      <grSquarePixel>true</grSquarePixel>
+      <grSquarePixel>false</grSquarePixel>
     </parameters>
   </node>
   <node id="Terrain-Correction">
@@ -69,27 +64,8 @@
       <demResamplingMethod>${dem_resampling}</demResamplingMethod>
       <imgResamplingMethod>${img_resampling}</imgResamplingMethod>
       <pixelSpacingInMeter>${resolution}</pixelSpacingInMeter>
-      <pixelSpacingInDegree>0</pixelSpacingInDegree>
       <mapProjection>${projection}</mapProjection>
       <alignToStandardGrid>${grid_align}</alignToStandardGrid>
-      <standardGridOriginX>0.0</standardGridOriginX>
-      <standardGridOriginY>0.0</standardGridOriginY>
-      <nodataValueAtSea>true</nodataValueAtSea>
-      <saveDEM>false</saveDEM>
-      <saveLatLon>false</saveLatLon>
-      <saveIncidenceAngleFromEllipsoid>false</saveIncidenceAngleFromEllipsoid>
-      <saveLocalIncidenceAngle>false</saveLocalIncidenceAngle>
-      <saveProjectedLocalIncidenceAngle>false</saveProjectedLocalIncidenceAngle>
-      <saveSelectedSourceBand>true</saveSelectedSourceBand>
-      <outputComplex>false</outputComplex>
-      <applyRadiometricNormalization>false</applyRadiometricNormalization>
-      <saveSigmaNought>false</saveSigmaNought>
-      <saveGammaNought>false</saveGammaNought>
-      <saveBetaNought>false</saveBetaNought>
-      <incidenceAngleForSigma0>Use projected local incidence angle from DEM</incidenceAngleForSigma0>
-      <incidenceAngleForGamma0>Use projected local incidence angle from DEM</incidenceAngleForGamma0>
-      <auxFile>Latest Auxiliary File</auxFile>
-      <externalAuxFile/>
     </parameters>
   </node>
   <node id="BandSelectVV">

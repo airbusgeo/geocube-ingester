@@ -27,10 +27,6 @@
       <externalDEMFile>${dem_file}</externalDEMFile>
       <externalDEMNoDataValue>${dem_nodata}</externalDEMNoDataValue>
       <resamplingType>${resampling}</resamplingType>
-      <maskOutAreaWithoutElevation>true</maskOutAreaWithoutElevation>
-      <outputRangeAzimuthOffset>false</outputRangeAzimuthOffset>
-      <outputDerampDemodPhase>false</outputDerampDemodPhase>
-      <disableReramp>false</disableReramp>
     </parameters>
   </node>
   <node id="Write">
