@@ -214,6 +214,35 @@ type ProcessingGraph struct {
 	outFiles [][]OutFile
 }
 
+func (g *ProcessingGraph) Summary() string {
+	s := fmt.Sprintf("- %d steps\n", len(g.steps))
+	for _, step := range g.steps {
+		s += fmt.Sprintf("   * %s\n", step.Command)
+	}
+	s += fmt.Sprintf("- %d inputs files\n", len(g.InFiles))
+	for i, fs := range g.InFiles {
+		for _, f := range fs {
+			s += fmt.Sprintf("   * %-10s[%d] (%v)\n", f.Layer, i, f.Condition.Name)
+		}
+	}
+	s += fmt.Sprintf("- %d outputs files\n", len(g.outFiles))
+	for i, fs := range g.outFiles {
+		for _, f := range fs {
+			switch f.Action {
+			case ToCreate:
+				s += fmt.Sprintf("   + %-10s[%d] (%v)\n", f.Layer, i, f.Condition.Name)
+			case ToIndex:
+				s += fmt.Sprintf("   i+ %-10s[%d] (%v)\n", f.Layer, i, f.Condition.Name)
+			case ToDelete:
+				s += fmt.Sprintf("   - %-10s[%d] (%v)\n", f.Layer, i, f.Condition.Name)
+			default:
+				s += fmt.Sprintf("   ? %-10s[%d] (%v)\n", f.Layer, i, f.Condition.Name)
+			}
+		}
+	}
+	return s
+}
+
 func fileExists(cwd, file string) (string, error) {
 	if _, err := os.Stat(file); err == nil || !errors.Is(err, os.ErrNotExist) || cwd == "" {
 		return file, err
