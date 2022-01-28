@@ -344,6 +344,7 @@ func S1DefaultConfig() GraphConfig {
 		"dem_egm_correction":         "True",
 		"dem_resampling":             "BILINEAR_INTERPOLATION",
 		"img_resampling":             "BICUBIC_INTERPOLATION",
+		"bkg_resampling":             "BISINC_21_POINT_INTERPOLATION",
 		"resolution":                 "20",
 		"projection":                 "EPSG:4326",
 		"bs_erode_iterations":        "10",
@@ -439,6 +440,7 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 				"dem_file":       ArgConfig("dem_file"),
 				"dem_nodata":     ArgConfig("dem_nodata"),
 				"dem_resampling": ArgConfig("dem_resampling"),
+				"resampling":     ArgConfig("bkg_resampling"),
 			},
 		},
 
@@ -548,6 +550,7 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 				"dem_file":       ArgConfig("dem_file"),
 				"dem_nodata":     ArgConfig("dem_nodata"),
 				"dem_resampling": ArgConfig("dem_resampling"),
+				"resampling":     ArgConfig("bkg_resampling"),
 			},
 		},
 
@@ -672,6 +675,7 @@ func newS1CoregExtractGraph() (*ProcessingGraph, error) {
 				"dem_file":       ArgConfig("dem_file"),
 				"dem_nodata":     ArgConfig("dem_nodata"),
 				"dem_resampling": ArgConfig("dem_resampling"),
+				"resampling":     ArgConfig("bkg_resampling"),
 			},
 		},
 

@@ -36,7 +36,8 @@
     "tile_graph_name":"S1BackscatterCoherence",
     "graph_config":{
         "projection":"EPSG:32632",
-        "snap_cpu_parallelism":"8"
+        "snap_cpu_parallelism":"8",
+        "bkg_resampling": "BISINC_5_POINT_INTERPOLATION"
     },
     "layers":{
 		"sigma0_VV": {"variable":"BackscatterSigma0VV", "instance":"RNKell"},

@@ -11,6 +11,7 @@
   "dem_resampling": "BILINEAR_INTERPOLATION",
   "dformat_out": "float32,0,0,1",
   "img_resampling": "BICUBIC_INTERPOLATION",
+  "bkg_resampling": "BISINC_21_POINT_INTERPOLATION",
   "projection": "EPSG:4326",
   "resolution": "20",
   "snap_cpu_parallelism": "1",
@@ -26,6 +27,7 @@
      "dem_name": { "type": "config", "value": "dem_name" },
      "dem_nodata": { "type": "config", "value": "dem_nodata" },
      "dem_resampling": { "type": "config", "value": "dem_resampling" },
+     "resampling": { "type": "config", "value": "bkg_resampling" },
      "master": { "type": "in", "tile_index": 2, "layer": "preprocessed", "extension": "dim" },
      "output": { "type": "out", "layer": "coregistred", "extension": "dim" },
      "slave": { "type": "in", "tile_index": 0, "layer": "preprocessed", "extension": "dim" }
@@ -118,6 +120,7 @@
      "dem_name": { "type": "config", "value": "dem_name" },
      "dem_nodata": { "type": "config", "value": "dem_nodata" },
      "dem_resampling": { "type": "config", "value": "dem_resampling" },
+     "resampling": { "type": "config", "value": "bkg_resampling" },
      "master": { "type": "in", "tile_index": 0, "layer": "coregextract", "extension": "dim" },
      "output": { "type": "out", "layer": "coregistred", "extension": "dim" },
      "slave": { "type": "in", "tile_index": 1, "layer": "coregextract", "extension": "dim" }

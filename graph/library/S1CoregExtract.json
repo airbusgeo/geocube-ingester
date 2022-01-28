@@ -9,6 +9,7 @@
   "dem_name": "SRTM 3Sec",
   "dem_nodata": "0",
   "dem_resampling": "BILINEAR_INTERPOLATION",
+  "bkg_resampling": "BISINC_21_POINT_INTERPOLATION",
   "img_resampling": "BICUBIC_INTERPOLATION",
   "projection": "EPSG:4326",
   "resolution": "20",
@@ -25,6 +26,7 @@
      "dem_name": { "type": "config", "value": "dem_name" },
      "dem_nodata": { "type": "config", "value": "dem_nodata" },
      "dem_resampling": { "type": "config", "value": "dem_resampling" },
+     "resampling": { "type": "config", "value": "bkg_resampling" },
      "master": { "type": "in", "tile_index": 2, "layer": "preprocessed", "extension": "dim" },
      "output": { "type": "out", "layer": "coregistred", "extension": "dim" },
      "slave": { "type": "in", "tile_index": 0, "layer": "preprocessed", "extension": "dim" }
