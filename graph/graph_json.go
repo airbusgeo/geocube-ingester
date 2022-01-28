@@ -15,13 +15,18 @@ type ProcessingGraphJSON struct {
 
 func (of *OutFile) UnmarshalJSON(data []byte) error {
 	type outFileAlias OutFile
-	alias := &outFileAlias{Condition: pass}
+	type outFileJSON struct {
+		outFileAlias
+		DFormatOut ArgJSON `json:"dformat_out"`
+	}
+	alias := &outFileJSON{outFileAlias: outFileAlias{Condition: pass}}
 
 	if err := json.Unmarshal(data, alias); err != nil {
 		return err
 	}
+	alias.outFileAlias.dformatOut = alias.DFormatOut.Arg
 
-	*of = OutFile(*alias)
+	*of = OutFile(alias.outFileAlias)
 	return nil
 }
 
@@ -51,6 +56,15 @@ func (t *TileCondition) UnmarshalJSON(data []byte) error {
 	if !ok {
 		return fmt.Errorf("UnmarshalJSON: unknown condition: %s (must be one of %v)", res, reflect.ValueOf(tileConditionJSON).MapKeys())
 	}
+	return nil
+}
+
+func (dtype *DType) UnmarshalJSON(data []byte) error {
+	var res string
+	if err := json.Unmarshal(data, &res); err != nil {
+		return err
+	}
+	*dtype = DTypeFromString(res)
 	return nil
 }
 

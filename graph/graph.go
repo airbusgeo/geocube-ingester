@@ -348,7 +348,7 @@ func S1DefaultConfig() GraphConfig {
 		"projection":                 "EPSG:4326",
 		"bs_erode_iterations":        "10",
 		"coh_erode_iterations":       "10",
-		"dformat-out":                "float32,0,0,1", // option to map float32[0,1] to another lighter format (ie. int16,-32768,0,1000)
+		"dformat_out":                "float32,0,0,1", // option to map float32[0,1] to another lighter format (ie. int16,-32768,0,1000)
 	}
 }
 
@@ -410,10 +410,10 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			newOutFile(service.LayerBackscatterVV, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex, pass),
-			newOutFile(service.LayerBackscatterVH, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex, pass),
-			newOutFile(service.LayerCoherenceVV, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex, condDiffT0T1),
-			newOutFile(service.LayerCoherenceVH, service.ExtensionGTiff, ArgConfig("dformat-out"), 0, 1, 1, ToIndex, condDiffT0T1),
+			newOutFile(service.LayerBackscatterVV, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, ToIndex, pass),
+			newOutFile(service.LayerBackscatterVH, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, ToIndex, pass),
+			newOutFile(service.LayerCoherenceVV, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, ToIndex, condDiffT0T1),
+			newOutFile(service.LayerCoherenceVH, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, ToIndex, condDiffT0T1),
 			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate, Condition: condDiffT0T1},
 			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: condDiffT0T1},
 		},
@@ -504,7 +504,7 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 				"file-in":     ArgOut{service.LayerBackscatterVV, service.ExtensionGTiff},
 				"file-out":    ArgOut{service.LayerBackscatterVV, service.ExtensionGTiff},
 				"range-in":    ArgFixed("0,1"),
-				"dformat-out": ArgConfig("dformat-out"),
+				"dformat-out": ArgConfig("dformat_out"),
 			},
 		},
 
@@ -530,7 +530,7 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 				"file-in":     ArgOut{service.LayerBackscatterVH, service.ExtensionGTiff},
 				"file-out":    ArgOut{service.LayerBackscatterVH, service.ExtensionGTiff},
 				"range-in":    ArgFixed("0,1"),
-				"dformat-out": ArgConfig("dformat-out"),
+				"dformat-out": ArgConfig("dformat_out"),
 			},
 		},
 
@@ -599,7 +599,7 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 				"file-in":     ArgOut{service.LayerCoherenceVV, service.ExtensionGTiff},
 				"file-out":    ArgOut{service.LayerCoherenceVV, service.ExtensionGTiff},
 				"range-in":    ArgFixed("0,1"),
-				"dformat-out": ArgConfig("dformat-out"),
+				"dformat-out": ArgConfig("dformat_out"),
 			},
 		},
 
@@ -625,7 +625,7 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 				"file-in":     ArgOut{service.LayerCoherenceVH, service.ExtensionGTiff},
 				"file-out":    ArgOut{service.LayerCoherenceVH, service.ExtensionGTiff},
 				"range-in":    ArgFixed("0,1"),
-				"dformat-out": ArgConfig("dformat-out"),
+				"dformat-out": ArgConfig("dformat_out"),
 			},
 		},
 	}

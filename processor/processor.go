@@ -131,7 +131,7 @@ func indexTile(ctx context.Context, gcclient *geocube.Client, tile common.Tile, 
 
 	switch file.DType {
 	default:
-		return nil
+		return fmt.Errorf("indexTile: file.DType '%v' not found", file.DType)
 	case graph.UInt8:
 		dformat.Dtype = geocubepb.DataFormat_UInt8
 	case graph.UInt16:

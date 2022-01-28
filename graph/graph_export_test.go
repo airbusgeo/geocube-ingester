@@ -26,6 +26,32 @@ type argJSON struct {
 	Extension string `json:"extension"`
 }
 
+func (dtype DType) MarshalJSON() ([]byte, error) {
+	var s string
+	switch dtype {
+	case UInt8:
+		s = "uint8"
+	case UInt16:
+		s = "uint16"
+	case UInt32:
+		s = "uint32"
+	case Int16:
+		s = "int16"
+	case Int32:
+		s = "int32"
+	case Float32:
+		s = "float32"
+	case Float64:
+		s = "float64"
+	case Complex64:
+		s = "complex64"
+	default:
+		s = "undefined"
+	}
+
+	return json.Marshal(s)
+}
+
 func (a ArgFixed) MarshalJSON() ([]byte, error) {
 	return json.Marshal(argJSON{Type: "fixed", Value: string(a)})
 }

@@ -9,7 +9,6 @@
   "dem_name": "SRTM 3Sec",
   "dem_nodata": "0",
   "dem_resampling": "BILINEAR_INTERPOLATION",
-  "dformat-out": "float32,0,0,1",
   "img_resampling": "BICUBIC_INTERPOLATION",
   "projection": "EPSG:4326",
   "resolution": "20",
