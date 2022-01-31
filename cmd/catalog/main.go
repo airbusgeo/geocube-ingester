@@ -331,7 +331,7 @@ func getRootTiles(workflowServer, aoiID string) ([]common.Tile, error) {
 	}
 	tiles := []common.Tile{}
 	if err = json.Unmarshal(body, &tiles); err != nil {
-		return nil, fmt.Errorf("getRootTiles.Unmarshal: %w", err)
+		return nil, fmt.Errorf("getRootTiles.Unmarshal[%s]: %w", body, err)
 	}
 	return tiles, nil
 }

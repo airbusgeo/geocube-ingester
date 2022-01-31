@@ -2,9 +2,10 @@
 
 ## Table of Contents
 
+- [Ingester Installation Guide](#ingester-installation-guide)
+  - [Table of Contents](#table-of-contents)
 - [Presentation](#presentation)
 - [Prerequisites](#prerequisites)
-  - [Developpement Environment](#developpement-environment)
 - [Interfaces](#interfaces)
   - [Storage](#storage)
     - [Interface](#interface)
@@ -23,13 +24,14 @@
     - [Interface](#interface-4)
     - [Current implementations](#current-implementations-1)
 - [Installation - local environment](#installation---local-environment)
+  - [Environment of development](#environment-of-development)
   - [Build and run Go application](#build-and-run-go-application)
     - [Messaging broker](#messaging-broker)
       - [PubSub Emulator](#pubsub-emulator)
     - [Downloader](#downloader)
     - [Processor](#processor)
     - [Workflow](#workflow)
-  - [Run with Docker](#run-with-docker)
+- [Installation - docker](#installation---docker)
 - [Installation - Kubernetes Cluster](#installation---kubernetes-cluster)
   - [Prerequisites](#prerequisites-1)
     - [Container registry](#container-registry)
@@ -53,16 +55,6 @@ The ingester needs:
 - an Object Storage, readable and writable (currently supported: local storage or GCS)
 - a catalogue service, to get the list of products available over an AOI (currently supported: Scihub for Sentinel 1 and 2 with an appropriate user account)
 - an image provider, to download the products returned by the catalogue service (currently supported : Sobloo, PEPS, Creodias, Onda, Mundis, GCS, local provider for Sentinel 1 and 2 with an appropriate user account)
-
-## Developpement Environment
-|   Name     | Version  |     link                                          |
-|:----------:|:--------:|:-------------------------------------------------:|
-|   Golang   | >= 1.16  |      https://golang.org/doc/install               |
-|    GDAL    |  >= 3.2  |             https://gdal.org                      |
-|   Python   |  >= 3.7  |    https://www.python.org/downloads/              |
-| PostgreSQL |  >= 11   |   https://www.postgresql.org/download/            |
-|   Docker   |    NC    | https://docs.docker.com/engine/install/           |
-|  ESA SNAP  |  >=8.0   | https://step.esa.int/main/download/snap-download/ |
 
 # Interfaces 
 
@@ -122,9 +114,9 @@ $ psql -h <database_host> -d <database_name> -f interface/database/pg/db.sql
 
 ## Geocube
 
-Workflow and Processor components must be connected to Geocube. You need to install Geocube before installing Ingester.
-From a Geocube point of view, the Ingester will create new records and index the processed data.
-The Ingester will connect to the Geocube using the GoLang-Client library : `vendor/github.com/geocube/client/go`.
+Workflow and Processor components must be connected to Geocube. You need to start a Geocube before starting the Ingester.
+The Ingester is able to create new records and index the processed data.
+The Ingester connects to the Geocube using the GoLang-Client library : `vendor/github.com/geocube/client/go`.
 
 ## Image Provider
 
@@ -162,6 +154,17 @@ The Ingester is currently able to connect to the following catalogs:
 
 
 # Installation - local environment
+
+## Environment of development
+|   Name     | Version  |     link                                          |
+|:----------:|:--------:|:-------------------------------------------------:|
+|   Golang   | >= 1.16  |      https://golang.org/doc/install               |
+|    GDAL    |  >= 3.2  |             https://gdal.org                      |
+|   Python   |  >= 3.7  |    https://www.python.org/downloads/              |
+| PostgreSQL |  >= 11   |   https://www.postgresql.org/download/            |
+|   Docker   |    NC    | https://docs.docker.com/engine/install/           |
+|  ESA SNAP  |  >=8.0   | https://step.esa.int/main/download/snap-download/ |
+
 ## Build and run Go application
 
 ### Messaging broker
@@ -343,7 +346,7 @@ $ ./workflow -flag value
 Example:
 
 ```bash
-$ export DB_CONNECTION=postgresql://postgres:password@localhost:5432/ingester?binary_parameters=yes
+$ export DB_CONNECTION=postgresql://user:password@localhost:5432/ingester?binary_parameters=yes
 $ export WORKFLOW_PORT=8082
 $ ./workflow --project geocube-emulator --psSubscription ingester-events --psDownloader-topic ingester-downloader --psProcessor-topic ingester-processor --dbConnection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --geocube-insecure --scihub-username "$SCIHUB_USERNAME" --scihub-password "$SCIHUB_PASSWORD"
 ```
@@ -391,11 +394,12 @@ Usage of ./workflow:
         apikey to connect to the sobloo ordering service (optional)
 ```
 
-## Run with Docker
+# Installation - docker
 
 All dockerfile are available. You can build docker images:
 
 ```bash
+$ docker build -f cmd/dockerfiles/golang.Dockerfile -t golang-ubuntu .
 $ docker build -f cmd/downloader/Dockerfile -t $DOWNLOADER_IMAGE .
 $ docker build -f cmd/processor/Dockerfile -t $PROCESSOR_IMAGE .
 $ docker build -f cmd/workflow/Dockerfile -t $WF_IMAGE .
@@ -403,6 +407,19 @@ $ docker build -f cmd/workflow/Dockerfile -t $WF_IMAGE .
 
 You can run `docker run` command in order to start the application.
 For more information concerning running option, see: https://docs.docker.com/engine/reference/commandline/run/
+
+Examples with pubsub emulator:
+```bash
+$ export DB_CONNECTION=postgresql://user:password@localhost:5432/ingester?binary_parameters=yes
+$ export WORKFLOW_PORT=8082
+$ export STORAGE=/ingester-storage
+
+$ docker run --rm --network=host -e PUBSUB_EMULATOR_HOST=localhost:8085 $WF_IMAGE --project geocube-emulator --psSubscription ingester-events --psDownloader-topic ingester-downloader --psProcessor-topic ingester-processor --dbConnection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --scihub-username "$SCIHUB_USERNAME" --scihub-password "$SCIHUB_PASSWORD"
+
+$ docker run --rm --network=host -e PUBSUB_EMULATOR_HOST=localhost:8085 -v $STORAGE:$STORAGE $DOWNLOADER_IMAGE --project geocube-emulator --psSubscription ingester-downloader --psEvent ingester-events --local-path $STORAGE/products --storage-uri $STORAGE --workdir /tmp -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{UTM}/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE} --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
+
+$ docker run --rm --network=host -e PUBSUB_EMULATOR_HOST=localhost:8085 -v $STORAGE:$STORAGE $PROCESSOR_IMAGE --project geocube-emulator --psSubscription ingester-processor --psEvent ingester-events --geocube-server $GEOCUBE_SERVER --storage-uri $STORAGE --workdir /tmp
+```
 
 # Installation - Kubernetes Cluster
 ## Prerequisites
