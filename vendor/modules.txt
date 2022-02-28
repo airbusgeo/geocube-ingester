@@ -22,7 +22,7 @@ cloud.google.com/go/storage
 cloud.google.com/go/storage/internal/apiv2
 # github.com/airbusgeo/errs v0.0.2
 github.com/airbusgeo/errs
-# github.com/airbusgeo/geocube v0.2.0
+# github.com/airbusgeo/geocube v0.3.0
 ## explicit
 github.com/airbusgeo/geocube/interface/autoscaler
 github.com/airbusgeo/geocube/interface/autoscaler/k8s
@@ -130,10 +130,10 @@ github.com/go-spatial/geom/cmp
 github.com/go-spatial/geom/encoding
 github.com/go-spatial/geom/encoding/geojson
 github.com/go-spatial/geom/encoding/wkt
-# github.com/gogo/protobuf v1.2.1
+# github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
-# github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
+# github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.5.2
 github.com/golang/protobuf/jsonpb
@@ -155,7 +155,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
+# github.com/google/gofuzz v1.0.0
 github.com/google/gofuzz
 # github.com/google/uuid v1.3.0
 ## explicit
@@ -180,7 +180,7 @@ github.com/gregjones/httpcache/diskcache
 # github.com/hashicorp/golang-lru v0.5.4
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
-# github.com/json-iterator/go v1.1.6
+# github.com/json-iterator/go v1.1.11
 github.com/json-iterator/go
 # github.com/lib/pq v1.10.4
 ## explicit
@@ -289,7 +289,7 @@ go.uber.org/zap/zapcore
 go.uber.org/zap/zaptest/observer
 # golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20210614182718-04defd469f4e
+# golang.org/x/net v0.0.0-20210928044308-7d9f5e0b762b
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -317,7 +317,7 @@ golang.org/x/sync/semaphore
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.3.6
+# golang.org/x/text v0.3.7
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex

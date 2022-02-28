@@ -2,8 +2,16 @@ package utils
 
 import (
 	"fmt"
+	"path"
 	"regexp"
+	"strconv"
+	"strings"
 )
+
+// F64ToS converts float to string using the maximum accuracy
+func F64ToS(f float64) string {
+	return strconv.FormatFloat(f, 'f', -1, 64)
+}
 
 // AverageElemF computes the mean value of vs.$
 // AverageElemF panics if len(vs) = 0
@@ -72,4 +80,8 @@ func FindRegexGroups(reg *regexp.Regexp, v string) (map[string]string, error) {
 	}
 
 	return res, nil
+}
+
+func URLJoin(url string, elems ...string) string {
+	return fmt.Sprintf("%s/%s", strings.TrimRight(url, "/"), path.Join(elems...))
 }

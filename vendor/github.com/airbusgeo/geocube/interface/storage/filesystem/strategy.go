@@ -112,7 +112,7 @@ func (s fileSystemStrategy) Delete(ctx context.Context, uri string, options ...g
 func (s fileSystemStrategy) Exist(ctx context.Context, uri string) (bool, error) {
 	if _, err := os.Stat(uri); err != nil {
 		if os.IsNotExist(err) {
-			return false, fmt.Errorf("file does not exist: %w", err)
+			return false, geocubeStorage.ErrFileNotFound
 		}
 	}
 	return true, nil
@@ -146,4 +146,14 @@ func (s fileSystemStrategy) GetAttrs(ctx context.Context, uri string) (geocubeSt
 		ContentType:  contentType,
 		StorageClass: "filesystem",
 	}, nil
+}
+
+func (s fileSystemStrategy) StreamAt(key string, off int64, n int64) (io.ReadCloser, int64, error) {
+	f, err := os.Open(key)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to open file: %w", err)
+	}
+	defer f.Close()
+
+	return ioutil.NopCloser(f), 0, nil
 }

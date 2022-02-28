@@ -2,8 +2,13 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"io"
 	"time"
+)
+
+var (
+	ErrFileNotFound = errors.New("file not found")
 )
 
 type Strategy interface {
@@ -14,6 +19,7 @@ type Strategy interface {
 	Delete(ctx context.Context, uri string, options ...Option) error
 	Exist(ctx context.Context, uri string) (bool, error)
 	GetAttrs(ctx context.Context, uri string) (Attrs, error)
+	StreamAt(key string, off int64, n int64) (io.ReadCloser, int64, error)
 }
 
 func NewStorageClient(ctx context.Context, storageStrategy Strategy) (*Client, error) {
@@ -53,7 +59,7 @@ func (c *Client) UploadFile(ctx context.Context, uri string, data io.ReadCloser,
 }
 
 /*
-	UploadFile enables to delete file.
+	Delete enables to delete file.
 */
 func (c *Client) Delete(ctx context.Context, uri string, options ...Option) error {
 	return c.StorageStrategy.Delete(ctx, uri, options...)
@@ -71,6 +77,13 @@ func (c *Client) Exist(ctx context.Context, uri string) (bool, error) {
 */
 func (c *Client) GetAttrs(ctx context.Context, uri string) (Attrs, error) {
 	return c.StorageStrategy.GetAttrs(ctx, uri)
+}
+
+/*
+	StreamAt streams storage files
+*/
+func (c *Client) StreamAt(key string, off int64, n int64) (io.ReadCloser, int64, error) {
+	return c.StorageStrategy.StreamAt(key, off, n)
 }
 
 type Option func(o *option)
