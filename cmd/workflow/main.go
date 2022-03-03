@@ -43,7 +43,7 @@ type catalogConfig struct {
 type config struct {
 	AppPort           string
 	DbConnection      string
-	Project           string
+	PsProject         string
 	PsSubscription    string
 	PsDownloaderTopic string
 	PsProcessorTopic  string
@@ -54,7 +54,7 @@ type config struct {
 func newAppConfig() (*config, error) {
 	appPort := flag.String("port", "8080", "workflow port ot use")
 	dbConnection := flag.String("dbConnection", "", "database connection")
-	project := flag.String("project", "", "subscription project (gcp only/not required in local usage)")
+	psProject := flag.String("psProject", "", "pubsub subscription project (gcp only/not required in local usage)")
 	psSubscription := flag.String("psSubscription", "", "pubsub event subscription name")
 	psDownloaderTopic := flag.String("psDownloader-topic", "", "pubsub image-downloader topic name")
 	psProcessorTopic := flag.String("psProcessor-topic", "", "pubsub tile-processor topic name")
@@ -85,7 +85,7 @@ func newAppConfig() (*config, error) {
 	return &config{
 		AppPort:           *appPort,
 		DbConnection:      *dbConnection,
-		Project:           *project,
+		PsProject:         *psProject,
 		PsSubscription:    *psSubscription,
 		PsDownloaderTopic: *psDownloaderTopic,
 		PsProcessorTopic:  *psProcessorTopic,
@@ -124,7 +124,7 @@ func run(ctx context.Context) error {
 	}
 
 	// Start autoscalers
-	if err = runAutoscalers(ctx, config.Project, config.AutoscalerConfig); err != nil {
+	if err = runAutoscalers(ctx, config.PsProject, config.AutoscalerConfig); err != nil {
 		log.Logger(ctx).Warn("not running autoscalers", zap.Error(err))
 	}
 
@@ -141,16 +141,16 @@ func run(ctx context.Context) error {
 	{
 		// Connection to pubsub
 		if config.PsSubscription != "" {
-			logMessaging += fmt.Sprintf(" pulling on %s/%s", config.Project, config.PsSubscription)
-			eventConsumer, err = pubsub.NewConsumer(config.Project, config.PsSubscription)
+			logMessaging += fmt.Sprintf(" pulling on %s/%s", config.PsProject, config.PsSubscription)
+			eventConsumer, err = pubsub.NewConsumer(config.PsProject, config.PsSubscription)
 			if err != nil {
 				return fmt.Errorf("pubsub.new: %w", err)
 			}
 		}
 
 		if config.PsDownloaderTopic != "" {
-			logMessaging += fmt.Sprintf(" pushing downloaderJobs on %s/%s", config.Project, config.PsDownloaderTopic)
-			publisher, err := pubsub.NewPublisher(ctx, config.Project, config.PsDownloaderTopic)
+			logMessaging += fmt.Sprintf(" pushing downloaderJobs on %s/%s", config.PsProject, config.PsDownloaderTopic)
+			publisher, err := pubsub.NewPublisher(ctx, config.PsProject, config.PsDownloaderTopic)
 			if err != nil {
 				return fmt.Errorf("pubsub.NewPublisher(Downloader): %w", err)
 			}
@@ -159,8 +159,8 @@ func run(ctx context.Context) error {
 		}
 
 		if config.PsProcessorTopic != "" {
-			logMessaging += fmt.Sprintf(" pushing processorJobs on %s/%s", config.Project, config.PsProcessorTopic)
-			publisher, err := pubsub.NewPublisher(ctx, config.Project, config.PsProcessorTopic)
+			logMessaging += fmt.Sprintf(" pushing processorJobs on %s/%s", config.PsProject, config.PsProcessorTopic)
+			publisher, err := pubsub.NewPublisher(ctx, config.PsProject, config.PsProcessorTopic)
 			if err != nil {
 				return fmt.Errorf("pubsub.NewPublisher(Processor): %w", err)
 			}

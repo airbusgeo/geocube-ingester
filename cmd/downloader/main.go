@@ -20,7 +20,7 @@ import (
 )
 
 type config struct {
-	Project           string
+	PsProject         string
 	PsSubscription    string
 	PsEventTopic      string
 	WorkingDir        string
@@ -40,7 +40,7 @@ type config struct {
 }
 
 func newAppConfig() (*config, error) {
-	project := flag.String("project", "", "subscription project (gcp only/not required in local usage)")
+	psProject := flag.String("psProject", "", "pubsub subscription project (gcp only/not required in local usage)")
 	psSubscription := flag.String("psSubscription", "", "pubsub image subscription name")
 	psEventTopic := flag.String("psEvent", "", "pubsub events topic name")
 	workingDir := flag.String("workdir", "/local-ssd", "working directory to store intermediate results")
@@ -79,7 +79,7 @@ func newAppConfig() (*config, error) {
 		gsProviderBucketsMap = strings.Split(*gsProviderBuckets, ",")
 	}
 	return &config{
-		Project:           *project,
+		PsProject:         *psProject,
 		PsSubscription:    *psSubscription,
 		PsEventTopic:      *psEventTopic,
 		StorageURI:        *storageURI,
@@ -118,14 +118,14 @@ func run(ctx context.Context) error {
 	var logMessaging string
 	{
 		if config.PsSubscription != "" {
-			logMessaging += fmt.Sprintf(" pulling on %s/%s", config.Project, config.PsSubscription)
-			if jobConsumer, err = pubsub.NewConsumer(config.Project, config.PsSubscription); err != nil {
+			logMessaging += fmt.Sprintf(" pulling on %s/%s", config.PsProject, config.PsSubscription)
+			if jobConsumer, err = pubsub.NewConsumer(config.PsProject, config.PsSubscription); err != nil {
 				return fmt.Errorf("pubsub.NewConsumer: %w", err)
 			}
 		}
 		if config.PsEventTopic != "" {
-			logMessaging += fmt.Sprintf(" pushing on %s/%s", config.Project, config.PsEventTopic)
-			eventTopic, err := pubsub.NewPublisher(ctx, config.Project, config.PsEventTopic, pubsub.WithMaxRetries(5))
+			logMessaging += fmt.Sprintf(" pushing on %s/%s", config.PsProject, config.PsEventTopic)
+			eventTopic, err := pubsub.NewPublisher(ctx, config.PsProject, config.PsEventTopic, pubsub.WithMaxRetries(5))
 			if err != nil {
 				return fmt.Errorf("pubsub.NewPublisher: %w", err)
 			}

@@ -224,7 +224,7 @@ Example:
 $ export GRAPHPATH=/home/user/geocube-ingester/graph
 $ export SNAPPATH=/usr/local/snap/bin/gpt
 $ export WORKING_DIR=/home/user/geocube-ingester/data/
-$ ./downloader --project geocube-emulator --psSubscription ingester-downloader --psEvent ingester-events --local-path $WORKING_DIR/data --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{UTM}/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE} --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
+$ ./downloader --psProject geocube-emulator --psSubscription ingester-downloader --psEvent ingester-events --local-path $WORKING_DIR/data --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{UTM}/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE} --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -253,8 +253,8 @@ Usage of ./downloader:
         peps account password (optional)
   -peps-username string
         peps account username (optional)
-  -project string
-        subscription project (gcp only/not required in local usage)
+  -psProject string
+        pubsub subscription project (gcp only/not required in local usage)
   -psEvent string
         pubsub events topic name
   -psSubscription string
@@ -299,7 +299,7 @@ Example:
 $ export GRAPHPATH=./data/graph
 $ export SNAPPATH=/usr/local/snap/bin/gpt
 $ export WORKING_DIR=/home/user/geocube-ingester/data/
-$ ./processor --project geocube-emulator --psSubscription ingester-processor --psEvent ingester-events --geocube-server $GEOCUBE_SERVER --geocube-insecure --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp
+$ ./processor --psProject geocube-emulator --psSubscription ingester-processor --psEvent ingester-events --geocube-server $GEOCUBE_SERVER --geocube-insecure --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -313,8 +313,8 @@ Usage of ./processor:
         connection to geocube server is insecure
   -geocube-server string
         address of geocube server
-  -project string
-        subscription project (gcp only/not required in local usage)
+  -psProject string
+        pubsub subscription project (gcp only/not required in local usage)
   -psEvent string
         pubsub events topic name
   -psSubscription string
@@ -348,7 +348,7 @@ Example:
 ```bash
 $ export DB_CONNECTION=postgresql://user:password@localhost:5432/ingester?binary_parameters=yes
 $ export WORKFLOW_PORT=8082
-$ ./workflow --project geocube-emulator --psSubscription ingester-events --psDownloader-topic ingester-downloader --psProcessor-topic ingester-processor --dbConnection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --geocube-insecure --scihub-username "$SCIHUB_USERNAME" --scihub-password "$SCIHUB_PASSWORD"
+$ ./workflow --psProject geocube-emulator --psSubscription ingester-events --psDownloader-topic ingester-downloader --psProcessor-topic ingester-processor --dbConnection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --geocube-insecure --scihub-username "$SCIHUB_USERNAME" --scihub-password "$SCIHUB_PASSWORD"
 ```
 
 For more information concerning flags and downloader argument, you can run:
