@@ -26,7 +26,6 @@ cloud.google.com/go v0.88.0/go.mod h1:dnKwfYbP9hQhefiUvpbcAyoGSHUrOxR20JVElLiUvE
 cloud.google.com/go v0.90.0/go.mod h1:kRX0mNRHe0e2rC6oNakvwQqzyDmg57xJ+SZU1eT2aDQ=
 cloud.google.com/go v0.93.3/go.mod h1:8utlLll2EF5XMAV15woO4lSbWQlk8rer9aLOfLh7+YI=
 cloud.google.com/go v0.94.1/go.mod h1:qAlAugsXlC+JWO+Bke5vCtc9ONxjQT3drlTTnAplMW4=
-cloud.google.com/go v0.95.0/go.mod h1:MzZUAH870Y7E+c14j23Ir66FC1+PK8WLG7OG4SjP+0k=
 cloud.google.com/go v0.97.0 h1:3DXvAyifywvq64LfkKaMOmkWPS1CikIQdMe2lY9vxU8=
 cloud.google.com/go v0.97.0/go.mod h1:GF7l59pYBVlXQIBLx3a761cZ41F9bBH3JUlihCt2Udc=
 cloud.google.com/go/bigquery v1.0.1/go.mod h1:i/xbL2UlR5RvWAURpBYZTtm/cXjCha9lbfbpx4poX+o=
@@ -57,7 +56,7 @@ cloud.google.com/go/storage v1.6.0/go.mod h1:N7U0C8pVQ/+NIKOBQyamJIeKQKkZ+mxpohl
 cloud.google.com/go/storage v1.8.0/go.mod h1:Wv1Oy7z6Yz3DshWRJFhqM/UCfaWIRTdp0RXyy7KQOVs=
 cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9ullr3+Kg0=
 cloud.google.com/go/storage v1.15.0/go.mod h1:mjjQMoxxyGH7Jr8K5qrx6N2O0AHsczI61sMNn03GIZI=
-cloud.google.com/go/storage v1.16.1/go.mod h1:LaNorbty3ehnU3rEjXSNV/NRgQA0O8Y+uh6bPe5UOk4=
+cloud.google.com/go/storage v1.17.0/go.mod h1:0wRtHSM3Npk/QJYdwcpRNVRVJlH2OxyWF9Dws3J+MtE=
 cloud.google.com/go/storage v1.18.2 h1:5NQw6tOn3eMm0oE8vTkfjau18kjL79FlMjy/CHTpmoY=
 cloud.google.com/go/storage v1.18.2/go.mod h1:AiIj7BWXyhO5gGVmYJ+S8tbkCx3yb0IMjua8Aw4naVM=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
@@ -74,15 +73,14 @@ github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAE
 github.com/airbusgeo/cogger v0.0.5/go.mod h1:kCWuN4IVKpUiLzGKrqsZHPYbN24nyyrRuAa/vX2eURk=
 github.com/airbusgeo/errs v0.0.2 h1:+7i9HLCgs8xWkGN7cIUMStVUA1d6F5AqpAlft6O4kM8=
 github.com/airbusgeo/errs v0.0.2/go.mod h1:w6O7kns8m5o+eQeWsbhU7usUNq2Rhmt4xQO+rVt9/Js=
-github.com/airbusgeo/geocube v0.3.0 h1:hV+JzY4RcuQ2wtNFlARk5adye0bD6HnoilzRnWEUyL8=
-github.com/airbusgeo/geocube v0.3.0/go.mod h1:E8GrS1EB9P+qmL/fGTFMh2iL2w/eO6TRldcKKfR8GeE=
+github.com/airbusgeo/geocube v0.4.0 h1:1kTtnG0G0QFVGPcCgFfpEaLNvCacjqRPK1Fb4urUjdM=
+github.com/airbusgeo/geocube v0.4.0/go.mod h1://dzXHS7HfwEK0ZZfmEurS53kw/8FCbEQ5i12M2qb6A=
 github.com/airbusgeo/geocube-client-go v0.2.0 h1:I7XOaT3uCMZBR7KvxVdEU633XbEIv2RUWi5Y3t/YT8s=
 github.com/airbusgeo/geocube-client-go v0.2.0/go.mod h1:G1tFCxSLxkVGdUY9OxeWu5T2DKJDGurjRY7Uzncr7fA=
 github.com/airbusgeo/godal v0.0.0-20210506122000-ee62c71eebf8/go.mod h1:u1+hcfW729JnK8qm3ugYivRFNlBCNPN98DRBy3pr4qA=
-github.com/airbusgeo/godal v0.0.4-0.20210929102515-67de289a8d34/go.mod h1:L4Vwn21rsv0rq1k79zRNR1Dy3yhs36XJX1rTcAHVmyk=
+github.com/airbusgeo/godal v0.0.6-0.20211104110613-d49205b11c58/go.mod h1:xgMTCes35sihBjlPXiSjwc3dr7kWW9SGLHxgCZQYfs0=
 github.com/airbusgeo/mucog v0.0.0-20210928135728-43d5e17d5a2a/go.mod h1:FX4f6++Bh1c9JK3fTC18y4aPJAfrJe9vNZbQVOuw3MU=
 github.com/airbusgeo/osio v0.0.0-20210506100101-26770c6cce5a/go.mod h1:RRWIP4TCR8OIXtihqFQozkS8HkiduDWk0Sotku695og=
-github.com/airbusgeo/osio v0.1.1/go.mod h1:d4qlaDSgsMilFoi+/62vwFZStuYIHIDovYzIRjTK+Jw=
 github.com/airbusgeo/osio v0.1.2 h1:RgqVNbz5B5hs2ZWizE6AsdVLbRcDXBw4X3rCs8XAtlg=
 github.com/airbusgeo/osio v0.1.2/go.mod h1:d4qlaDSgsMilFoi+/62vwFZStuYIHIDovYzIRjTK+Jw=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
@@ -915,7 +913,6 @@ google.golang.org/genproto v0.0.0-20210728212813-7823e685a01f/go.mod h1:ob2IJxKr
 google.golang.org/genproto v0.0.0-20210805201207-89edb61ffb67/go.mod h1:ob2IJxKrgPT52GcgX759i1sleT07tiKowYBGbczaW48=
 google.golang.org/genproto v0.0.0-20210813162853-db860fec028c/go.mod h1:cFeNkxwySK631ADgubI+/XFU/xp8FD5KIVV4rj8UC5w=
 google.golang.org/genproto v0.0.0-20210821163610-241b8fcbd6c8/go.mod h1:eFjDcFEctNawg4eG61bRv87N7iHBWyVhJu7u1kqDUXY=
-google.golang.org/genproto v0.0.0-20210825212027-de86158e7fda/go.mod h1:eFjDcFEctNawg4eG61bRv87N7iHBWyVhJu7u1kqDUXY=
 google.golang.org/genproto v0.0.0-20210828152312-66f60bf46e71/go.mod h1:eFjDcFEctNawg4eG61bRv87N7iHBWyVhJu7u1kqDUXY=
 google.golang.org/genproto v0.0.0-20210831024726-fe130286e0e2/go.mod h1:eFjDcFEctNawg4eG61bRv87N7iHBWyVhJu7u1kqDUXY=
 google.golang.org/genproto v0.0.0-20210903162649-d08c68adba83/go.mod h1:eFjDcFEctNawg4eG61bRv87N7iHBWyVhJu7u1kqDUXY=
@@ -923,10 +920,10 @@ google.golang.org/genproto v0.0.0-20210909211513-a8c4777a87af/go.mod h1:eFjDcFEc
 google.golang.org/genproto v0.0.0-20210917145530-b395a37504d4/go.mod h1:eFjDcFEctNawg4eG61bRv87N7iHBWyVhJu7u1kqDUXY=
 google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/genproto v0.0.0-20210924002016-3dee208752a0/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
-google.golang.org/genproto v0.0.0-20210927142257-433400c27d05/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/genproto v0.0.0-20211016002631-37fc39342514/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/genproto v0.0.0-20211018162055-cf77aa76bad2/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/genproto v0.0.0-20211019152133-63b7e35f4404/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
+google.golang.org/genproto v0.0.0-20211117155847-120650a500bb/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/genproto v0.0.0-20211118181313-81c1377c94b1 h1:b9mVrqYfq3P4bCdaLg1qtBnPzUYgglsIdjZkL/fQVOE=
 google.golang.org/genproto v0.0.0-20211118181313-81c1377c94b1/go.mod h1:5CzLGKJ67TSI2B9POpiiyGha0AjJvZIUgRMt1dSmuhc=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=

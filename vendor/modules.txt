@@ -22,7 +22,7 @@ cloud.google.com/go/storage
 cloud.google.com/go/storage/internal/apiv2
 # github.com/airbusgeo/errs v0.0.2
 github.com/airbusgeo/errs
-# github.com/airbusgeo/geocube v0.3.0
+# github.com/airbusgeo/geocube v0.4.0
 ## explicit
 github.com/airbusgeo/geocube/interface/autoscaler
 github.com/airbusgeo/geocube/interface/autoscaler/k8s

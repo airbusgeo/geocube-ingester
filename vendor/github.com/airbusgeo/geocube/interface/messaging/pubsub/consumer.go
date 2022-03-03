@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
@@ -28,7 +27,6 @@ import (
 type Client struct {
 	ps                        *gcppubsub.SubscriberClient
 	m                         *monitoring.MetricClient
-	psOnce, mOnce             sync.Once
 	projectID, subscriptionID string
 	processOpts               processOptions
 }
@@ -181,17 +179,11 @@ func (c *Client) SetProcessOption(opts ...ProcessOption) {
 }
 
 func (c *Client) Process(ctx context.Context, cb messaging.Callback) error {
-	var initerr error
-	c.psOnce.Do(func() {
-		if c.ps == nil {
-			c.ps, initerr = DefaultSubscriberClient(context.Background())
-			if initerr != nil {
-				initerr = fmt.Errorf("create subscriber client: %w", initerr)
-			}
+	if c.ps == nil {
+		var err error
+		if c.ps, err = DefaultSubscriberClient(context.Background()); err != nil {
+			return fmt.Errorf("create subscriber client: %w", err)
 		}
-	})
-	if initerr != nil {
-		return initerr
 	}
 
 	sub := fmt.Sprintf("projects/%s/subscriptions/%s", c.projectID, c.subscriptionID)
@@ -320,18 +312,13 @@ func (c *Client) Process(ctx context.Context, cb messaging.Callback) error {
 	return <-keepAliveError
 }
 
-func (c *Client) Count(ctx context.Context) (uint, error) {
-	var initerr error
-	c.mOnce.Do(func() {
-		if c.m == nil {
-			c.m, initerr = monitoring.NewMetricClient(context.Background())
-			if initerr != nil {
-				initerr = fmt.Errorf("create metric client: %w", initerr)
-			}
+// Backlog implements interface.autoscaler.qbas.Queue
+func (c *Client) Backlog(ctx context.Context) (int64, error) {
+	if c.m == nil {
+		var err error
+		if c.m, err = monitoring.NewMetricClient(context.Background(), option.WithEndpoint("localhost:8085"), option.WithoutAuthentication(), option.WithGRPCDialOption(grpc.WithInsecure())); err != nil {
+			return 0, fmt.Errorf("create metric client: %w", err)
 		}
-	})
-	if initerr != nil {
-		return 0, initerr
 	}
 	req := &monitoringpb.ListTimeSeriesRequest{
 		Name: fmt.Sprintf("projects/%s", c.projectID),
@@ -353,11 +340,10 @@ func (c *Client) Count(ctx context.Context) (uint, error) {
 			return 0, fmt.Errorf("it.next: %w", err)
 		}
 		pnts := resp.GetPoints()
-		//log.Logger(ctx).Info("pnts", zap.Any("pnts", pnts))
 		if len(pnts) == 0 {
 			continue
 		}
-		return uint(pnts[len(pnts)-1].Value.GetInt64Value()), nil
+		return pnts[len(pnts)-1].Value.GetInt64Value(), nil
 	}
 	log.Logger(ctx).Warn("no monitoring metrics found. Does the subscription exist?")
 	return 0, nil
