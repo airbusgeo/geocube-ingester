@@ -144,6 +144,9 @@ func (scene *Scene) toFeature() (geojson.Feature, error) {
 	if err != nil {
 		return feature, fmt.Errorf("ToFeature.DecodeString: %w", err)
 	}
+	if p, ok := feature.Geometry.Geometry.(geom.MultiPolygon); ok && len(p.Polygons()) == 1 {
+		feature.Geometry.Geometry = geom.Polygon(p.Polygons()[0])
+	}
 	if p, ok := feature.Geometry.Geometry.(geom.Polygon); len(scene.Tiles) != 0 && ok {
 		multipolygon := geom.MultiPolygon{p.LinearRings()}
 		for _, tile := range scene.Tiles {
