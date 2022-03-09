@@ -198,7 +198,7 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 		}
 		if objectAttrs.Prefix != "" {
 			mkdir := filepath.Join(dstDir, objectAttrs.Prefix)
-			ferr := os.MkdirAll(mkdir, 0700)
+			ferr := os.MkdirAll(mkdir, 0766)
 			if ferr != nil {
 				close(downloads)
 				return nil, fmt.Errorf("mkdirall %s: %w", mkdir, ferr)
@@ -212,7 +212,7 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 				continue
 			}
 			dirname := filepath.Join(dstDir, filepath.Dir(filename))
-			ferr := os.MkdirAll(dirname, 0700)
+			ferr := os.MkdirAll(dirname, 0766)
 			if ferr != nil {
 				close(downloads)
 				return nil, fmt.Errorf("mkdirall %s: %w", dirname, ferr)
