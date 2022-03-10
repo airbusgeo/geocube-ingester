@@ -1,0 +1,52 @@
+version: "3.7"
+services:
+  workflow:
+    build:
+      context: ../..
+      dockerfile: ./cmd/workflow/Dockerfile
+    image: geocube-ingester-workflow:$INGESTER_VERSION
+    command: --db-connection=postgresql://postgres:1235@localhost:8002/postgres?sslmode=disable --pgq-connection=postgresql://postgres:1235@localhost:8002/postgres?sslmode=disable --event-queue=ingester-events --downloader-queue=ingester-downloader --processor-queue=ingester-processor --port=$WORKFLOW_PORT --geocube-server=$GEOCUBE_HOST:$GEOCUBE_PORT --geocube-insecure=$GEOCUBE_INSECURE --geocube-apikey=$GEOCUBE_APIKEY --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
+    network_mode: "host"
+    depends_on:
+      - postgis
+    restart: always
+
+  downloader:
+    build:
+      context: ../..
+      dockerfile: ./cmd/downloader/Dockerfile
+    image: geocube-ingester-downloader:$INGESTER_VERSION
+    command: --pgq-connection=postgresql://postgres:1235@localhost:8002/postgres?sslmode=disable --job-queue=ingester-downloader --event-queue=ingester-events --workdir=$STORAGE_URI/tmp --storage-uri=$STORAGE_URI --local-path=$STORAGE_URI --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD --peps-username=$PEPS_USERNAME --peps-password=$PEPS_PASSWORD --onda-username=$ONDA_USERNAME --onda-password=$ONDA_PASSWORD --creodias-username=$CREODIAS_USERNAME --creodias-password=$CREODIAS_PASSWORD --sobloo-apikey=$SOBLOO_APIKEY --mundi-seeed-token=$MUNDI_SEEED_TOKEN --gs-provider-buckets=$GS_BUCKET
+    network_mode: "host"
+    depends_on:
+      - postgis
+    volumes:
+      - $STORAGE_URI:$STORAGE_URI
+    restart: always
+
+  processor:
+    build:
+      context: ../..
+      dockerfile: ./cmd/processor/Dockerfile
+    image: geocube-ingester-processor:$INGESTER_VERSION
+    command: --pgq-connection=postgresql://postgres:1235@localhost:8002/postgres?sslmode=disable --job-queue=ingester-processor --event-queue=ingester-events --storage-uri=$STORAGE_URI --geocube-server=$GEOCUBE_HOST:$GEOCUBE_PORT --geocube-insecure=$GEOCUBE_INSECURE --geocube-apikey=$GEOCUBE_APIKEY
+    network_mode: "host"
+    depends_on:
+      - postgis
+    volumes:
+      - $STORAGE_URI:$STORAGE_URI
+    restart: always
+
+  postgis:
+    image: postgis/postgis
+    environment:
+      - POSTGRES_PASSWORD=1235
+    ports:
+      - "8002:5432"
+    volumes:
+      - ../../interface/database/pg/db.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../../vendor/github.com/airbusgeo/geocube/interface/messaging/pgqueue/create_table.sql:/docker-entrypoint-initdb.d/init_pgqueue.sql
+      - geocube-ingester-data:/var/lib/postgresql
+
+volumes:
+  geocube-ingester-data:

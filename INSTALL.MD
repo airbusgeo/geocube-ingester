@@ -32,6 +32,7 @@
     - [Processor](#processor)
     - [Workflow](#workflow)
 - [Installation - docker](#installation---docker)
+  - [Docker-compose](#docker-compose)
 - [Installation - Kubernetes Cluster](#installation---kubernetes-cluster)
   - [Prerequisites](#prerequisites-1)
     - [Container registry](#container-registry)
@@ -444,6 +445,15 @@ $ docker run --rm --network=host -v $STORAGE:$STORAGE $DOWNLOADER_IMAGE --pgq-co
 
 $ docker run --rm --network=host -v $STORAGE:$STORAGE $PROCESSOR_IMAGE --pgq-connection=$DB_CONNECTION  --job-queue ingester-processor --event-queue ingester-events --geocube-server $GEOCUBE_SERVER --storage-uri $STORAGE --workdir /tmp
 ```
+
+## Docker-compose
+
+A docker-compose file is provided as example. It's a minimal example, so feel free to edit it to take advantage of the full power of the Geocube-Ingester.
+
+- Copy the `./cmd/dockerfiles/.env.example` to `./cmd/dockerfiles/.env`
+- Edit `./docker/.env` to set the env variables.
+- Build the [base image](#base-image)
+- `cd cmd/dockerfiles` and `docker-compose up`
 
 # Installation - Kubernetes Cluster
 ## Prerequisites
