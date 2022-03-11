@@ -181,12 +181,16 @@ func run(ctx context.Context) error {
 	catalog := catalog.Catalog{}
 	{
 		// Geocube client
-		var tlsConfig *tls.Config
-		if !config.CatalogConfig.GeocubeServerInsecure {
-			tlsConfig = &tls.Config{}
-		}
-		if catalog.GeocubeClient, err = service.NewGeocubeClient(ctx, config.CatalogConfig.GeocubeServer, config.CatalogConfig.GeocubeServerApiKey, tlsConfig); err != nil {
-			return fmt.Errorf("connection to geocube: %w", err)
+		if config.CatalogConfig.GeocubeServer != "" {
+			var tlsConfig *tls.Config
+			if !config.CatalogConfig.GeocubeServerInsecure {
+				tlsConfig = &tls.Config{}
+			}
+			if catalog.GeocubeClient, err = service.NewGeocubeClient(ctx, config.CatalogConfig.GeocubeServer, config.CatalogConfig.GeocubeServerApiKey, tlsConfig); err != nil {
+				return fmt.Errorf("connection to geocube: %w", err)
+			}
+		} else {
+			log.Logger(ctx).Warn("Geocube server is not configured. Some catalogue functions are disabled.")
 		}
 
 		// Connection to the external catalogue service

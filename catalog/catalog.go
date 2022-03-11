@@ -39,6 +39,10 @@ func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
 		return fmt.Errorf("validateArea: unrecognized constellation: %s", area.SceneType.Constellation)
 	}
 
+	if c.GeocubeClient == nil {
+		return fmt.Errorf("validateArea: no connection to the geocube")
+	}
+
 	// Check that instances exist
 	for k, layer := range area.Layers {
 		if layer.InstanceID != "" {
@@ -138,6 +142,10 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 
 // DeletePendingRecords deletes records of scenes that have not been successfully posted to the workflow server
 func (c *Catalog) DeletePendingRecords(ctx context.Context, scenes []*entities.Scene, scenesID map[string]int) {
+	if c.GeocubeClient == nil {
+		return
+	}
+
 	// Delete records of scenes that have not been successfully posted to the workflow server
 	var ids []string
 	for _, s := range scenes {

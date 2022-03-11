@@ -278,6 +278,10 @@ func handleNonContinuousSwath(scenes []*entities.Scene) error {
 // createRecord for the scene, or return the id of the corresponding record
 // return true if the record has been created
 func (c *Catalog) createRecord(ctx context.Context, scene entities.Scene) (string, bool, error) {
+	if c.GeocubeClient == nil {
+		return "", false, fmt.Errorf("createRecord: no connection to the geocube")
+	}
+
 	// If record already exists, return
 	if r, err := c.GeocubeClient.ListRecords(scene.SourceID, scene.Tags, geocube.AOI{}, time.Time{}, time.Time{}, 1, 0, false); err != nil {
 		return "", false, fmt.Errorf("CreateRecord.%w", err)
