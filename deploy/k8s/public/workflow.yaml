@@ -47,10 +47,11 @@ spec:
                   name: ingester-secrets
                   key: SCIHUB_PASSWORD
           args:
-            - "--dbConnection=$(DB_CONNECTION)"
-            - "--psSubscription=ingester-events"
-            - "--psDownloader-topic=ingester-downloader"
-            - "--psProcessor-topic=ingester-processor"
+            - "--db-connection=$(DB_CONNECTION)"
+            - "--pgq-connection=$(DB_CONNECTION)"
+            - "--event-queue=ingester-events"
+            - "--downloader-queue=ingester-downloader"
+            - "--processor-queue=ingester-processor"
             - "--namespace=ingester"
             - "--downloader-rc=ingester-downloader"
             - "--processor-rc=ingester-processor"
@@ -87,6 +88,12 @@ spec:
       containers:
         - name: ingester-downloader
           env:
+            - name: DB_CONNECTION
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: ingester-db
+                  optional: false
             - name: STORAGE_URI
               valueFrom:
                 secretKeyRef:
@@ -148,8 +155,9 @@ spec:
                   name: ingester-secrets
                   key: GCS_PROVIDER_BUCKETS
           args:
-            - "--psSubscription=ingester-downloader"
-            - "--psEvent=ingester-events"
+            - "--pgq-connection=$(DB_CONNECTION)"
+            - "--job-queue=ingester-downloader"
+            - "--event-queue=ingester-events"
             - "--storage-uri=$(STORAGE_URI)"
             - "--peps-username=$(PEPS_USERNAME)"
             - "--peps-password=$(PEPS_PASSWORD)"
@@ -224,9 +232,16 @@ spec:
                 secretKeyRef:
                   name: ingester-secrets
                   key: STORAGE_URI
+            - name: DB_CONNECTION
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: ingester-db
+                  optional: false
           args:
-            - "--psSubscription=ingester-processor"
-            - "--psEvent=ingester-events"
+            - "--pgq-connection=$(DB_CONNECTION)"
+            - "--job-queue=ingester-processor"
+            - "--event-queue=ingester-events"
             - "--storage-uri=$(STORAGE_URI)"
             - "--geocube-server=$(GEOCUBE_SERVER)"
             - "--geocube-apikey=$(GEOCUBE_CLIENTAPIKEY)"

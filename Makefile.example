@@ -1,0 +1,33 @@
+DOCKER_REPOSITORY := #DOCKER_REPOSITORY#/ingester
+CLUSTER := #K8S_CLUSTER#
+TAG := #TAG#
+
+WF_IMAGE := $(DOCKER_REPOSITORY)/workflow:$(TAG)
+DOWNLOADER_IMAGE := $(DOCKER_REPOSITORY)/downloader:$(TAG)
+PROCESSOR_IMAGE := $(DOCKER_REPOSITORY)/processor:$(TAG)
+NAMESPACE=ingester
+
+build-workflow:
+	docker build -t $(WF_IMAGE) -f cmd/workflow/Dockerfile .
+
+build-processor:
+	docker build -t $(PROCESSOR_IMAGE) -f cmd/processor/Dockerfile .
+
+build-downloader:
+	docker build -t $(DOWNLOADER_IMAGE) -f cmd/downloader/Dockerfile .
+
+build: build-workflow build-processor build-downloader
+push: push-workflow push-processor push-downloader
+
+push-workflow:
+	docker push $(WF_IMAGE)
+push-processor:
+	docker push $(PROCESSOR_IMAGE)
+push-downloader:
+	docker push $(DOWNLOADER_IMAGE)
+
+deploy-all:
+	kubectl --context=$(CLUSTER) apply -f deploy/k8s/namespace.yaml
+	cat deploy/k8s/public/workflow.yaml | sed -e 's#@@DOWNLOADER_IMAGE@@#$(DOWNLOADER_IMAGE)#' -e 's#@@PROCESSOR_IMAGE@@#$(PROCESSOR_IMAGE)#' -e 's#@@WF_IMAGE@@#$(WF_IMAGE)#' | kubectl --context=$(CLUSTER) apply -n $(NAMESPACE) -f -
+	#kubectl --context=$(CLUSTER) apply -n $(NAMESPACE) -f deploy/k8s/public/secrets.yaml
+

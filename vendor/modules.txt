@@ -7,8 +7,7 @@ cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/pubsub
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
-# cloud.google.com/go/monitoring v1.1.0
-## explicit
+# cloud.google.com/go/monitoring v1.0.0
 cloud.google.com/go/monitoring/apiv3/v2
 # cloud.google.com/go/pubsub v1.17.1
 ## explicit
@@ -22,12 +21,13 @@ cloud.google.com/go/storage
 cloud.google.com/go/storage/internal/apiv2
 # github.com/airbusgeo/errs v0.0.2
 github.com/airbusgeo/errs
-# github.com/airbusgeo/geocube v0.4.0
+# github.com/airbusgeo/geocube v0.5.0
 ## explicit
 github.com/airbusgeo/geocube/interface/autoscaler
 github.com/airbusgeo/geocube/interface/autoscaler/k8s
 github.com/airbusgeo/geocube/interface/autoscaler/qbas
 github.com/airbusgeo/geocube/interface/messaging
+github.com/airbusgeo/geocube/interface/messaging/pgqueue
 github.com/airbusgeo/geocube/interface/messaging/pubsub
 github.com/airbusgeo/geocube/interface/storage
 github.com/airbusgeo/geocube/interface/storage/filesystem
@@ -44,6 +44,8 @@ github.com/airbusgeo/geocube-client-go/pb
 github.com/airbusgeo/osio
 github.com/airbusgeo/osio/gcs
 github.com/airbusgeo/osio/internal
+# github.com/btubbs/pgq v0.0.0-20190101193147-0a3335913e86
+github.com/btubbs/pgq
 # github.com/cavaliercoder/grab v2.0.0+incompatible
 ## explicit
 github.com/cavaliercoder/grab
@@ -155,8 +157,9 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/gofuzz v1.0.0
+# github.com/google/gofuzz v1.2.0
 github.com/google/gofuzz
+github.com/google/gofuzz/bytesource
 # github.com/google/uuid v1.3.0
 ## explicit
 github.com/google/uuid
@@ -177,9 +180,16 @@ github.com/gorilla/mux
 # github.com/gregjones/httpcache v0.0.0-20181110185634-c63ab54fda8f
 github.com/gregjones/httpcache
 github.com/gregjones/httpcache/diskcache
+# github.com/guregu/null v4.0.0+incompatible
+github.com/guregu/null
 # github.com/hashicorp/golang-lru v0.5.4
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
+# github.com/jmoiron/sqlx v1.3.4
+github.com/jmoiron/sqlx
+github.com/jmoiron/sqlx/reflectx
+# github.com/joomcode/errorx v1.1.0
+github.com/joomcode/errorx
 # github.com/json-iterator/go v1.1.11
 github.com/json-iterator/go
 # github.com/lib/pq v1.10.4
@@ -247,6 +257,8 @@ github.com/peterbourgon/diskv
 ## explicit
 github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
+# github.com/sirupsen/logrus v1.8.1
+github.com/sirupsen/logrus
 # github.com/ulikunitz/xz v0.5.10
 ## explicit
 github.com/ulikunitz/xz

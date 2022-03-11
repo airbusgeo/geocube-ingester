@@ -9,13 +9,12 @@ import (
 	"github.com/airbusgeo/geocube/interface/autoscaler"
 	rc "github.com/airbusgeo/geocube/interface/autoscaler/k8s"
 	"github.com/airbusgeo/geocube/interface/autoscaler/qbas"
-	"github.com/airbusgeo/geocube/interface/messaging/pubsub"
 	"go.uber.org/zap"
 )
 
-func runAutoscalers(ctx context.Context, project string, config autoscalerConfig) error {
-	//image autoscaler
-	ictx := log.WithFields(ctx, zap.String("rc", config.DownloaderRC), zap.String("queue", config.PsDownloaderQueue))
+func runAutoscalers(ctx context.Context, downloaderBacklog, processorBacklog qbas.Queue, config autoscalerConfig) error {
+	// downloader autoscaler
+	ictx := log.WithFields(ctx, zap.String("rc", config.DownloaderRC))
 
 	controller, err := rc.New(config.DownloaderRC, config.Namespace)
 	if err != nil {
@@ -25,11 +24,6 @@ func runAutoscalers(ctx context.Context, project string, config autoscalerConfig
 	controller.CostPath = "/termination_cost"
 	controller.CostPort = 9000
 
-	queue, err := pubsub.NewConsumer(project, config.PsDownloaderQueue)
-	if err != nil {
-		return fmt.Errorf("pubsub.new: %w", err)
-	}
-
 	cfg := qbas.Config{
 		Ratio:        2,
 		MinRatio:     1,
@@ -37,12 +31,12 @@ func runAutoscalers(ctx context.Context, project string, config autoscalerConfig
 		MinInstances: 0,
 		MaxStep:      1,
 	}
-	as := autoscaler.New(queue, controller, cfg, log.Logger(ictx))
+	as := autoscaler.New(downloaderBacklog, controller, cfg, log.Logger(ictx))
 	log.Logger(ictx).Sugar().Infof("starting autoscaler")
 	go as.Run(ictx, 30*time.Second)
 
-	//tile autoscaler
-	bctx := log.WithFields(ctx, zap.String("rc", config.ProcessorRC), zap.String("queue", config.PsProcessorQueue))
+	// processor autoscaler
+	bctx := log.WithFields(ctx, zap.String("rc", config.ProcessorRC))
 
 	controller, err = rc.New(config.ProcessorRC, config.Namespace)
 	if err != nil {
@@ -52,11 +46,6 @@ func runAutoscalers(ctx context.Context, project string, config autoscalerConfig
 	controller.CostPath = "/termination_cost"
 	controller.CostPort = 9000
 
-	queue, err = pubsub.NewConsumer(project, config.PsProcessorQueue)
-	if err != nil {
-		return fmt.Errorf("pubsub.new: %w", err)
-	}
-
 	cfg = qbas.Config{
 		Ratio:        1.2,
 		MinRatio:     1,
@@ -64,7 +53,7 @@ func runAutoscalers(ctx context.Context, project string, config autoscalerConfig
 		MinInstances: 0,
 		MaxStep:      40,
 	}
-	as = autoscaler.New(queue, controller, cfg, log.Logger(bctx))
+	as = autoscaler.New(processorBacklog, controller, cfg, log.Logger(bctx))
 	log.Logger(bctx).Sugar().Infof("starting autoscaler")
 	go as.Run(bctx, 30*time.Second)
 	return nil

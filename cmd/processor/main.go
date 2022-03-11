@@ -14,51 +14,53 @@ import (
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/airbusgeo/geocube/interface/messaging"
+	"github.com/airbusgeo/geocube/interface/messaging/pgqueue"
 	"github.com/airbusgeo/geocube/interface/messaging/pubsub"
 	"go.uber.org/zap"
 )
 
 type config struct {
-	PsProject             string
-	PsSubscription        string
-	PsEventTopic          string
-	WorkingDir            string
-	StorageURI            string
+	WorkingDir string
+	StorageURI string
+
+	PgqDbConnection string
+	PsProject       string
+	JobQueue        string
+	EventQueue      string
+
 	GeocubeServer         string
 	GeocubeServerInsecure bool
 	GeocubeServerApiKey   string
 }
 
 func newAppConfig() (*config, error) {
-	psProject := flag.String("psProject", "", "pubsub subscription project (gcp only/not required in local usage)")
-	psSubscription := flag.String("psSubscription", "", "pubsub tile subscription name")
-	psEventTopic := flag.String("psEvent", "", "pubsub events topic name")
-	workingDir := flag.String("workdir", "/local-ssd", "working directory to store intermediate results")
-	storage := flag.String("storage-uri", "", "storage uri (currently supported: local, gs). To get outputs of the scene preprocessing graph and store outputs of the tile processing graph.")
-	geocubeServer := flag.String("geocube-server", "127.0.0.1:8080", "address of geocube server")
-	geocubeServerInsecure := flag.Bool("geocube-insecure", false, "connection to geocube server is insecure")
-	geocubeServerApiKey := flag.String("geocube-apikey", "", "geocube server api key")
+	config := config{}
+	// Global config
+	flag.StringVar(&config.WorkingDir, "workdir", "/local-ssd", "working directory to store intermediate results")
+	flag.StringVar(&config.StorageURI, "storage-uri", "", "storage uri (currently supported: local, gs). To get outputs of the scene preprocessing graph and store outputs of the tile processing graph.")
+
+	// Messaging
+	flag.StringVar(&config.PgqDbConnection, "pgq-connection", "", "enable pgq messaging system with a connection to the database")
+	flag.StringVar(&config.PsProject, "ps-project", "", "pubsub subscription project (gcp only/not required in local usage)")
+	flag.StringVar(&config.JobQueue, "job-queue", "", "name of the queue for processor jobs (pgqueue or pubsub subscription)")
+	flag.StringVar(&config.EventQueue, "event-queue", "", "name of the queue for job events (pgqueue or pubsub topic)")
+
+	// Geocube connection
+	flag.StringVar(&config.GeocubeServer, "geocube-server", "127.0.0.1:8080", "address of geocube server")
+	flag.BoolVar(&config.GeocubeServerInsecure, "geocube-insecure", false, "connection to geocube server is insecure")
+	flag.StringVar(&config.GeocubeServerApiKey, "geocube-apikey", "", "geocube server api key")
 	flag.Parse()
 
-	if *workingDir == "" {
+	if config.WorkingDir == "" {
 		return nil, fmt.Errorf("missing workdir config flag")
 	}
-	if *storage == "" {
+	if config.StorageURI == "" {
 		return nil, fmt.Errorf("wrong storage-uri config flag")
 	}
-	if *geocubeServer == "" {
+	if config.GeocubeServer == "" {
 		return nil, fmt.Errorf("missing geocube server flag")
 	}
-	return &config{
-		PsProject:             *psProject,
-		PsSubscription:        *psSubscription,
-		PsEventTopic:          *psEventTopic,
-		WorkingDir:            *workingDir,
-		StorageURI:            *storage,
-		GeocubeServer:         *geocubeServer,
-		GeocubeServerInsecure: *geocubeServerInsecure,
-		GeocubeServerApiKey:   *geocubeServerApiKey,
-	}, nil
+	return &config, nil
 }
 
 func main() {
@@ -79,20 +81,37 @@ func run(ctx context.Context) error {
 	var jobConsumer messaging.Consumer
 	var logMessaging string
 	{
-		if config.PsSubscription != "" {
-			logMessaging += fmt.Sprintf(" pulling on %s/%s", config.PsProject, config.PsSubscription)
-			if jobConsumer, err = pubsub.NewConsumer(config.PsProject, config.PsSubscription); err != nil {
-				return fmt.Errorf("pubsub.NewConsumer: %w", err)
-			}
-		}
-		if config.PsEventTopic != "" {
-			logMessaging += fmt.Sprintf(" pushing on %s/%s", config.PsProject, config.PsEventTopic)
-			eventTopic, err := pubsub.NewPublisher(ctx, config.PsProject, config.PsEventTopic, pubsub.WithMaxRetries(5))
+		if config.PgqDbConnection != "" {
+			db, w, err := pgqueue.SqlConnect(ctx, config.PgqDbConnection)
 			if err != nil {
-				return fmt.Errorf("messaging.NewPublisher: %w", err)
+				return fmt.Errorf("MessagingService: %w", err)
 			}
-			defer eventTopic.Stop()
-			eventPublisher = eventTopic
+			if config.JobQueue != "" {
+				logMessaging += fmt.Sprintf(" pulling on pgqueue:%s", config.JobQueue)
+				consumer := pgqueue.NewConsumer(db, config.JobQueue)
+				defer consumer.Stop()
+				jobConsumer = consumer
+			}
+			if config.EventQueue != "" {
+				logMessaging += fmt.Sprintf(" pushing on pgqueue:%s", config.EventQueue)
+				eventPublisher = pgqueue.NewPublisher(w, config.EventQueue, pgqueue.WithMaxRetries(5))
+			}
+		} else if config.PsProject != "" {
+			if config.JobQueue != "" {
+				logMessaging += fmt.Sprintf(" pulling on %s/%s", config.PsProject, config.JobQueue)
+				if jobConsumer, err = pubsub.NewConsumer(config.PsProject, config.JobQueue); err != nil {
+					return fmt.Errorf("pubsub.NewConsumer: %w", err)
+				}
+			}
+			if config.EventQueue != "" {
+				logMessaging += fmt.Sprintf(" pushing on %s/%s", config.PsProject, config.EventQueue)
+				eventTopic, err := pubsub.NewPublisher(ctx, config.PsProject, config.EventQueue, pubsub.WithMaxRetries(5))
+				if err != nil {
+					return fmt.Errorf("messaging.NewPublisher: %w", err)
+				}
+				defer eventTopic.Stop()
+				eventPublisher = eventTopic
+			}
 		}
 	}
 	if jobConsumer == nil {

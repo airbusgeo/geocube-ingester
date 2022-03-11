@@ -2,10 +2,7 @@ package pubsub
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -41,35 +38,6 @@ type ConsumerOption func(o *consumerOptions)
 // Pull implements Messaging.Consumer
 func (c *Client) Pull(ctx context.Context, cb messaging.Callback) error {
 	return c.Process(ctx, cb)
-}
-
-// Consume implements Messaging.Consumer
-func (c *Client) Consume(req http.Request, cb messaging.Callback) (int, error) {
-	ctx := req.Context()
-	if req.Method != "POST" {
-		return http.StatusMethodNotAllowed, nil
-	}
-
-	psm := struct {
-		Message struct {
-			Data string `json:"data"`
-		} `json:"message"`
-	}{}
-
-	err := json.NewDecoder(req.Body).Decode(&psm)
-	if err != nil {
-		return 400, err
-	}
-
-	data, err := base64.StdEncoding.DecodeString(psm.Message.Data)
-	if err != nil {
-		return 400, err
-	}
-
-	if err := cb(ctx, &messaging.Message{Data: data, PublishTime: time.Now()}); err != nil {
-		return 503, err
-	}
-	return 200, nil
 }
 
 func DefaultSubscriberClient(ctx context.Context) (*gcppubsub.SubscriberClient, error) {
@@ -316,7 +284,7 @@ func (c *Client) Process(ctx context.Context, cb messaging.Callback) error {
 func (c *Client) Backlog(ctx context.Context) (int64, error) {
 	if c.m == nil {
 		var err error
-		if c.m, err = monitoring.NewMetricClient(context.Background(), option.WithEndpoint("localhost:8085"), option.WithoutAuthentication(), option.WithGRPCDialOption(grpc.WithInsecure())); err != nil {
+		if c.m, err = monitoring.NewMetricClient(context.Background()); err != nil {
 			return 0, fmt.Errorf("create metric client: %w", err)
 		}
 	}

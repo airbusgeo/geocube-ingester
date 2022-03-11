@@ -2,8 +2,6 @@
 
 ## Table of Contents
 
-- [Ingester Installation Guide](#ingester-installation-guide)
-  - [Table of Contents](#table-of-contents)
 - [Presentation](#presentation)
 - [Prerequisites](#prerequisites)
 - [Interfaces](#interfaces)
@@ -12,6 +10,7 @@
     - [Currently supported storages](#currently-supported-storages)
   - [Messaging](#messaging)
     - [Interface](#interface-1)
+    - [Pgqueue implementation](#pgqueue-implementation)
     - [PubSub implementation](#pubsub-implementation)
   - [Database](#database)
     - [Interface](#interface-2)
@@ -27,6 +26,7 @@
   - [Environment of development](#environment-of-development)
   - [Build and run Go application](#build-and-run-go-application)
     - [Messaging broker](#messaging-broker)
+    - [PGQueue](#pgqueue)
       - [PubSub Emulator](#pubsub-emulator)
     - [Downloader](#downloader)
     - [Processor](#processor)
@@ -80,6 +80,10 @@ The ingester supports two storage systems: GCS and filesystem.
 
 The messaging interface is available here : `vendor/github.com/geocube/interface/messaging/`.
 It is used to communicate between `workflow`, `downloader` and `processor` service. It is configured in the corresponding `main.go` in the `cmd` folder.
+
+### Pgqueue implementation
+
+A messaging interface based on postgres is implemented using the [btubbs/pgq](https://github.com/btubbs/pgq) library: `vendor/github.com/geocube/interface/messaging/pgqueue`. This implementation has autoscaling capabilities.
 
 ### PubSub implementation
 
@@ -169,6 +173,21 @@ The Ingester is currently able to connect to the following catalogs:
 
 ### Messaging broker
 
+### PGQueue
+
+To use this messaging broker, create the `pgq_jobs` table in your postgres database using the following script `vendor/github.com/airbusgeo/geocube/interface/messaging/pgqueue/create_table.sql`.
+
+```bash
+$ psql -h <database_host> -d <database_name> -f vendor/github.com/airbusgeo/geocube/interface/messaging/pgqueue/create_table.sql
+```
+
+Then, start the services the following arguments:
+- `--pgq-connection`: connection uri to the postgres database (e.g. `postgresql://user:password@localhost:5432/geocube`)
+- `--event-queue events`
+- `--downloader-queue/--job-queue downloader`
+- `--processor-queue/--job-queue processor`
+
+
 #### PubSub Emulator
 
 A Pub/Sub emulator is available to use PubSub in a local system (with limited capacities).
@@ -224,7 +243,7 @@ Example:
 $ export GRAPHPATH=/home/user/geocube-ingester/graph
 $ export SNAPPATH=/usr/local/snap/bin/gpt
 $ export WORKING_DIR=/home/user/geocube-ingester/data/
-$ ./downloader --psProject geocube-emulator --psSubscription ingester-downloader --psEvent ingester-events --local-path $WORKING_DIR/data --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{UTM}/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE} --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
+$ ./downloader --ps-project geocube-emulator --job-queue ingester-downloader --event-queue ingester-events --local-path $WORKING_DIR/data --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE}.SAFE --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -233,42 +252,44 @@ For more information concerning flags and downloader argument, you can run:
 $ ./downloader --help
 Usage of ./downloader:
   -creodias-password string
-        creodias account password (optional)
+    	creodias account password (optional)
   -creodias-username string
-        creodias account username (optional)
+    	creodias account username (optional). To configure Creodias as a potential image Provider.
+  -event-queue string
+    	name of the queue for job events (pgqueue or pubsub topic)
   -gs-provider-buckets string
-        Google Storage buckets. List of constellation:bucket comma-separated (optional).
-                bucket can contain several {IDENTIFIER} than will be replaced according to the sceneName.
-                IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
-
+    	Google Storage buckets. List of constellation:bucket comma-separated (optional). To configure GS as a potential image Provider.
+    		bucket can contain several {IDENTIFIER} than will be replaced according to the sceneName.
+    		IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
+    		 
+  -job-queue string
+    	name of the queue for downloader jobs (pgqueue or pubsub subscription)
   -local-path string
-        local path where images are stored (optional)
+    	local path where images are stored (optional). To configure a local path as a potential image Provider.
   -mundi-seeed-token string
-        mundi seeed-token (optional)
+    	mundi seeed-token (optional). To configure Mundi as a potential image Provider.
   -onda-password string
-        onda account password (optional)
+    	onda account password (optional)
   -onda-username string
-        onda account username (optional)
+    	onda account username (optional). To configure ONDA as a potential image Provider.
   -peps-password string
-        peps account password (optional)
+    	peps account password (optional)
   -peps-username string
-        peps account username (optional)
-  -psProject string
-        pubsub subscription project (gcp only/not required in local usage)
-  -psEvent string
-        pubsub events topic name
-  -psSubscription string
-        pubsub image subscription name
+    	peps account username (optional). To configure PEPS as a potential image Provider.
+  -pgq-connection string
+    	enable pgq messaging system with a connection to the database
+  -ps-project string
+    	pubsub subscription project (gcp only/not required in local usage)
   -scihub-password string
-        scihub account password (optional)
+    	scihub account password (optional)
   -scihub-username string
-        scihub account username (optional)
+    	scihub account username (optional). To configure Scihub as a potential image Provider.
   -sobloo-apikey string
-        sobloo api-key (optional)
+    	sobloo api-key (optional). To configure Sobloo as a potential image Provider.
   -storage-uri string
-        storage uri (currently supported: local, gs)
+    	storage uri (currently supported: local, gs). To store outputs of the scene preprocessing graph.
   -workdir string
-        working directory to store intermediate results (default "/local-ssd")
+    	working directory to store intermediate results (default "/local-ssd")
 ```
 
 ### Processor
@@ -299,7 +320,7 @@ Example:
 $ export GRAPHPATH=./data/graph
 $ export SNAPPATH=/usr/local/snap/bin/gpt
 $ export WORKING_DIR=/home/user/geocube-ingester/data/
-$ ./processor --psProject geocube-emulator --psSubscription ingester-processor --psEvent ingester-events --geocube-server $GEOCUBE_SERVER --geocube-insecure --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp
+$ ./processor --ps-project geocube-emulator --job-queue ingester-processor --event-queue ingester-events --geocube-server $GEOCUBE_SERVER --geocube-insecure --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -307,22 +328,24 @@ For more information concerning flags and downloader argument, you can run:
 ```bash
 $ ./processor --help
 Usage of ./processor:
+  -event-queue string
+    	name of the queue for job events (pgqueue or pubsub topic)
   -geocube-apikey string
-        geocube server api key
+    	geocube server api key
   -geocube-insecure
-        connection to geocube server is insecure
+    	connection to geocube server is insecure
   -geocube-server string
-        address of geocube server
-  -psProject string
-        pubsub subscription project (gcp only/not required in local usage)
-  -psEvent string
-        pubsub events topic name
-  -psSubscription string
-        pubsub tile subscription name
+    	address of geocube server (default "127.0.0.1:8080")
+  -job-queue string
+    	name of the queue for processor jobs (pgqueue or pubsub subscription)
+  -pgq-connection string
+    	enable pgq messaging system with a connection to the database
+  -ps-project string
+    	pubsub subscription project (gcp only/not required in local usage)
   -storage-uri string
-        storage uri (currently supported: local, gs)
+    	storage uri (currently supported: local, gs). To get outputs of the scene preprocessing graph and store outputs of the tile processing graph.
   -workdir string
-        working directory to store intermediate results (default "/local-ssd")
+    	working directory to store intermediate results (default "/local-ssd")
 ```
 
 ### Workflow
@@ -348,7 +371,7 @@ Example:
 ```bash
 $ export DB_CONNECTION=postgresql://user:password@localhost:5432/ingester?binary_parameters=yes
 $ export WORKFLOW_PORT=8082
-$ ./workflow --psProject geocube-emulator --psSubscription ingester-events --psDownloader-topic ingester-downloader --psProcessor-topic ingester-processor --dbConnection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --geocube-insecure --scihub-username "$SCIHUB_USERNAME" --scihub-password "$SCIHUB_PASSWORD"
+$ ./workflow --ps-project geocube-emulator --event-queue ingester-events --downloader-queue ingester-downloader --processor-queue ingester-processor --db-connection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --geocube-insecure --scihub-username "$SCIHUB_USERNAME" --scihub-password "$SCIHUB_PASSWORD"
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -356,42 +379,44 @@ For more information concerning flags and downloader argument, you can run:
 ```bash
 $ ./workflow --help
 Usage of ./workflow:
-  -dbConnection string
-        database connection
+  -db-connection string
+    	database connection
+  -downloader-queue string
+    	name of the queue for downloader jobs (pgqueue or pubsub topic)
   -downloader-rc string
-        image-downloader replication controller name (autoscaler)
+    	image-downloader replication controller name (autoscaler)
+  -event-queue string
+    	name of the queue for job events (pgqueue or pubsub subscription)
   -gcstorage string
-        GCS url where scenes are stored (for annotations) (optional)
+    	GCS url where scenes are stored (for annotations) (optional)
   -geocube-apikey string
-        geocube server api key
+    	geocube server api key
   -geocube-insecure
-        connection to geocube server is insecure
+    	connection to geocube server is insecure
   -geocube-server string
-        address of geocube server
+    	address of geocube server (default "127.0.0.1:8080")
   -max-downloader int
-        Max downloader instances (autoscaler) (default 10)
+    	Max downloader instances (autoscaler) (default 10)
   -max-processor int
-        Max Processor instances (autoscaler) (default 900)
+    	Max Processor instances (autoscaler) (default 900)
   -namespace string
-        namespace (autoscaler)
+    	namespace (autoscaler)
+  -pgq-connection string
+    	enable pgq messaging system with a connection to the database
   -port string
-        workflow port ot use (default "8080")
+    	workflow port ot use (default "8080")
+  -processor-queue string
+    	name of the queue for processor jobs (pgqueue or pubsub topic)
   -processor-rc string
-        tile-processor replication controller name (autoscaler)
-  -project string
-        subscription project (gcp only/not required in local usage)
-  -psDownloader-topic string
-        pubsub image-downloader topic name
-  -psProcessor-topic string
-        pubsub tile-processor topic name
-  -psSubscription string
-        pubsub event subscription name
+    	tile-processor replication controller name (autoscaler)
+  -ps-project string
+    	pubsub subscription project (gcp only/not required in local usage)
   -scihub-password string
-        password to connect to the Scihub catalog service
+    	password to connect to the Scihub catalog service
   -scihub-username string
-        username to connect to the Scihub catalog service
+    	username to connect to the Scihub catalog service
   -sobloo-apikey string
-        apikey to connect to the sobloo ordering service (optional)
+    	apikey to connect to the sobloo ordering service (optional)
 ```
 
 # Installation - docker
@@ -407,17 +432,17 @@ $ docker build -f cmd/workflow/Dockerfile -t $WF_IMAGE .
 You can run `docker run` command in order to start the application.
 For more information concerning running option, see: https://docs.docker.com/engine/reference/commandline/run/
 
-Examples with pubsub emulator:
+Examples with pgqueue:
 ```bash
 $ export DB_CONNECTION=postgresql://user:password@localhost:5432/ingester?binary_parameters=yes
 $ export WORKFLOW_PORT=8082
 $ export STORAGE=/ingester-storage
 
-$ docker run --rm --network=host -e PUBSUB_EMULATOR_HOST=localhost:8085 $WF_IMAGE --project geocube-emulator --psSubscription ingester-events --psDownloader-topic ingester-downloader --psProcessor-topic ingester-processor --dbConnection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --scihub-username "$SCIHUB_USERNAME" --scihub-password "$SCIHUB_PASSWORD"
+$ docker run --rm --network=host $WF_IMAGE --pgq-connection=$DB_CONNECTION --event-queue ingester-events --downloader-queue ingester-downloader --processor-queue ingester-processor --db-connection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --scihub-username "$SCIHUB_USERNAME" --scihub-password "$SCIHUB_PASSWORD"
 
-$ docker run --rm --network=host -e PUBSUB_EMULATOR_HOST=localhost:8085 -v $STORAGE:$STORAGE $DOWNLOADER_IMAGE --project geocube-emulator --psSubscription ingester-downloader --psEvent ingester-events --local-path $STORAGE/products --storage-uri $STORAGE --workdir /tmp -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{UTM}/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE} --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
+$ docker run --rm --network=host -v $STORAGE:$STORAGE $DOWNLOADER_IMAGE --pgq-connection=$DB_CONNECTION  --job-queue ingester-downloader --event-queue ingester-events --local-path $STORAGE/products --storage-uri $STORAGE --workdir /tmp -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE}.SAFE --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
 
-$ docker run --rm --network=host -e PUBSUB_EMULATOR_HOST=localhost:8085 -v $STORAGE:$STORAGE $PROCESSOR_IMAGE --project geocube-emulator --psSubscription ingester-processor --psEvent ingester-events --geocube-server $GEOCUBE_SERVER --storage-uri $STORAGE --workdir /tmp
+$ docker run --rm --network=host -v $STORAGE:$STORAGE $PROCESSOR_IMAGE --pgq-connection=$DB_CONNECTION  --job-queue ingester-processor --event-queue ingester-events --geocube-server $GEOCUBE_SERVER --storage-uri $STORAGE --workdir /tmp
 ```
 
 # Installation - Kubernetes Cluster

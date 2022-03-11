@@ -14,7 +14,9 @@ import (
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/airbusgeo/geocube-ingester/workflow"
+	"github.com/airbusgeo/geocube/interface/autoscaler/qbas"
 	"github.com/airbusgeo/geocube/interface/messaging"
+	"github.com/airbusgeo/geocube/interface/messaging/pgqueue"
 	"github.com/airbusgeo/geocube/interface/messaging/pubsub"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -23,8 +25,6 @@ import (
 
 type autoscalerConfig struct {
 	Namespace              string
-	PsDownloaderQueue      string
-	PsProcessorQueue       string
 	DownloaderRC           string
 	ProcessorRC            string
 	MaxDownloaderInstances int64
@@ -41,72 +41,56 @@ type catalogConfig struct {
 }
 
 type config struct {
-	AppPort           string
-	DbConnection      string
-	PsProject         string
-	PsSubscription    string
-	PsDownloaderTopic string
-	PsProcessorTopic  string
-	AutoscalerConfig  autoscalerConfig
-	CatalogConfig     catalogConfig
+	AppPort          string
+	DbConnection     string
+	PgqDbConnection  string
+	PsProject        string
+	EventQueue       string
+	DownloaderQueue  string
+	ProcessorQueue   string
+	AutoscalerConfig autoscalerConfig
+	CatalogConfig    catalogConfig
 }
 
 func newAppConfig() (*config, error) {
-	appPort := flag.String("port", "8080", "workflow port ot use")
-	dbConnection := flag.String("dbConnection", "", "database connection")
-	psProject := flag.String("psProject", "", "pubsub subscription project (gcp only/not required in local usage)")
-	psSubscription := flag.String("psSubscription", "", "pubsub event subscription name")
-	psDownloaderTopic := flag.String("psDownloader-topic", "", "pubsub image-downloader topic name")
-	psProcessorTopic := flag.String("psProcessor-topic", "", "pubsub tile-processor topic name")
+	config := config{}
+	flag.StringVar(&config.AppPort, "port", "8080", "workflow port ot use")
 
-	namespace := flag.String("namespace", "", "namespace (autoscaler)")
-	downloaderRC := flag.String("downloader-rc", "", "image-downloader replication controller name (autoscaler)")
-	processorRC := flag.String("processor-rc", "", "tile-processor replication controller name (autoscaler)")
-	maxDownloaderInstances := flag.Int64("max-downloader", 10, "Max downloader instances (autoscaler)")
-	maxProcessorInstances := flag.Int64("max-processor", 900, "Max Processor instances (autoscaler)")
+	// Database
+	flag.StringVar(&config.DbConnection, "db-connection", "", "database connection")
 
-	geocubeServer := flag.String("geocube-server", "127.0.0.1:8080", "address of geocube server")
-	geocubeServerInsecure := flag.Bool("geocube-insecure", false, "connection to geocube server is insecure")
-	geocubeServerApiKey := flag.String("geocube-apikey", "", "geocube server api key")
-	scihubUsername := flag.String("scihub-username", "", "username to connect to the Scihub catalog service")
-	scihubPassword := flag.String("scihub-password", "", "password to connect to the Scihub catalog service")
-	gcstorage := flag.String("gcstorage", "", "GCS url where scenes are stored (for annotations) (optional)")
+	// Messaging
+	flag.StringVar(&config.PgqDbConnection, "pgq-connection", "", "enable pgq messaging system with a connection to the database")
+	flag.StringVar(&config.PsProject, "ps-project", "", "pubsub subscription project (gcp only/not required in local usage)")
+	flag.StringVar(&config.EventQueue, "event-queue", "", "name of the queue for job events (pgqueue or pubsub subscription)")
+	flag.StringVar(&config.DownloaderQueue, "downloader-queue", "", "name of the queue for downloader jobs (pgqueue or pubsub topic)")
+	flag.StringVar(&config.ProcessorQueue, "processor-queue", "", "name of the queue for processor jobs (pgqueue or pubsub topic)")
+
+	// Autoscaller
+	flag.StringVar(&config.AutoscalerConfig.Namespace, "namespace", "", "namespace (autoscaler)")
+	flag.StringVar(&config.AutoscalerConfig.DownloaderRC, "downloader-rc", "", "image-downloader replication controller name (autoscaler)")
+	flag.StringVar(&config.AutoscalerConfig.ProcessorRC, "processor-rc", "", "tile-processor replication controller name (autoscaler)")
+	flag.Int64Var(&config.AutoscalerConfig.MaxDownloaderInstances, "max-downloader", 10, "Max downloader instances (autoscaler)")
+	flag.Int64Var(&config.AutoscalerConfig.MaxProcessorInstances, "max-processor", 900, "Max Processor instances (autoscaler)")
+
+	// Geocube
+	flag.StringVar(&config.CatalogConfig.GeocubeServer, "geocube-server", "127.0.0.1:8080", "address of geocube server")
+	flag.BoolVar(&config.CatalogConfig.GeocubeServerInsecure, "geocube-insecure", false, "connection to geocube server is insecure")
+	flag.StringVar(&config.CatalogConfig.GeocubeServerApiKey, "geocube-apikey", "", "geocube server api key")
+
+	// Providers
+	flag.StringVar(&config.CatalogConfig.ScihubUsername, "scihub-username", "", "username to connect to the Scihub catalog service")
+	flag.StringVar(&config.CatalogConfig.ScihubPassword, "scihub-password", "", "password to connect to the Scihub catalog service")
+	flag.StringVar(&config.CatalogConfig.GCStorage, "gcstorage", "", "GCS url where scenes are stored (for annotations) (optional)")
 	flag.Parse()
 
-	if *appPort == "" {
+	if config.AppPort == "" {
 		return nil, fmt.Errorf("failed to initialize port application flag")
 	}
-	if *dbConnection == "" {
+	if config.DbConnection == "" {
 		return nil, fmt.Errorf("missing dbConnection config flag")
 	}
-	if *geocubeServer == "" {
-		return nil, fmt.Errorf("missing geocube server flag")
-	}
-	return &config{
-		AppPort:           *appPort,
-		DbConnection:      *dbConnection,
-		PsProject:         *psProject,
-		PsSubscription:    *psSubscription,
-		PsDownloaderTopic: *psDownloaderTopic,
-		PsProcessorTopic:  *psProcessorTopic,
-		AutoscalerConfig: autoscalerConfig{
-			Namespace:              *namespace,
-			PsDownloaderQueue:      *psDownloaderTopic,
-			PsProcessorQueue:       *psProcessorTopic,
-			DownloaderRC:           *downloaderRC,
-			ProcessorRC:            *processorRC,
-			MaxDownloaderInstances: *maxDownloaderInstances,
-			MaxProcessorInstances:  *maxProcessorInstances,
-		},
-		CatalogConfig: catalogConfig{
-			GeocubeServer:         *geocubeServer,
-			GeocubeServerInsecure: *geocubeServerInsecure,
-			GeocubeServerApiKey:   *geocubeServerApiKey,
-			ScihubUsername:        *scihubUsername,
-			ScihubPassword:        *scihubPassword,
-			GCStorage:             *gcstorage,
-		},
-	}, nil
+	return &config, nil
 }
 
 func main() {
@@ -123,11 +107,6 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	// Start autoscalers
-	if err = runAutoscalers(ctx, config.PsProject, config.AutoscalerConfig); err != nil {
-		log.Logger(ctx).Warn("not running autoscalers", zap.Error(err))
-	}
-
 	// Connection to database
 	db, err := pg.New(ctx, config.DbConnection)
 	if err != nil {
@@ -136,36 +115,69 @@ func run(ctx context.Context) error {
 
 	// Messaging service
 	var processorPublisher, downloaderPublisher messaging.Publisher
+	var processorQueue, downloaderQueue qbas.Queue
 	var eventConsumer messaging.Consumer
 	var logMessaging string
 	{
-		// Connection to pubsub
-		if config.PsSubscription != "" {
-			logMessaging += fmt.Sprintf(" pulling on %s/%s", config.PsProject, config.PsSubscription)
-			eventConsumer, err = pubsub.NewConsumer(config.PsProject, config.PsSubscription)
+		if config.PgqDbConnection != "" {
+			// Connection to pgqueue
+			db, w, err := pgqueue.SqlConnect(ctx, config.PgqDbConnection)
 			if err != nil {
-				return fmt.Errorf("pubsub.new: %w", err)
-			}
-		}
+				return fmt.Errorf("MessagingService: %w", err)
 
-		if config.PsDownloaderTopic != "" {
-			logMessaging += fmt.Sprintf(" pushing downloaderJobs on %s/%s", config.PsProject, config.PsDownloaderTopic)
-			publisher, err := pubsub.NewPublisher(ctx, config.PsProject, config.PsDownloaderTopic)
-			if err != nil {
-				return fmt.Errorf("pubsub.NewPublisher(Downloader): %w", err)
 			}
-			defer publisher.Stop()
-			downloaderPublisher = publisher
-		}
+			if config.EventQueue != "" {
+				logMessaging += fmt.Sprintf(" pulling on pgqueue:%s", config.EventQueue)
+				consumer := pgqueue.NewConsumer(db, config.EventQueue)
+				defer consumer.Stop()
+				eventConsumer = consumer
+			}
 
-		if config.PsProcessorTopic != "" {
-			logMessaging += fmt.Sprintf(" pushing processorJobs on %s/%s", config.PsProject, config.PsProcessorTopic)
-			publisher, err := pubsub.NewPublisher(ctx, config.PsProject, config.PsProcessorTopic)
-			if err != nil {
-				return fmt.Errorf("pubsub.NewPublisher(Processor): %w", err)
+			if config.DownloaderQueue != "" {
+				logMessaging += fmt.Sprintf(" pushing downloaderJobs on pgqueue:%s", config.DownloaderQueue)
+				downloaderPublisher = pgqueue.NewPublisher(w, config.DownloaderQueue, pgqueue.WithMaxRetries(5))
+				downloaderQueue = pgqueue.NewConsumer(db, config.DownloaderQueue)
 			}
-			defer publisher.Stop()
-			processorPublisher = publisher
+
+			if config.ProcessorQueue != "" {
+				logMessaging += fmt.Sprintf(" pushing processorJobs on pgqueue:%s", config.ProcessorQueue)
+				processorPublisher = pgqueue.NewPublisher(w, config.ProcessorQueue, pgqueue.WithMaxRetries(5))
+				processorQueue = pgqueue.NewConsumer(db, config.ProcessorQueue)
+			}
+		} else {
+			// Connection to pubsub
+			if config.EventQueue != "" {
+				logMessaging += fmt.Sprintf(" pulling on %s/%s", config.PsProject, config.EventQueue)
+				if eventConsumer, err = pubsub.NewConsumer(config.PsProject, config.EventQueue); err != nil {
+					return fmt.Errorf("pubsub.NewConsumer(Event): %w", err)
+				}
+			}
+
+			if config.DownloaderQueue != "" {
+				logMessaging += fmt.Sprintf(" pushing downloaderJobs on %s/%s", config.PsProject, config.DownloaderQueue)
+				publisher, err := pubsub.NewPublisher(ctx, config.PsProject, config.DownloaderQueue)
+				if err != nil {
+					return fmt.Errorf("pubsub.NewPublisher(Downloader): %w", err)
+				}
+				defer publisher.Stop()
+				downloaderPublisher = publisher
+				if downloaderQueue, err = pubsub.NewConsumer(config.PsProject, config.DownloaderQueue); err != nil {
+					return fmt.Errorf("pubsub.NewConsumer(Downloader): %w", err)
+				}
+			}
+
+			if config.ProcessorQueue != "" {
+				logMessaging += fmt.Sprintf(" pushing processorJobs on %s/%s", config.PsProject, config.ProcessorQueue)
+				publisher, err := pubsub.NewPublisher(ctx, config.PsProject, config.ProcessorQueue)
+				if err != nil {
+					return fmt.Errorf("pubsub.NewPublisher(Processor): %w", err)
+				}
+				defer publisher.Stop()
+				processorPublisher = publisher
+				if processorQueue, err = pubsub.NewConsumer(config.PsProject, config.ProcessorQueue); err != nil {
+					return fmt.Errorf("pubsub.NewConsumer(Processor): %w", err)
+				}
+			}
 		}
 	}
 	if eventConsumer == nil {
@@ -176,6 +188,17 @@ func run(ctx context.Context) error {
 	}
 	if downloaderPublisher == nil {
 		return fmt.Errorf("missing configuration for messaging.DownloaderPublisher")
+	}
+	if downloaderQueue == nil {
+		return fmt.Errorf("missing configuration for messaging.DownloaderQueue")
+	}
+	if processorQueue == nil {
+		return fmt.Errorf("missing configuration for messaging.ProcessorQueue")
+	}
+
+	// Autoscaler
+	if err = runAutoscalers(ctx, downloaderQueue, processorQueue, config.AutoscalerConfig); err != nil {
+		log.Logger(ctx).Warn("not running autoscalers", zap.Error(err))
 	}
 
 	catalog := catalog.Catalog{}
@@ -213,6 +236,7 @@ func run(ctx context.Context) error {
 		Addr:    ":" + config.AppPort,
 		Handler: handlers.CORS(originsOk, headersOk, methodsOk)(router),
 	}
+	logMessaging += " listening on " + config.AppPort
 	go func() {
 		if err := s.ListenAndServe(); err != nil {
 			log.Logger(ctx).Error(err.Error())

@@ -15,16 +15,20 @@ import (
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/airbusgeo/geocube/interface/messaging"
+	"github.com/airbusgeo/geocube/interface/messaging/pgqueue"
 	"github.com/airbusgeo/geocube/interface/messaging/pubsub"
 	"go.uber.org/zap"
 )
 
 type config struct {
-	PsProject         string
-	PsSubscription    string
-	PsEventTopic      string
-	WorkingDir        string
-	StorageURI        string
+	WorkingDir string
+	StorageURI string
+
+	PsProject       string
+	JobQueue        string
+	EventQueue      string
+	PgqDbConnection string
+
 	LocalProviderPath string
 	PepsUsername      string
 	PepsPassword      string
@@ -40,63 +44,45 @@ type config struct {
 }
 
 func newAppConfig() (*config, error) {
-	psProject := flag.String("psProject", "", "pubsub subscription project (gcp only/not required in local usage)")
-	psSubscription := flag.String("psSubscription", "", "pubsub image subscription name")
-	psEventTopic := flag.String("psEvent", "", "pubsub events topic name")
-	workingDir := flag.String("workdir", "/local-ssd", "working directory to store intermediate results")
-	storageURI := flag.String("storage-uri", "", "storage uri (currently supported: local, gs). To store outputs of the scene preprocessing graph.")
-	localProviderPath := flag.String("local-path", "", "local path where images are stored (optional). To configure a local path as a potential image Provider.")
-	pepsUsername := flag.String("peps-username", "", "peps account username (optional). To configure PEPS as a potential image Provider.")
-	pepsPassword := flag.String("peps-password", "", "peps account password (optional)")
-	ondaUsername := flag.String("onda-username", "", "onda account username (optional). To configure ONDA as a potential image Provider.")
-	ondaPassword := flag.String("onda-password", "", "onda account password (optional)")
-	scihubUsername := flag.String("scihub-username", "", "scihub account username (optional). To configure Scihub as a potential image Provider.")
-	scihubPassword := flag.String("scihub-password", "", "scihub account password (optional)")
-	creodiasUsername := flag.String("creodias-username", "", "creodias account username (optional). To configure Creodias as a potential image Provider.")
-	creodiasPassword := flag.String("creodias-password", "", "creodias account password (optional)")
-	soblooApiKey := flag.String("sobloo-apikey", "", "sobloo api-key (optional). To configure Sobloo as a potential image Provider.")
-	mundiSeeedToken := flag.String("mundi-seeed-token", "", "mundi seeed-token (optional). To configure Mundi as a potential image Provider.")
+	config := config{}
+	// Global config
+	flag.StringVar(&config.WorkingDir, "workdir", "/local-ssd", "working directory to store intermediate results")
+	flag.StringVar(&config.StorageURI, "storage-uri", "", "storage uri (currently supported: local, gs). To store outputs of the scene preprocessing graph.")
+
+	// Messaging
+	flag.StringVar(&config.PgqDbConnection, "pgq-connection", "", "enable pgq messaging system with a connection to the database")
+	flag.StringVar(&config.PsProject, "ps-project", "", "pubsub subscription project (gcp only/not required in local usage)")
+	flag.StringVar(&config.JobQueue, "job-queue", "", "name of the queue for downloader jobs (pgqueue or pubsub subscription)")
+	flag.StringVar(&config.EventQueue, "event-queue", "", "name of the queue for job events (pgqueue or pubsub topic)")
+
+	// Providers
+	flag.StringVar(&config.LocalProviderPath, "local-path", "", "local path where images are stored (optional). To configure a local path as a potential image Provider.")
+	flag.StringVar(&config.PepsUsername, "peps-username", "", "peps account username (optional). To configure PEPS as a potential image Provider.")
+	flag.StringVar(&config.PepsPassword, "peps-password", "", "peps account password (optional)")
+	flag.StringVar(&config.OndaUsername, "onda-username", "", "onda account username (optional). To configure ONDA as a potential image Provider.")
+	flag.StringVar(&config.OndaPassword, "onda-password", "", "onda account password (optional)")
+	flag.StringVar(&config.ScihubUsername, "scihub-username", "", "scihub account username (optional). To configure Scihub as a potential image Provider.")
+	flag.StringVar(&config.ScihubPassword, "scihub-password", "", "scihub account password (optional)")
+	flag.StringVar(&config.CreodiasUsername, "creodias-username", "", "creodias account username (optional). To configure Creodias as a potential image Provider.")
+	flag.StringVar(&config.CreodiasPassword, "creodias-password", "", "creodias account password (optional)")
+	flag.StringVar(&config.SoblooApiKey, "sobloo-apikey", "", "sobloo api-key (optional). To configure Sobloo as a potential image Provider.")
+	flag.StringVar(&config.MundiSeeedToken, "mundi-seeed-token", "", "mundi seeed-token (optional). To configure Mundi as a potential image Provider.")
 	gsProviderBuckets := flag.String("gs-provider-buckets", "", `Google Storage buckets. List of constellation:bucket comma-separated (optional). To configure GS as a potential image Provider.
 	bucket can contain several {IDENTIFIER} than will be replaced according to the sceneName.
 	IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
 	 `)
 	flag.Parse()
 
-	if *psSubscription == "" {
-		return nil, fmt.Errorf("missing pubsub subscription config flag")
-	}
-	if *psEventTopic == "" {
-		return nil, fmt.Errorf("missing pubsub event config flag")
-	}
-	if *workingDir == "" {
+	if config.WorkingDir == "" {
 		return nil, fmt.Errorf("missing workdir config flag")
 	}
-	if *storageURI == "" {
+	if config.StorageURI == "" {
 		return nil, fmt.Errorf("missing storage-uri config flag")
 	}
-	gsProviderBucketsMap := []string{}
 	if *gsProviderBuckets != "" {
-		gsProviderBucketsMap = strings.Split(*gsProviderBuckets, ",")
+		config.GSProviderBuckets = strings.Split(*gsProviderBuckets, ",")
 	}
-	return &config{
-		PsProject:         *psProject,
-		PsSubscription:    *psSubscription,
-		PsEventTopic:      *psEventTopic,
-		StorageURI:        *storageURI,
-		WorkingDir:        *workingDir,
-		LocalProviderPath: *localProviderPath,
-		PepsUsername:      *pepsUsername,
-		PepsPassword:      *pepsPassword,
-		OndaUsername:      *ondaUsername,
-		OndaPassword:      *ondaPassword,
-		ScihubUsername:    *scihubUsername,
-		ScihubPassword:    *scihubPassword,
-		CreodiasUsername:  *creodiasUsername,
-		CreodiasPassword:  *creodiasPassword,
-		SoblooApiKey:      *soblooApiKey,
-		MundiSeeedToken:   *mundiSeeedToken,
-		GSProviderBuckets: gsProviderBucketsMap,
-	}, nil
+	return &config, nil
 }
 
 func main() {
@@ -117,20 +103,38 @@ func run(ctx context.Context) error {
 	var eventPublisher messaging.Publisher
 	var logMessaging string
 	{
-		if config.PsSubscription != "" {
-			logMessaging += fmt.Sprintf(" pulling on %s/%s", config.PsProject, config.PsSubscription)
-			if jobConsumer, err = pubsub.NewConsumer(config.PsProject, config.PsSubscription); err != nil {
-				return fmt.Errorf("pubsub.NewConsumer: %w", err)
-			}
-		}
-		if config.PsEventTopic != "" {
-			logMessaging += fmt.Sprintf(" pushing on %s/%s", config.PsProject, config.PsEventTopic)
-			eventTopic, err := pubsub.NewPublisher(ctx, config.PsProject, config.PsEventTopic, pubsub.WithMaxRetries(5))
+		if config.PgqDbConnection != "" {
+			db, w, err := pgqueue.SqlConnect(ctx, config.PgqDbConnection)
 			if err != nil {
-				return fmt.Errorf("pubsub.NewPublisher: %w", err)
+				return fmt.Errorf("MessagingService: %w", err)
+
 			}
-			defer eventTopic.Stop()
-			eventPublisher = eventTopic
+			if config.JobQueue != "" {
+				logMessaging += fmt.Sprintf(" pulling on pgqueue:%s", config.JobQueue)
+				consumer := pgqueue.NewConsumer(db, config.JobQueue)
+				defer consumer.Stop()
+				jobConsumer = consumer
+			}
+			if config.EventQueue != "" {
+				logMessaging += fmt.Sprintf(" pushing on pgqueue:%s", config.EventQueue)
+				eventPublisher = pgqueue.NewPublisher(w, config.EventQueue, pgqueue.WithMaxRetries(5))
+			}
+		} else {
+			if config.JobQueue != "" {
+				logMessaging += fmt.Sprintf(" pulling on pubsub:%s/%s", config.PsProject, config.JobQueue)
+				if jobConsumer, err = pubsub.NewConsumer(config.PsProject, config.JobQueue); err != nil {
+					return fmt.Errorf("pubsub.NewConsumer: %w", err)
+				}
+			}
+			if config.EventQueue != "" {
+				logMessaging += fmt.Sprintf(" pushing on pubsub:%s/%s", config.PsProject, config.EventQueue)
+				eventTopic, err := pubsub.NewPublisher(ctx, config.PsProject, config.EventQueue, pubsub.WithMaxRetries(5))
+				if err != nil {
+					return fmt.Errorf("pubsub.NewPublisher: %w", err)
+				}
+				defer eventTopic.Stop()
+				eventPublisher = eventTopic
+			}
 		}
 	}
 	if jobConsumer == nil {

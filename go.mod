@@ -3,10 +3,9 @@ module github.com/airbusgeo/geocube-ingester
 go 1.15
 
 require (
-	cloud.google.com/go/monitoring v1.1.0 // indirect
 	cloud.google.com/go/pubsub v1.17.1
 	cloud.google.com/go/storage v1.18.2
-	github.com/airbusgeo/geocube v0.4.0
+	github.com/airbusgeo/geocube v0.5.0
 	github.com/airbusgeo/geocube-client-go v0.2.0
 	github.com/airbusgeo/osio v0.1.2
 	github.com/cavaliercoder/grab v2.0.0+incompatible
