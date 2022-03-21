@@ -129,7 +129,7 @@ func (c *Catalog) BurstsSort(ctx context.Context, scenes []*entities.Scene) int 
 	}
 
 	// Find previous and reference for each bursts
-	for _, bursts := range burstsPerTrackSwath {
+	for track, bursts := range burstsPerTrackSwath {
 		// Sort by AnxTime
 		sort.Slice(bursts, func(i, j int) bool { return bursts[i].AnxTime < bursts[j].AnxTime })
 		// Create pools of burst with similar AnxTime, sort by date and find ref and prev burst
@@ -139,7 +139,7 @@ func (c *Catalog) BurstsSort(ctx context.Context, scenes []*entities.Scene) int 
 
 			sbursts := bursts[il:i]
 			sort.Slice(sbursts, func(j, k int) bool { return sbursts[j].Date.Before(sbursts[k].Date) })
-
+			log.Logger(ctx).Sugar().Debugf("Track %s AnxTime: %d => ref date: %s", track, sbursts[0].AnxTime, sbursts[0].Date)
 			for j := 1; j < len(sbursts); j++ {
 				b := sbursts[j]
 				if !b.Ingested {

@@ -68,6 +68,7 @@ func (c *Catalog) IngestedScenesInventoryFromTile(ctx context.Context, tiles []c
 				},
 				AnxTime:  anxtime,
 				Ingested: true,
+				Data:     tile.Data,
 			},
 		)
 	}
