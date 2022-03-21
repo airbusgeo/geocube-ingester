@@ -102,7 +102,7 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 		}
 
 		log.Logger(ctx).Debug("Append previous ingested scenes")
-		ingestedScenes, err := c.IngestedScenesInventoryFromTile(ctx, rootLeaf)
+		ingestedScenes, err := c.IngestedScenesInventoryFromTiles(ctx, rootLeaf)
 		if err != nil {
 			return 0, fmt.Errorf("DoTilesInventory.%w", err)
 		}

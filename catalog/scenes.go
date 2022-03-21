@@ -27,18 +27,31 @@ import (
 // The scenes are retrieved from scihub
 func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) ([]*entities.Scene, error) {
 	// Search
-	var sceneProvider catalog.ScenesProvider
-	sceneProvider = &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword}
+	var sceneProviders []catalog.ScenesProvider
+	if c.ScihubUser != "" {
+		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword})
+	}
 
-	scenes, err := sceneProvider.SearchScenes(ctx, area, aoi)
+	if len(sceneProviders) == 0 {
+		return nil, fmt.Errorf("no catalog are configured")
+	}
+
+	var err, e error
+	var scenes []*entities.Scene
+	for _, sceneProvider := range sceneProviders {
+		scenes, e = sceneProvider.SearchScenes(ctx, area, aoi)
+		if err = service.MergeErrors(false, err, e); err == nil {
+			break
+		}
+	}
 	if err != nil {
-		return nil, fmt.Errorf("searchScenes.%w", err)
+		return nil, fmt.Errorf("ScenesInventory.%w", err)
 	}
 
 	// Refine inventory
 	scenes, err = refineInventory(area, scenes, aoi)
 	if err != nil {
-		return nil, fmt.Errorf("searchScenes.%w", err)
+		return nil, fmt.Errorf("ScenesInventory.%w", err)
 	}
 
 	log.Logger(ctx).Sugar().Debugf("%d scenes found", len(scenes))
@@ -46,8 +59,8 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 	return scenes, nil
 }
 
-// IngestedScenesInventoryFromTile retrieves the ingested scenes from a list of tiles
-func (c *Catalog) IngestedScenesInventoryFromTile(ctx context.Context, tiles []common.Tile) ([]*entities.Scene, error) {
+// IngestedScenesInventoryFromTiles retrieves the ingested scenes from a list of tiles
+func (c *Catalog) IngestedScenesInventoryFromTiles(ctx context.Context, tiles []common.Tile) ([]*entities.Scene, error) {
 	scenesID := map[string]*entities.Scene{}
 	var scenes []*entities.Scene
 	for _, tile := range tiles {
@@ -57,20 +70,19 @@ func (c *Catalog) IngestedScenesInventoryFromTile(ctx context.Context, tiles []c
 			scenesID[tile.Scene.SourceID] = scene
 			scenes = append(scenes, scene)
 		}
-		anxtime, _ := strconv.Atoi(strings.Split(tile.SourceID, "_")[2])
-
-		scene.Tiles = append(scene.Tiles,
-			&entities.Tile{
-				TileLite: entities.TileLite{
-					SourceID: tile.SourceID,
-					SceneID:  tile.Scene.SourceID,
-					Date:     tile.Scene.Data.Date,
-				},
-				AnxTime:  anxtime,
-				Ingested: true,
-				Data:     tile.Data,
+		tile := &entities.Tile{
+			TileLite: entities.TileLite{
+				SourceID: tile.SourceID,
+				SceneID:  tile.Scene.SourceID,
+				Date:     tile.Scene.Data.Date,
 			},
-		)
+			Ingested: true,
+			Data:     tile.Data,
+		}
+		if entities.GetConstellation(scene.SourceID) == entities.Sentinel1 {
+			tile.AnxTime, _ = strconv.Atoi(strings.Split(tile.SourceID, "_")[2])
+		}
+		scene.Tiles = append(scene.Tiles, tile)
 	}
 
 	return scenes, nil
