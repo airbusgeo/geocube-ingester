@@ -454,7 +454,8 @@ func (wf *Workflow) ListLeafTilesHandler(w http.ResponseWriter, req *http.Reques
 // RetryAOIHandler retries all the scenes and tiles with the status 'RETRY' (and also 'PENDING' if force=true)
 func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	ss, err := wf.Scenes(ctx, mux.Vars(req)["aoi"])
+	aoiID := mux.Vars(req)["aoi"]
+	ss, err := wf.Scenes(ctx, aoiID)
 	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
@@ -466,9 +467,11 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	force := mux.Vars(req)["force"] == "force"
-	nbScenes, nbTiles := 0, 0
+	nbScenes := 0
 	emptyMessage := ""
 	var errs error
+
+	// Retry scenes
 	for _, scene := range ss {
 		if force || scene.Status == common.StatusRETRY {
 			done, err := wf.UpdateSceneStatus(ctx, scene.ID, common.StatusPENDING, &emptyMessage, force)
@@ -478,21 +481,43 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 				nbScenes++
 			}
 		}
+	}
 
-		if scene.Status == common.StatusDONE {
-			tiles, err := wf.Tiles(ctx, "", scene.ID, "", false)
-			if err != nil {
-				errs = service.MergeErrors(false, errs, err)
-				continue
-			}
-			for _, tile := range tiles {
-				if force || tile.Status == common.StatusRETRY {
-					done, err := wf.UpdateTileStatus(ctx, tile.ID, common.StatusPENDING, &emptyMessage, force)
-					if err != nil {
-						errs = service.MergeErrors(false, errs, err)
-					} else if done {
-						nbTiles++
+	// Retry tiles
+	nbTiles := 0
+	if force {
+		// Scan all tiles... It can be very long...
+		for _, scene := range ss {
+			if scene.Status == common.StatusDONE {
+				tiles, err := wf.Tiles(ctx, "", scene.ID, "", false)
+				if err != nil {
+					errs = service.MergeErrors(false, errs, err)
+					continue
+				}
+				for _, tile := range tiles {
+					if force || tile.Status == common.StatusRETRY {
+						done, err := wf.UpdateTileStatus(ctx, tile.ID, common.StatusPENDING, &emptyMessage, force)
+						if err != nil {
+							errs = service.MergeErrors(false, errs, err)
+						} else if done {
+							nbTiles++
+						}
 					}
+				}
+			}
+		}
+	} else {
+		// Only load the tiles with the "RETRY" status
+		tiles, err := wf.Tiles(ctx, aoiID, 0, common.StatusRETRY.String(), false)
+		if err != nil {
+			errs = service.MergeErrors(false, errs, err)
+		} else {
+			for _, tile := range tiles {
+				done, err := wf.UpdateTileStatus(ctx, tile.ID, common.StatusPENDING, &emptyMessage, force)
+				if err != nil {
+					errs = service.MergeErrors(false, errs, err)
+				} else if done {
+					nbTiles++
 				}
 			}
 		}
