@@ -20,6 +20,7 @@ CREATE TABLE public.scene (
     PRIMARY KEY (id),
     FOREIGN KEY (aoi_id) REFERENCES public.aoi(id)
 );
+CREATE INDEX idx_scene_aoi ON public.scene (aoi_id);
 
 CREATE SEQUENCE public.scene_nid_seq
     AS integer
@@ -46,6 +47,9 @@ CREATE TABLE public.tile (
     FOREIGN KEY (ref) REFERENCES public.tile(id),
     FOREIGN KEY (scene_id) REFERENCES public.scene(id)
 );
+CREATE INDEX idx_tile_scene ON public.tile (scene_id);
+CREATE INDEX idx_tile_prev ON public.tile (prev);
+CREATE INDEX idx_tile_ref ON public.tile (ref);
 
 CREATE SEQUENCE public.tile_nid_seq
     AS integer
