@@ -49,9 +49,9 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 			fmt.Sprintf("(endPosition:[ %s TO %s ] )", startDate, endDate))
 	}
 
-	// Append parameters (lower case)
+	// Append parameters
 	for k, v := range area.SceneType.Parameters {
-		area.SceneType.Parameters[k] = strings.ToLower(v)
+		area.SceneType.Parameters[k] = v
 	}
 	switch entities.GetConstellation(area.SceneType.Constellation) {
 	case entities.Sentinel1:
