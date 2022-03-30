@@ -399,7 +399,6 @@ Usage of ./workflow:
 All dockerfile are available. You can build docker images:
 
 ```bash
-$ docker build -f cmd/dockerfiles/golang.Dockerfile -t golang-ubuntu .
 $ docker build -f cmd/downloader/Dockerfile -t $DOWNLOADER_IMAGE .
 $ docker build -f cmd/processor/Dockerfile -t $PROCESSOR_IMAGE .
 $ docker build -f cmd/workflow/Dockerfile -t $WF_IMAGE .

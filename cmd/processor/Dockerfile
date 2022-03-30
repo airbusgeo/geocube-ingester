@@ -1,4 +1,4 @@
-FROM golang AS builder
+FROM golang:latest AS builder
 ENV GOFLAGS=-mod=vendor
 WORKDIR /build
 COPY go.mod .
