@@ -6,6 +6,8 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/airbusgeo/geocube-ingester/common"
 )
 
 // LocalImageProvider implements ImageProvider for local storage
@@ -24,8 +26,9 @@ func NewLocalImageProvider(path string) *LocalImageProvider {
 }
 
 // Download implements ImageProvider
-func (ip *LocalImageProvider) Download(ctx context.Context, sceneName, sceneUUID, localDir string) error {
+func (ip *LocalImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	// Retrieve date of the scene from name
+	sceneName := scene.SourceID
 	date, err := getDate(sceneName)
 	if err != nil {
 		return fmt.Errorf("LocalImageProvider.Wrong sceneName: unable to extract date")

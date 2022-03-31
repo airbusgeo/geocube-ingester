@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
+
+	"github.com/airbusgeo/geocube-ingester/common"
 )
 
 const (
@@ -27,7 +29,9 @@ func NewONDADiasImageProvider(user, pword string) *ONDADiasImageProvider {
 }
 
 // Download implements ImageProvider
-func (ip *ONDADiasImageProvider) Download(ctx context.Context, sceneName, sceneUUID, localDir string) error {
+func (ip *ONDADiasImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
+	sceneName := scene.SourceID
+	sceneUUID := scene.Data.UUID
 	switch getConstellation(sceneName) {
 	case Sentinel1, Sentinel2:
 	default:

@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"cloud.google.com/go/storage"
+	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube/interface/storage/gcs"
 	"google.golang.org/api/iterator"
@@ -48,7 +49,8 @@ func (ip *GSImageProvider) AddBucket(constellation, bucket string) error {
 }
 
 // Download implements ImageProvider
-func (ip *GSImageProvider) Download(ctx context.Context, sceneName, sceneUUID, localDir string) error {
+func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
+	sceneName := scene.SourceID
 	constellation := getConstellation(sceneName)
 	bucket, ok := ip.buckets[constellation]
 	if constellation == Unknown || !ok {

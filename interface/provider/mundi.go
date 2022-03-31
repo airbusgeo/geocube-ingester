@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/airbusgeo/geocube-ingester/common"
 )
 
 const (
@@ -28,8 +30,9 @@ func NewMundiImageProvider(seeedToken string) *MundiImageProvider {
 }
 
 // Download implements ImageProvider
-func (ip *MundiImageProvider) Download(ctx context.Context, sceneName, sceneUUID, localDir string) error {
+func (ip *MundiImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	var url string
+	sceneName := scene.SourceID
 	switch getConstellation(sceneName) {
 	case Sentinel1:
 		// MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC.SAFE

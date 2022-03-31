@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/airbusgeo/geocube-ingester/common"
 )
 
 const (
@@ -70,7 +72,8 @@ func NewCreoDiasImageProvider(user, pword string) *CreoDiasImageProvider {
 }
 
 // Download implements ImageProvider
-func (ip *CreoDiasImageProvider) Download(ctx context.Context, sceneName, sceneUUID, localDir string) error {
+func (ip *CreoDiasImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
+	sceneName := scene.SourceID
 	var searchUrl string
 	switch getConstellation(sceneName) {
 	case Sentinel1:

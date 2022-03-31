@@ -31,7 +31,7 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 	log.Logger(ctx).Sugar().Infof("downloading %s", scene.SourceID)
 	var err error
 	for _, imageProvider := range imageProviders {
-		e := imageProvider.Download(ctx, scene.SourceID, scene.Data.UUID, workdir)
+		e := imageProvider.Download(ctx, scene, workdir)
 		if err = service.MergeErrors(false, err, e); err == nil {
 			log.Logger(ctx).Sugar().Infof("%s downloaded from %s", scene.SourceID, imageProvider.Name())
 			break

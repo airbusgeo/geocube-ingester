@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/airbusgeo/geocube-ingester/common"
 )
 
 const (
@@ -27,7 +29,8 @@ func NewPEPSDiasImageProvider(user, pword string) *PEPSDiasImageProvider {
 }
 
 // Download implements ImageProvider
-func (ip *PEPSDiasImageProvider) Download(ctx context.Context, sceneName, sceneUUID, localDir string) error {
+func (ip *PEPSDiasImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
+	sceneName := scene.SourceID
 	switch getConstellation(sceneName) {
 	case Sentinel1, Sentinel2:
 	default:

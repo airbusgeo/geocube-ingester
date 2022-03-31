@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/airbusgeo/geocube-ingester/common"
 )
 
 // SoblooImageProvider implements ImageProvider for Sobloo
@@ -71,7 +73,8 @@ func (ip *SoblooImageProvider) getInternalId(ctx context.Context, sceneName stri
 }
 
 // Download implements ImageProvider
-func (ip *SoblooImageProvider) Download(ctx context.Context, sceneName, sceneUUID, localDir string) error {
+func (ip *SoblooImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
+	sceneName := scene.SourceID
 	switch getConstellation(sceneName) {
 	case Sentinel1, Sentinel2:
 	default:

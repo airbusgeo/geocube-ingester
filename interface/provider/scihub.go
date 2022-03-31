@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
+
+	"github.com/airbusgeo/geocube-ingester/common"
 )
 
 const scihubDownloadProduct = "https://scihub.copernicus.eu/dhus/odata/v1/Products('%s')/$value"
@@ -25,7 +27,9 @@ func NewScihubImageProvider(user, pword string) *ScihubImageProvider {
 }
 
 // Download implements ImageProvider
-func (ip *ScihubImageProvider) Download(ctx context.Context, sceneName, sceneUUID, localDir string) error {
+func (ip *ScihubImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
+	sceneName := scene.SourceID
+	sceneUUID := scene.Data.UUID
 	switch getConstellation(sceneName) {
 	case Sentinel1, Sentinel2:
 	default:
