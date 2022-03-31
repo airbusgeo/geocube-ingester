@@ -157,8 +157,13 @@ func indexTile(ctx context.Context, gcclient *geocube.Client, tile common.Tile, 
 		return fmt.Errorf("indexTile: layer %s not found in InstancesID", file.Layer)
 	}
 
+	var bands []int64
+	for band := 1; band <= file.Nbands; band++ {
+		bands = append(bands, int64(band))
+	}
+
 	// Index
-	if err := gcclient.IndexDataset(uri, true, "", recordID, instanceID, []int64{1}, &dformat, file.ExtMin, file.ExtMax, file.Exponent); err != nil {
+	if err := gcclient.IndexDataset(uri, true, "", recordID, instanceID, bands, &dformat, file.ExtMin, file.ExtMax, file.Exponent); err != nil {
 		return err
 	}
 	return nil

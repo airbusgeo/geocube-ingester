@@ -157,11 +157,12 @@ type OutFile struct {
 	ExtMin     float64       `json:"ext_min_value"`
 	ExtMax     float64       `json:"ext_max_value"`
 	Exponent   float64       `json:"exponent"`
+	Nbands     int           `json:"nbands"`
 	Action     OutFileAction `json:"action"`
 	Condition  TileCondition `json:"condition"`
 }
 
-func newOutFile(layer service.Layer, ext service.Extension, dformatOut Arg, realmin, realmax, exponent float64, status OutFileAction, condition TileCondition) OutFile {
+func newOutFile(layer service.Layer, ext service.Extension, dformatOut Arg, realmin, realmax, exponent float64, nbands int, status OutFileAction, condition TileCondition) OutFile {
 	return OutFile{
 		File: File{
 			Layer:     layer,
@@ -173,6 +174,7 @@ func newOutFile(layer service.Layer, ext service.Extension, dformatOut Arg, real
 		Exponent:   exponent,
 		Action:     status,
 		Condition:  condition,
+		Nbands:     nbands,
 	}
 }
 
@@ -400,7 +402,7 @@ func newS1PreProcessingGraph() (*ProcessingGraph, error) {
 
 	// Define outputs
 	outfiles := [][]OutFile{
-		{newOutFile(service.LayerPreprocessed, service.ExtensionDIMAP, ArgFixed("float32,0,0,1"), 0, 1, 1, ToCreate, pass)},
+		{newOutFile(service.LayerPreprocessed, service.ExtensionDIMAP, ArgFixed("float32,0,0,1"), 0, 1, 1, 1, ToCreate, pass)},
 		{},
 		{},
 	}
@@ -440,10 +442,10 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			newOutFile(service.LayerBackscatterVV, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, ToIndex, pass),
-			newOutFile(service.LayerBackscatterVH, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, ToIndex, pass),
-			newOutFile(service.LayerCoherenceVV, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, ToIndex, condDiffT0T1),
-			newOutFile(service.LayerCoherenceVH, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, ToIndex, condDiffT0T1),
+			newOutFile(service.LayerBackscatterVV, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, pass),
+			newOutFile(service.LayerBackscatterVH, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, pass),
+			newOutFile(service.LayerCoherenceVV, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, condDiffT0T1),
+			newOutFile(service.LayerCoherenceVH, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, condDiffT0T1),
 			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate, Condition: condDiffT0T1},
 			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: condDiffT0T1},
 		},
