@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -124,15 +125,23 @@ func download(ctx context.Context, req *grab.Request, displayPrefix string) erro
 
 // unarchive file with basic check. All errors are temporary.
 func unarchive(localZip, localDir string) error {
-	if err := archiver.Unarchive(localZip, localDir); err != nil {
+	tmpdir, err := ioutil.TempDir(localDir, filepath.Base(localZip))
+	if err != nil {
 		return service.MakeTemporary(err)
 	}
-	files, err := ioutil.ReadDir(localDir)
+	defer os.RemoveAll(tmpdir)
+	if err := archiver.Unarchive(localZip, tmpdir); err != nil {
+		return service.MakeTemporary(err)
+	}
+	files, err := ioutil.ReadDir(tmpdir)
 	if err != nil {
 		return service.MakeTemporary(err)
 	}
 	if len(files) == 0 {
 		return service.MakeTemporary(fmt.Errorf("empty zip"))
+	}
+	for _, f := range files {
+		os.Rename(filepath.Join(tmpdir, f.Name()), filepath.Join(localDir, f.Name()))
 	}
 	return nil
 }
