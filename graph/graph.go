@@ -357,6 +357,9 @@ func LoadGraphFromFile(ctx context.Context, graphFile string) (*ProcessingGraph,
 	if err != nil {
 		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
+	if graphJSON.Config == nil {
+		graphJSON.Config = map[string]string{}
+	}
 
 	return graph, graphJSON.Config, nil
 }
@@ -760,6 +763,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, tiles
 	var filter LogFilter
 	pythonFilter := PythonLogFilter{}
 	snapFilter := SNAPLogFilter{}
+	cmdFilter := CmdLogFilter{}
 	for _, step := range g.steps {
 		if !step.Condition.Pass(tiles) {
 			continue
@@ -784,7 +788,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, tiles
 
 		case command:
 			cmd = exec.Command(step.Command, args...)
-			filter = nil
+			filter = &cmdFilter
 		}
 
 		// Exec graph
@@ -824,18 +828,37 @@ type PythonLogFilter struct {
 	lastError string
 }
 
+// CmdLogFilter formats log from other commands
+type CmdLogFilter struct {
+	lastError string
+}
+
 // SNAPLogFilter formats log from ESA/SNAP
 type SNAPLogFilter struct {
 	lastError string
 }
 
+var temporaryErrs = []string{
+	"temporary failure",
+	"timed out",
+}
+
 // WrapError implements LogFilter
 func (f *PythonLogFilter) WrapError(err error) error {
-	if f.lastError != "" && err != nil {
-		if strings.Contains(f.lastError, "FATAL") {
-			err = service.MakeFatal(err)
+	if f.lastError != "" {
+		err = service.MergeErrors(true, err, fmt.Errorf(f.lastError))
+		if err != nil {
+			strerr := strings.ToLower(err.Error())
+			if strings.Contains(strerr, "FATAL") {
+				err = service.MakeFatal(err)
+			} else {
+				for _, tmpErr := range temporaryErrs {
+					if strings.Contains(strerr, tmpErr) {
+						return service.MakeTemporary(err)
+					}
+				}
+			}
 		}
-		return fmt.Errorf("%w (%v)", err, f.lastError)
 	}
 	return err
 }
@@ -843,7 +866,7 @@ func (f *PythonLogFilter) WrapError(err error) error {
 // Filter implement log.Filter
 func (f *PythonLogFilter) Filter(msg string, defaultLevel zapcore.Level) (string, zapcore.Level, bool) {
 	trimmedmsg := strings.TrimSpace(msg)
-	if strings.HasPrefix(trimmedmsg, "FATAL:") {
+	if strings.HasPrefix(trimmedmsg, "FATAL:") || strings.HasPrefix(trimmedmsg, "ERROR:") {
 		f.lastError = msg
 		return msg, zapcore.ErrorLevel, false
 	}
@@ -888,6 +911,33 @@ func (f *SNAPLogFilter) Filter(msg string, defaultLevel zapcore.Level) (string, 
 		return msg, zapcore.ErrorLevel, false
 	}
 	return msg, defaultLevel, false
+}
+
+// WrapError implements LogFilter
+func (f *CmdLogFilter) WrapError(err error) error {
+	if f.lastError != "" && err != nil {
+		if strings.Contains(f.lastError, "FATAL ERROR:") {
+			err = service.MakeFatal(err)
+		}
+		if strings.Contains(f.lastError, "TEMPORARY ERROR:") {
+			err = service.MakeTemporary(err)
+		}
+		return fmt.Errorf("%w (%v)", err, f.lastError)
+	}
+	return err
+}
+
+// Filter implement log.Filter
+func (f *CmdLogFilter) Filter(msg string, defaultLevel zapcore.Level) (string, zapcore.Level, bool) {
+	msg = strings.TrimSuffix(msg, "\n")
+	trimmedmsg := strings.TrimSpace(msg)
+	if strings.Contains(trimmedmsg, "ERROR:") {
+		f.lastError = msg
+		return msg, zapcore.ErrorLevel, false
+	} else if strings.HasPrefix(trimmedmsg, "WARN:") {
+		return msg, zapcore.WarnLevel, false
+	}
+	return msg, zapcore.DebugLevel, false
 }
 
 func (step ProcessingStep) formatArgs(config GraphConfig, tiles []common.Tile) ([]string, error) {

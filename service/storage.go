@@ -136,7 +136,7 @@ func (ss *StorageStrategy) SaveLayer(ctx context.Context, tile common.Tile, laye
 
 // ImportLayer implements Storage
 func (ss *StorageStrategy) ImportLayer(ctx context.Context, tile common.Tile, layer Layer, ext Extension, localdir string) error {
-	if ext == ExtensionDIMAP {
+	if ext == ExtensionDIMAP || ext == ExtensionSAFE {
 		ext = ExtensionZIP
 	}
 

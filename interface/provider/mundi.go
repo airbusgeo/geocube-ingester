@@ -33,21 +33,15 @@ func NewMundiImageProvider(seeedToken string) *MundiImageProvider {
 func (ip *MundiImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	var url string
 	sceneName := scene.SourceID
+	sceneDate, err := getDate(sceneName)
+	if err != nil {
+		return fmt.Errorf("MundiImageProvider: %w", err)
+	}
 	switch getConstellation(sceneName) {
 	case Sentinel1:
-		// MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC.SAFE
-		sceneDate, err := getDate(sceneName)
-		if err != nil {
-			return fmt.Errorf("MundiImageProvider.%w", err)
-		}
 		url = fmt.Sprintf(MundiDownloadProductS1,
 			sceneName[12:13], strings.ToLower(sceneName[7:10]), sceneDate.Year(), (sceneDate.Month()+2)/3, sceneDate.Year(), sceneDate.Month(), sceneDate.Day(), sceneName[4:6], sceneName[14:16], sceneName)
 	case Sentinel2:
-		// MMM_MSIXXX_YYYYMMDDHHMMSS_Nxxyy_ROOO_Txxxxx_<Product Discriminator>.SAFE
-		sceneDate, err := getDate(sceneName)
-		if err != nil {
-			return fmt.Errorf("MundiImageProvider: unable to parse month from scene name %s", sceneName)
-		}
 		url = fmt.Sprintf(MundiDownloadProductS2,
 			sceneName[7:10], sceneDate.Year(), (sceneDate.Month()+2)/3, sceneName[38:40], sceneName[40:41], sceneName[41:43], sceneDate.Year(), sceneDate.Month(), sceneDate.Day(), sceneName)
 	default:

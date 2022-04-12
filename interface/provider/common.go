@@ -33,7 +33,7 @@ type constellation int
 const (
 	Unknown   constellation = iota
 	Sentinel1 constellation = iota // MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC.SAFE
-	Sentinel2 constellation = iota // MMM_MSIXXX_YYYYMMDDHHMMSS_Nxxyy_ROOO_Txxxxx_<Product Discriminator>.SAFE or MMM_CCCC_FFFFDDDDDD_ssss_YYYYMMDDTHHMMSS_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS.SAFE
+	Sentinel2 constellation = iota // MMM_MSIXXX_YYYYMMDDTHHMMSS_Nxxyy_ROOO_Txxxxx_<Product Discriminator>.SAFE or MMM_CCCC_FFFFDDDDDD_ssss_YYYYMMDDTHHMMSS_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS.SAFE
 )
 
 func fmtBytes(bytes int64) string {
@@ -195,17 +195,83 @@ func getConstellation(sceneName string) constellation {
 }
 
 func getDate(sceneName string) (time.Time, error) {
+	format, err := Info(sceneName)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Parse("20060102T150405", fmt.Sprintf("%s%s%sT%s%s%s", format["YEAR"], format["MONTH"], format["DAY"], format["HOUR"], format["MINUTE"], format["SECOND"]))
+}
+
+func Info(sceneName string) (map[string]string, error) {
 	switch getConstellation(sceneName) {
 	case Sentinel1:
-		// MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC.SAFE
-		return time.Parse("20060102T150405", sceneName[17:32])
-	case Sentinel2:
-		// MMM_MSIXXX_YYYYMMDDHHMMSS_Nxxyy_ROOO_Txxxxx_<Product Discriminator>.SAFE
-		if t, err := time.Parse("20060102150405", sceneName[11:25]); err == nil {
-			return t, err
+		if len(sceneName) < len("MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC") {
+			return nil, fmt.Errorf("invalid Sentinel1 file name: " + sceneName)
 		}
-		// MMM_CCCC_FFFFDDDDDD_ssss_YYYYMMDDTHHMMSS_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS.SAFE
-		return time.Parse("20060102T150405", sceneName[25:40])
+		return map[string]string{
+			"SCENE":            sceneName,
+			"MISSION_ID":       sceneName[0:3],
+			"MISSION_VERSION":  sceneName[2:3],
+			"MODE":             sceneName[4:6],
+			"PRODUCT_TYPE":     sceneName[7:10],
+			"RESOLUTION":       sceneName[10:11],
+			"PROCESSING_LEVEL": sceneName[12:13],
+			"PRODUCT_CLASS":    sceneName[13:14],
+			"POLARISATION":     sceneName[14:16],
+			"DATE":             sceneName[17:25],
+			"YEAR":             sceneName[17:21],
+			"MONTH":            sceneName[21:23],
+			"DAY":              sceneName[23:25],
+			"TIME":             sceneName[26:32],
+			"HOUR":             sceneName[26:28],
+			"MINUTE":           sceneName[28:30],
+			"SECOND":           sceneName[30:32],
+			"ORBIT":            sceneName[49:55],
+			"MISSION":          sceneName[56:62],
+			"UNIQUE_ID":        sceneName[63:67],
+		}, nil
+	case Sentinel2:
+		if len(sceneName) < len("MMM_MSIXXX_YYYYMMDDTHHMMSS_Nxxyy_ROOO_Txxxxx_<Product Disc.>") {
+			return nil, fmt.Errorf("invalid Sentinel2 file name: " + sceneName)
+		}
+		if sceneName[10] == '_' {
+			return map[string]string{
+				"SCENE":           sceneName,
+				"MISSION_ID":      sceneName[0:3],
+				"MISSION_VERSION": sceneName[2:3],
+				"PRODUCT_LEVEL":   sceneName[7:10],
+				"DATE":            sceneName[11:19],
+				"YEAR":            sceneName[11:15],
+				"MONTH":           sceneName[15:17],
+				"DAY":             sceneName[17:19],
+				"TIME":            sceneName[20:26],
+				"HOUR":            sceneName[20:22],
+				"MINUTE":          sceneName[22:24],
+				"SECOND":          sceneName[24:26],
+				"PDGS":            sceneName[28:32],
+				"ORBIT":           sceneName[34:37],
+				"TILE":            sceneName[38:44],
+				"LATITUDE_BAND":   sceneName[39:41],
+				"GRID_SQUARE":     sceneName[41:42],
+				"GRANULE_ID":      sceneName[42:44],
+			}, nil
+		} else if len(sceneName) < len("MMM_CCCC_FFFFDDDDDD_ssss_YYYYMMDDTHHMMSS_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS") {
+			return nil, fmt.Errorf("invalid Sentinel2 file name: " + sceneName)
+		}
+		return map[string]string{
+			"SCENE":         sceneName,
+			"MISSION_ID":    sceneName[0:3],
+			"PRODUCT_LEVEL": sceneName[16:19],
+			"DATE":          sceneName[25:33],
+			"YEAR":          sceneName[25:29],
+			"MONTH":         sceneName[29:31],
+			"DAY":           sceneName[31:33],
+			"TIME":          sceneName[34:40],
+			"HOUR":          sceneName[34:36],
+			"MINUTE":        sceneName[36:38],
+			"SECOND":        sceneName[38:40],
+			"ORBIT":         sceneName[42:45],
+		}, nil
 	}
-	return time.Time{}, fmt.Errorf("Unable to extract date from " + sceneName)
+	return nil, fmt.Errorf("GSImageProvider: constellation not supported")
 }

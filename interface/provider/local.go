@@ -31,7 +31,7 @@ func (ip *LocalImageProvider) Download(ctx context.Context, scene common.Scene, 
 	sceneName := scene.SourceID
 	date, err := getDate(sceneName)
 	if err != nil {
-		return fmt.Errorf("LocalImageProvider.Wrong sceneName: unable to extract date")
+		return fmt.Errorf("LocalImageProvider: %w", err)
 	}
 
 	// Create the list of subfolders
