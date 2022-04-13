@@ -15,11 +15,15 @@ import (
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 )
 
 // ProcessTile processes a tile.
 func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *geocube.Client, tile common.TileToProcess, workdir string) error {
+	tag := fmt.Sprintf("%s_%s", tile.Scene.Data.Date.Format("20060102"), tile.SourceID)
+	ctx = log.WithFields(ctx, zap.String("image", tag))
+
 	// Working dir
 	workdir = filepath.Join(workdir, uuid.New().String())
 
@@ -34,7 +38,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 	// Graph
 	g, config, err := graph.LoadGraph(ctx, tile.Data.GraphName)
 	if err != nil {
-		return fmt.Errorf("ProcessTile[%s_%s].%w", tile.Scene.Data.Date.Format("20060102"), tile.SourceID, err)
+		return fmt.Errorf("ProcessTile.%w", err)
 	}
 	// Append the user config
 	for key, val := range tile.Scene.Data.GraphConfig {
@@ -55,55 +59,54 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 	}
 
 	// Import input layers from storage
-	log.Logger(ctx).Sugar().Infof("import tile %s_%s", tile.Scene.Data.Date.Format("20060102"), tile.SourceID)
+	log.Logger(ctx).Info("import tile")
 	imported := service.StringSet{}
 	for i, infiles := range g.InFiles {
 		for _, infile := range infiles {
 			// Do not import twice
 			filename := service.LayerFileName(tiles[i], infile.Layer, infile.Extension)
 			if !imported.Exists(filename) && infile.Condition.Pass(tiles) {
-				log.Logger(ctx).Sugar().Debugf("import layer %s_%s_%s", tiles[i].Scene.Data.Date.Format("20060102"), tiles[i].SourceID, infile.Layer)
+				log.Logger(ctx).Sugar().Debugf("import layer '%s'", infile.Layer)
 				imported.Push(filename)
 				if err := storageService.ImportLayer(ctx, tiles[i], infile.Layer, infile.Extension, workdir); err != nil {
-					return fmt.Errorf("ProcessTile[%s_%s].%w", tile.Scene.Data.Date.Format("20060102"), tile.SourceID, err)
+					return fmt.Errorf("ProcessTile[%s].%w", tag, err)
 				}
 			}
 		}
 	}
 
 	// Process graph
-	log.Logger(ctx).Sugar().Infof("process tile %s with graph %s", tile.SourceID, tile.Data.GraphName)
+	log.Logger(ctx).Sugar().Infof("process with graph '%s'", tile.Data.GraphName)
 	outfiles, err := g.Process(ctx, config, tiles)
 	if err != nil {
-		return fmt.Errorf("ProcessTile[%s_%s].%w", tile.Scene.Data.Date.Format("20060102"), tile.SourceID, err)
+		return fmt.Errorf("ProcessTile[%s].%w", tag, err)
 	}
 
 	indexed := false
 	for i, outtilefile := range outfiles {
-		logtilename := fmt.Sprintf("%s_%s", tiles[i].Scene.Data.Date.Format("20060102"), tiles[i].SourceID)
 		for _, f := range outtilefile {
 			switch f.Action {
 			case graph.ToCreate, graph.ToIndex:
 				// Export output layers to storage
-				log.Logger(ctx).Sugar().Infof("save tile %s.%s", logtilename, f.Layer)
+				log.Logger(ctx).Sugar().Infof("save layer '%s'", f.Layer)
 				uri, err := storageService.SaveLayer(ctx, tiles[i], f.Layer, f.Extension, workdir)
 				if err != nil {
-					return fmt.Errorf("ProcessTile[%s].%w", logtilename, err)
+					return fmt.Errorf("ProcessTile[%s].%w", tag, err)
 				}
 				// Index tile
 				if f.Action == graph.ToIndex {
-					log.Logger(ctx).Sugar().Infof("index tile %s.%s", logtilename, f.Layer)
+					log.Logger(ctx).Sugar().Infof("index layer %s", f.Layer)
 					if err := indexTile(ctx, gcclient, tiles[i], tiles[i].Scene.Data.InstancesID, tiles[i].Scene.Data.RecordID, f, uri); err != nil {
 						if geocube.Code(err) == codes.AlreadyExists {
-							log.Logger(ctx).Sugar().Warnf("ProcessTile[%s].indexTile already exists", logtilename)
+							log.Logger(ctx).Sugar().Warnf("ProcessTile: indexTile already exists")
 						} else {
-							return fmt.Errorf("ProcessTile[%s].indexTile.%w", logtilename, err)
+							return fmt.Errorf("ProcessTile[%s].%w", tag, err)
 						}
 					}
 					indexed = true
 				}
 			case graph.ToDelete:
-				log.Logger(ctx).Sugar().Infof("delete tile %s.%s", logtilename, f.Layer)
+				log.Logger(ctx).Sugar().Infof("delete layer '%s'", f.Layer)
 				if err := storageService.DeleteLayer(ctx, tiles[i], f.Layer, f.Extension); err != nil && !errors.As(err, &service.ErrFileNotFound{}) {
 					return err
 				}

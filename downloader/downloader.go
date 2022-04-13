@@ -12,6 +12,7 @@ import (
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 //ProcessScene processes a scene.
@@ -55,6 +56,9 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 
 // ProcessTile extracts the tile from the scene and preprocesses it
 func ProcessTile(ctx context.Context, storageService service.Storage, scene common.Scene, tile string) error {
+	tag := fmt.Sprintf("%s_%s", scene.Data.Date.Format("20060102"), tile)
+	ctx = log.WithFields(ctx, zap.String("image", tag))
+
 	// Load the graph
 	g, config, err := graph.LoadGraph(ctx, scene.Data.GraphName)
 	if err != nil {
