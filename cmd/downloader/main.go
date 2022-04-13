@@ -34,6 +34,7 @@ type config struct {
 	PepsPassword      string
 	OndaUsername      string
 	OndaPassword      string
+	ASFToken          string
 	ScihubUsername    string
 	ScihubPassword    string
 	CreodiasUsername  string
@@ -61,6 +62,7 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.PepsPassword, "peps-password", "", "peps account password (optional)")
 	flag.StringVar(&config.OndaUsername, "onda-username", "", "onda account username (optional). To configure ONDA as a potential image Provider.")
 	flag.StringVar(&config.OndaPassword, "onda-password", "", "onda account password (optional)")
+	flag.StringVar(&config.ASFToken, "asf-token", "", "ASF token (optional). To configure Alaska Satellite Facility as a potential image Provider.")
 	flag.StringVar(&config.ScihubUsername, "scihub-username", "", "scihub account username (optional). To configure Scihub as a potential image Provider.")
 	flag.StringVar(&config.ScihubPassword, "scihub-password", "", "scihub account password (optional)")
 	flag.StringVar(&config.CreodiasUsername, "creodias-username", "", "creodias account username (optional). To configure Creodias as a potential image Provider.")
@@ -182,6 +184,10 @@ func run(ctx context.Context) error {
 	if config.OndaUsername != "" {
 		providerNames = append(providerNames, "Onda ("+config.OndaUsername+")")
 		imageProviders = append(imageProviders, provider.NewONDADiasImageProvider(config.OndaUsername, config.OndaPassword))
+	}
+	if config.ASFToken != "" {
+		providerNames = append(providerNames, "ASF ("+config.ASFToken+")")
+		imageProviders = append(imageProviders, provider.NewASFImageProvider(config.ASFToken))
 	}
 	if config.ScihubUsername != "" {
 		providerNames = append(providerNames, "Scihub ("+config.ScihubUsername+")")

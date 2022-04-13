@@ -252,6 +252,8 @@ For more information concerning flags and downloader argument, you can run:
 ```bash
 $ ./downloader --help
 Usage of ./downloader:
+  -asf-token string
+    	ASF token (optional). To configure Alaska Satellite Facility as a potential image Provider.
   -creodias-password string
     	creodias account password (optional)
   -creodias-username string
@@ -418,8 +420,6 @@ Usage of ./workflow:
     	password to connect to the Scihub catalog service
   -scihub-username string
     	username to connect to the Scihub catalog service
-  -sobloo-apikey string
-    	apikey to connect to the sobloo ordering service (optional)
   -tls
     	enable TLS protocol (certificate and key must be /tls/tls.crt and /tls/tls.key)
 ```
