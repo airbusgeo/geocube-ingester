@@ -156,10 +156,10 @@ type OutFile struct {
 	Max        float64       `json:"max_value"`
 	ExtMin     float64       `json:"ext_min_value"`
 	ExtMax     float64       `json:"ext_max_value"`
-	Exponent   float64       `json:"exponent"`
-	Nbands     int           `json:"nbands"`
+	Exponent   float64       `json:"exponent"` // JSON default: 1
+	Nbands     int           `json:"nbands"`   // JSON default: 1
 	Action     OutFileAction `json:"action"`
-	Condition  TileCondition `json:"condition"`
+	Condition  TileCondition `json:"condition"` // JSON default: pass
 }
 
 func newOutFile(layer service.Layer, ext service.Extension, dformatOut Arg, realmin, realmax, exponent float64, nbands int, status OutFileAction, condition TileCondition) OutFile {

@@ -19,7 +19,11 @@ func (of *OutFile) UnmarshalJSON(data []byte) error {
 		outFileAlias
 		DFormatOut ArgJSON `json:"dformat_out"`
 	}
-	alias := &outFileJSON{outFileAlias: outFileAlias{Condition: pass}}
+	alias := &outFileJSON{outFileAlias: outFileAlias{
+		Condition: pass,
+		Exponent:  1,
+		Nbands:    1,
+	}}
 
 	if err := json.Unmarshal(data, alias); err != nil {
 		return err

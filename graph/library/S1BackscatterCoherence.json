@@ -220,44 +220,40 @@
  ],
  "out_files": [
   [
-   {
-     "layer": "sigma0_VV",
-     "extension": "tif",
-     "dformat_out": { "type": "config", "value": "dformat_out" },
-     "ext_min_value": 0,
-     "ext_max_value": 1,
-     "exponent": 1,
-     "action": "to_index"
-   },
-   {
-     "layer": "sigma0_VH",
-     "extension": "tif",
-     "dformat_out": { "type": "config", "value": "dformat_out" },
-     "ext_min_value": 0,
-     "ext_max_value": 1,
-     "exponent": 1,
-     "action": "to_index"
-   },
-   {
-     "layer": "coh_VV",
-     "extension": "tif",
-     "dformat_out": { "type": "config", "value": "dformat_out" },
-     "ext_min_value": 0,
-     "ext_max_value": 1,
-     "exponent": 1,
-     "action": "to_index",
-     "condition": "different_T0_T1"
-   },
-   {
-     "layer": "coh_VH",
-     "extension": "tif",
-     "dformat_out": { "type": "config", "value": "dformat_out" },
-     "ext_min_value": 0,
-     "ext_max_value": 1,
-     "exponent": 1,
-     "action": "to_index",
-     "condition": "different_T0_T1"
-   }
+    {
+      "layer": "sigma0_VV",
+      "extension": "tif",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+    },
+    {
+      "layer": "sigma0_VH",
+      "extension": "tif",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+    },
+    {
+      "layer": "coh_VV",
+      "extension": "tif",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index",
+      "condition": "different_T0_T1"
+    },
+    {
+      "layer": "coh_VH",
+      "extension": "tif",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index",
+      "condition": "different_T0_T1"
+    }
   ],
   [
   ],
