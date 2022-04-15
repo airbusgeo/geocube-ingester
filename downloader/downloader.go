@@ -15,7 +15,7 @@ import (
 )
 
 //ProcessScene processes a scene.
-func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, storageService service.Storage, scene common.Scene, workdir string) error {
+func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, storageService service.Storage, dockerManager graph.DockerManager, scene common.Scene, workdir string) error {
 	// Working dir
 	workdir = filepath.Join(workdir, uuid.New().String())
 
@@ -44,7 +44,7 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 
 	log.Logger(ctx).Sugar().Infof("processing %s with %s", scene.SourceID, scene.Data.GraphName)
 	for sourceID := range scene.Data.TileMappings {
-		err := ProcessTile(ctx, storageService, scene, sourceID, workdir)
+		err := ProcessTile(ctx, storageService, dockerManager, scene, sourceID, workdir)
 		if err != nil {
 			return fmt.Errorf("ProcessScene.%w", err)
 		}
@@ -54,11 +54,11 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 }
 
 // ProcessTile extracts the tile from the scene and preprocesses it
-func ProcessTile(ctx context.Context, storageService service.Storage, scene common.Scene, tile, workdir string) error {
+func ProcessTile(ctx context.Context, storageService service.Storage, dockerManager graph.DockerManager, scene common.Scene, tile, workdir string) error {
 	ctx = log.With(ctx, "tile", tile)
 
 	// Load the graph
-	g, config, err := graph.LoadGraph(ctx, scene.Data.GraphName)
+	g, config, envs, err := graph.LoadGraph(ctx, scene.Data.GraphName)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, scene comm
 	}
 
 	// Process graph
-	outfiles, err := g.Process(ctx, config, tiles)
+	outfiles, err := g.Process(ctx, dockerManager, config, envs, tiles)
 	if err != nil {
 		return fmt.Errorf("ProcessTile[%s].%w", tile, err)
 	}

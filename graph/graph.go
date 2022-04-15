@@ -29,6 +29,7 @@ const (
 	python  = "python"
 	snap    = "snap"
 	command = "cmd"
+	docker  = "docker"
 
 	snapDateFormat = "02Jan2006"
 )
@@ -218,6 +219,9 @@ func (of *OutFile) setDFormatOut(config GraphConfig) error {
 // GraphConfig is a configuration map for a processing graph
 type GraphConfig map[string]string
 
+// GraphEnvs is a configuration map for a processing graph
+type GraphEnvs []string
+
 // ProcessingGraph is a set of steps
 type ProcessingGraph struct {
 	steps    []ProcessingStep
@@ -274,9 +278,10 @@ func getFile(ctx context.Context, workdir, file string) (string, error) {
 	if e != nil {
 		return "", service.MergeErrors(true, err, e)
 	}
+
 	localpath, err := ioutil.TempFile(workdir, path.Base(file))
 	if err != nil {
-		return "", fmt.Errorf("getFile[%s]: %w", localpath.Name(), err)
+		return "", fmt.Errorf("getFile[%s]: %w", path.Join(workdir, path.Base(file)), err)
 	}
 	localpath.Close()
 	if err = uri.DownloadToFile(ctx, localpath.Name()); err != nil {
@@ -318,68 +323,68 @@ func newProcessingGraph(ctx context.Context, snapPath string, steps []Processing
 }
 
 // LoadGraph returns the graph from its name and its default configuration
-func LoadGraph(ctx context.Context, graphName string) (*ProcessingGraph, GraphConfig, error) {
+func LoadGraph(ctx context.Context, graphName string) (*ProcessingGraph, GraphConfig, GraphEnvs, error) {
 	switch graphName {
 	case "S1Preprocessing":
 		g, err := newS1PreProcessingGraph(ctx)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
-		return g, S1DefaultConfig(), nil
+		return g, S1DefaultConfig(), nil, nil
 	case "S1BackscatterCoherence":
 		g, err := newS1BsCohGraph(ctx)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
-		return g, S1DefaultConfig(), nil
+		return g, S1DefaultConfig(), nil, nil
 	case "S1CoregExtract":
 		g, err := newS1CoregExtractGraph(ctx)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
-		return g, S1DefaultConfig(), nil
+		return g, S1DefaultConfig(), nil, nil
 	case "S1Clean":
 		g, err := newS1CleanGraph(ctx)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
-		return g, S1DefaultConfig(), nil
+		return g, S1DefaultConfig(), nil, nil
 	}
 
 	return LoadGraphFromFile(ctx, graphName)
 }
 
 // LoadGraphFromFile returns the graph from a filename
-func LoadGraphFromFile(ctx context.Context, graphFile string) (*ProcessingGraph, GraphConfig, error) {
+func LoadGraphFromFile(ctx context.Context, graphFile string) (*ProcessingGraph, GraphConfig, GraphEnvs, error) {
 	var err error
 	if graphFile, err = getFile(ctx, graphPath, graphFile); err != nil {
-		return nil, nil, fmt.Errorf("LoadGraphFromFile.%w", err)
+		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile.%w", err)
 	}
 	jsonFile, err := os.Open(graphFile)
 	if err != nil {
-		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
+		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
 	defer jsonFile.Close()
 
 	byteValue, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
-		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
+		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
 
 	var graphJSON ProcessingGraphJSON
 	if err := json.Unmarshal(byteValue, &graphJSON); err != nil {
-		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
+		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
 
 	graph, err := newProcessingGraph(ctx, snapPath, graphJSON.Steps, graphJSON.InFiles, graphJSON.OutFiles)
 	if err != nil {
-		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
+		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
 	if graphJSON.Config == nil {
 		graphJSON.Config = map[string]string{}
 	}
 
-	return graph, graphJSON.Config, nil
+	return graph, graphJSON.Config, graphJSON.Envs, nil
 }
 
 // S1DefaultConfig returns a basic configuration
@@ -415,7 +420,7 @@ func Getenv(key, def string) string {
 }
 
 var (
-	graphPath = Getenv("GRAPHPATH", "/data/graph")
+	graphPath = Getenv("GRAPHPATH", "/graph")
 	snapPath  = Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
 )
 
@@ -774,7 +779,7 @@ func cmdToString(cmd *exec.Cmd) string {
 
 // Process runs the graph
 // Returns the files to create or to delete
-func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, tiles []common.Tile) ([][]OutFile, error) {
+func (g *ProcessingGraph) Process(ctx context.Context, dockerManager DockerManager, config GraphConfig, graphEnvs GraphEnvs, tiles []common.Tile) ([][]OutFile, error) {
 	var filter LogFilter
 	pythonFilter := PythonLogFilter{}
 	snapFilter := SNAPLogFilter{}
@@ -804,16 +809,35 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, tiles
 		case command:
 			cmd = exec.Command(step.Command, args...)
 			filter = &cmdFilter
+
+		case docker:
+			if dockerManager == nil {
+				return nil, errors.New("docker engine is not supported")
+			}
+			stepCmd := strings.ToLower(step.Command)
+			var envs []string
+
+			// host envs
+			envs = append(envs, os.Environ()...)
+
+			//graph envs
+			envs = append(envs, graphEnvs...)
+
+			if err = dockerManager.Process(ctx, config["workdir"], stepCmd, args, envs); err != nil {
+				return nil, err
+			}
 		}
 
 		// Exec graph
-		log.Logger(ctx).Sugar().Debug(cmdToString(cmd))
-		if err := log.Exec(ctx, cmd, log.StdoutLevel(zapcore.DebugLevel), log.StdoutFilter(filter), log.StderrFilter(filter)); err != nil {
-			// Error handling
-			if filter != nil {
-				err = filter.WrapError(err)
+		if step.Engine != docker {
+			log.Logger(ctx).Sugar().Debug(cmdToString(cmd))
+			if err := log.Exec(ctx, cmd, log.StdoutLevel(zapcore.DebugLevel), log.StdoutFilter(filter), log.StderrFilter(filter)); err != nil {
+				// Error handling
+				if filter != nil {
+					err = filter.WrapError(err)
+				}
+				return nil, fmt.Errorf("process[%s]: %w", cmdToString(cmd), err)
 			}
-			return nil, fmt.Errorf("process[%s]: %w", cmdToString(cmd), err)
 		}
 	}
 
@@ -850,6 +874,11 @@ type CmdLogFilter struct {
 
 // SNAPLogFilter formats log from ESA/SNAP
 type SNAPLogFilter struct {
+	lastError string
+}
+
+// DockerLogFilter formats log from docker Engine
+type DockerLogFilter struct {
 	lastError string
 }
 
@@ -928,6 +957,39 @@ func (f *SNAPLogFilter) Filter(msg string, defaultLevel zapcore.Level) (string, 
 	return msg, defaultLevel, false
 }
 
+func (f *DockerLogFilter) WrapError(err error) error {
+	if f.lastError != "" && err != nil {
+		if strings.Contains(f.lastError, "FATAL ERROR:") {
+			err = service.MakeFatal(err)
+		}
+		if strings.Contains(f.lastError, "TEMPORARY ERROR:") {
+			err = service.MakeTemporary(err)
+		}
+		return fmt.Errorf("%w (%v)", err, f.lastError)
+	}
+	return err
+}
+
+func (f *DockerLogFilter) Filter(msg string, defaultLevel zapcore.Level) (string, zapcore.Level, bool) {
+	if len(msg) == 0 {
+		return msg, defaultLevel, true
+	}
+	if strings.Contains(msg, "INFO:") {
+		return msg, zapcore.InfoLevel, false
+	}
+	if strings.Contains(msg, "DEBUG:") {
+		return msg, zapcore.DebugLevel, false
+	}
+	if strings.Contains(msg, "ERROR:") {
+		f.lastError = msg
+		return msg, zapcore.ErrorLevel, false
+	}
+	if strings.Contains(msg, "WARNING:") {
+		return msg, zapcore.WarnLevel, false
+	}
+	return msg, defaultLevel, false
+}
+
 // WrapError implements LogFilter
 func (f *CmdLogFilter) WrapError(err error) error {
 	if f.lastError != "" && err != nil {
@@ -949,7 +1011,7 @@ func (f *CmdLogFilter) Filter(msg string, defaultLevel zapcore.Level) (string, z
 	if strings.Contains(trimmedmsg, "ERROR:") {
 		f.lastError = msg
 		return msg, zapcore.ErrorLevel, false
-	} else if strings.HasPrefix(trimmedmsg, "WARN:") {
+	} else if strings.HasPrefix(trimmedmsg, "WARN") {
 		return msg, zapcore.WarnLevel, false
 	}
 	return msg, zapcore.DebugLevel, false
@@ -976,7 +1038,7 @@ func (step ProcessingStep) formatArgs(config GraphConfig, tiles []common.Tile) (
 			// Append arg
 			args = append(args, fmt.Sprintf("-P%s=%s", param, value))
 		}
-	case python, command:
+	case python, command, docker:
 		// Add args
 		for param, arg := range step.Args {
 			value, err := formatArgs(arg, config, tiles)

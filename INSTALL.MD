@@ -258,6 +258,16 @@ Usage of ./downloader:
     	creodias account password (optional)
   -creodias-username string
     	creodias account username (optional). To configure Creodias as a potential image Provider.
+  -docker-credentials-filepath string
+    	credentials file to mount in docker processes
+  -docker-envs string
+    	docker variable env key white list (comma sep) 
+  -docker-registry-password string
+    	password to authentication on private registry
+  -docker-registry-server string
+    	password to authentication on private registry (default "https://eu.gcr.io")
+  -docker-registry-username string
+    	username to authentication on private registry (default "_json_key")
   -event-queue string
     	name of the queue for job events (pgqueue or pubsub topic)
   -gs-provider-buckets string
@@ -291,6 +301,8 @@ Usage of ./downloader:
     	sobloo api-key (optional). To configure Sobloo as a potential image Provider.
   -storage-uri string
     	storage uri (currently supported: local, gs). To store outputs of the scene preprocessing graph.
+  -with-docker-engine
+    	activate the support of graph.engine == 'docker' (require a running docker-daemon)
   -workdir string
     	working directory to store intermediate results (default "/local-ssd")
 ```
@@ -331,6 +343,16 @@ For more information concerning flags and downloader argument, you can run:
 ```bash
 $ ./processor --help
 Usage of ./processor:
+  -docker-credentials-filepath string
+    	credentials file to mount in docker processes
+  -docker-envs string
+    	docker variable env key white list (comma sep) 
+  -docker-registry-password string
+    	password to authentication on private registry
+  -docker-registry-server string
+    	password to authentication on private registry (default "https://eu.gcr.io")
+  -docker-registry-username string
+    	username to authentication on private registry (default "_json_key")
   -event-queue string
     	name of the queue for job events (pgqueue or pubsub topic)
   -geocube-apikey string
@@ -347,6 +369,8 @@ Usage of ./processor:
     	pubsub subscription project (gcp only/not required in local usage)
   -storage-uri string
     	storage uri (currently supported: local, gs). To get outputs of the scene preprocessing graph and store outputs of the tile processing graph.
+  -with-docker-engine
+    	activate the support of graph.engine == 'docker' (require a running docker-daemon)
   -workdir string
     	working directory to store intermediate results (default "/local-ssd")
 ```

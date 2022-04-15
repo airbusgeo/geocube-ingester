@@ -11,6 +11,7 @@ import (
 
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/downloader"
+	"github.com/airbusgeo/geocube-ingester/graph"
 	"github.com/airbusgeo/geocube-ingester/interface/provider"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
@@ -42,6 +43,9 @@ type config struct {
 	SoblooApiKey      string
 	MundiSeeedToken   string
 	GSProviderBuckets []string
+
+	WithDockerEngine bool
+	Docker           graph.DockerConfig
 }
 
 func newAppConfig() (*config, error) {
@@ -73,7 +77,16 @@ func newAppConfig() (*config, error) {
 	bucket can contain several {IDENTIFIER} than will be replaced according to the sceneName.
 	IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
 	 `)
+
+	// Docker processing Images connection
+	flag.BoolVar(&config.WithDockerEngine, "with-docker-engine", false, "activate the support of graph.engine == 'docker' (require a running docker-daemon)")
+	dockerEnvsStr := config.Docker.SetFlags()
+
 	flag.Parse()
+
+	if *dockerEnvsStr != "" {
+		config.Docker.Envs = strings.Split(*dockerEnvsStr, ",")
+	}
 
 	if config.WorkingDir == "" {
 		return nil, fmt.Errorf("missing workdir config flag")
@@ -217,6 +230,14 @@ func run(ctx context.Context) error {
 		http.ListenAndServe(":9000", nil)
 	}()
 
+	var dockerManager graph.DockerManager
+	if config.WithDockerEngine {
+		dockerManager, err = graph.NewDockerManager(ctx, config.Docker)
+		if err != nil {
+			return err
+		}
+	}
+
 	maxTries := 15
 	log.Logger(ctx).Debug("downloader starts " + logMessaging + " downloading image from " + strings.Join(providerNames, ", ") + " exporting to " + config.StorageURI)
 	for {
@@ -265,7 +286,7 @@ func run(ctx context.Context) error {
 				return fmt.Errorf("too many retries")
 			}
 
-			if err := downloader.ProcessScene(ctx, imageProviders, storageService, scene, config.WorkingDir); err != nil {
+			if err := downloader.ProcessScene(ctx, imageProviders, storageService, dockerManager, scene, config.WorkingDir); err != nil {
 				if msg.TryCount >= maxTries {
 					return fmt.Errorf("too many retries: %w", err)
 				}

@@ -8,6 +8,7 @@ import (
 
 type ProcessingGraphJSON struct {
 	Config   map[string]string `json:"config"`
+	Envs     []string          `json:"envs,omitempty"`
 	Steps    []ProcessingStep  `json:"processing_steps"`
 	InFiles  [3][]InFile       `json:"in_files"`
 	OutFiles [][]OutFile       `json:"out_files"`

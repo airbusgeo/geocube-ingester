@@ -57,7 +57,7 @@ func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
 			}
 			vi := v.Instance(layer.Instance)
 			if vi == nil {
-				return fmt.Errorf("validateArea: unknown instance %s", layer.Instance)
+				return fmt.Errorf("validateArea: unknown instance %s for variable %s", layer.Instance, layer.Variable)
 			}
 			layer.InstanceID = vi.InstanceID
 			area.Layers[k] = layer

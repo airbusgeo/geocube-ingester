@@ -7,7 +7,10 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/airbusgeo/geocube-ingester/graph"
 
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/processor"
@@ -31,6 +34,9 @@ type config struct {
 	GeocubeServer         string
 	GeocubeServerInsecure bool
 	GeocubeServerApiKey   string
+
+	WithDockerEngine bool
+	Docker           graph.DockerConfig
 }
 
 func newAppConfig() (*config, error) {
@@ -49,7 +55,16 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.GeocubeServer, "geocube-server", "127.0.0.1:8080", "address of geocube server")
 	flag.BoolVar(&config.GeocubeServerInsecure, "geocube-insecure", false, "connection to geocube server is insecure")
 	flag.StringVar(&config.GeocubeServerApiKey, "geocube-apikey", "", "geocube server api key")
+
+	// Docker processing Images connection
+	flag.BoolVar(&config.WithDockerEngine, "with-docker-engine", false, "activate the support of graph.engine == 'docker' (require a running docker-daemon)")
+	dockerEnvsStr := config.Docker.SetFlags()
+
 	flag.Parse()
+
+	if *dockerEnvsStr != "" {
+		config.Docker.Envs = strings.Split(*dockerEnvsStr, ",")
+	}
 
 	if config.WorkingDir == "" {
 		return nil, fmt.Errorf("missing workdir config flag")
@@ -136,6 +151,14 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	var dockerManager graph.DockerManager
+	if config.WithDockerEngine {
+		dockerManager, err = graph.NewDockerManager(ctx, config.Docker)
+		if err != nil {
+			return err
+		}
+	}
+
 	jobStarted := time.Time{}
 	go func() {
 		http.HandleFunc("/termination_cost", func(w http.ResponseWriter, r *http.Request) {
@@ -195,7 +218,7 @@ func run(ctx context.Context) error {
 				return fmt.Errorf("too many retries")
 			}
 
-			if err = processor.ProcessTile(ctx, storageService, gcclient, tile, config.WorkingDir); err != nil {
+			if err = processor.ProcessTile(ctx, storageService, gcclient, dockerManager, tile, config.WorkingDir); err != nil {
 				if msg.TryCount >= maxTries {
 					return fmt.Errorf("too many retries: %w", err)
 				}

@@ -18,7 +18,7 @@ func main() {
 	graph_path := flag.String("path", "", "json graph path")
 	flag.Parse()
 
-	g, conf, err := graph.LoadGraphFromFile(ctx, *graph_path)
+	g, conf, _, err := graph.LoadGraphFromFile(ctx, *graph_path)
 	if err != nil {
 		log.Fatal(err)
 	}

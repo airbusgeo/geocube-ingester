@@ -21,31 +21,14 @@ spec:
           image: {{WORKFLOW_IMAGE}}
           env:
             - name: DB_CONNECTION
-              valueFrom:
-                secretKeyRef:
-                  key: connection_string
-                  name: ingester-db
-                  optional: false
+              value: [Enter value]
             - name: GEOCUBE_SERVER
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: GEOCUBE_SERVER
-            - name: GEOCUBE_CLIENTAPIKEY
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: GEOCUBE_CLIENTAPIKEY
+              value: [Enter value]
+              value: [Enter value]
             - name: SCIHUB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: SCIHUB_USERNAME
+              value: [Enter value]
             - name: SCIHUB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: SCIHUB_PASSWORD
+              value: [Enter value]
           args:
             - "--db-connection=$(DB_CONNECTION)"
             - "--pgq-connection=$(DB_CONNECTION)"
@@ -89,71 +72,31 @@ spec:
         - name: ingester-downloader
           env:
             - name: DB_CONNECTION
-              valueFrom:
-                secretKeyRef:
-                  key: connection_string
-                  name: ingester-db
-                  optional: false
+              value: [Enter value]
             - name: STORAGE_URI
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: STORAGE_URI
+              value: [Enter value]
             - name: PEPS_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: PEPS_USERNAME
+              value: [Enter value]
             - name: PEPS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: PEPS_PASSWORD
+              value: [Enter value]
             - name: ONDA_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: ONDA_USERNAME
+              value: [Enter value]
             - name: ONDA_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: ONDA_PASSWORD
+              value: [Enter value]
             - name: CREODIAS_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: CREODIAS_USERNAME
+              value: [Enter value]
             - name: CREODIAS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: CREODIAS_PASSWORD
+              value: [Enter value]
             - name: SCIHUB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: SCIHUB_USERNAME
+              value: [Enter value]
             - name: SCIHUB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: SCIHUB_PASSWORD
+              value: [Enter value]
             - name: SOBLOO_APIKEY
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: SOBLOO_APIKEY
+              value: [Enter value]
             - name: MUNDI_SEEED_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: MUNDI_SEEED_TOKEN
+              value: [Enter value]
             - name: GCS_PROVIDER_BUCKETS
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: GCS_PROVIDER_BUCKETS
+              value: [Enter value]
           args:
             - "--pgq-connection=$(DB_CONNECTION)"
             - "--job-queue=ingester-downloader"
@@ -215,29 +158,34 @@ spec:
         app: ingester-processor
     spec:
       containers:
+        - name: docker-daemon
+          image: docker:20.10.17-dind
+          imagePullPolicy: Always
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: docker-graph-storage
+              mountPath: /var/lib/docker
+            - mountPath: /local-ssd
+              mountPropagation: None
+              name: local-ssd
         - name: ingester-processor
           env:
+            - name: DOCKER_HOST
+              value: tcp://localhost:2375
+            - name: DOCKER_REGISTRY_PASSWORD
+              value: [Enter value]
             - name: GEOCUBE_SERVER
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: GEOCUBE_SERVER
+              value: [Enter value]
             - name: GEOCUBE_CLIENTAPIKEY
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: GEOCUBE_CLIENTAPIKEY
+              value: [Enter value]
             - name: STORAGE_URI
-              valueFrom:
-                secretKeyRef:
-                  name: ingester-secrets
-                  key: STORAGE_URI
+              value: [Enter value]
             - name: DB_CONNECTION
-              valueFrom:
-                secretKeyRef:
-                  key: connection_string
-                  name: ingester-db
-                  optional: false
+              value: [Enter value]
           args:
             - "--pgq-connection=$(DB_CONNECTION)"
             - "--job-queue=ingester-processor"
@@ -245,6 +193,12 @@ spec:
             - "--storage-uri=$(STORAGE_URI)"
             - "--geocube-server=$(GEOCUBE_SERVER)"
             - "--geocube-apikey=$(GEOCUBE_CLIENTAPIKEY)"
+            - "--docker-registry-username=_json_key"
+            - "--docker-registry-password=$(DOCKER_REGISTRY_PASSWORD)"
+            - "--docker-registry-server=..."
+            - "--docker-credentials-filepath=..."
+            - "--docker-envs=..."
+            - "--with-docker-engine"
           image: {{PROCESSOR_IMAGE}}
           imagePullPolicy: Always
           ports:

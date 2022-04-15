@@ -19,7 +19,7 @@ import (
 )
 
 // ProcessTile processes a tile.
-func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *geocube.Client, tile common.TileToProcess, workdir string) error {
+func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *geocube.Client, dockerManager graph.DockerManager, tile common.TileToProcess, workdir string) error {
 	tag := fmt.Sprintf("%s_%s", tile.Scene.Data.Date.Format("20060102"), tile.SourceID)
 
 	// Working dir
@@ -34,7 +34,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 	}
 
 	// Graph
-	g, config, err := graph.LoadGraph(ctx, tile.Data.GraphName)
+	g, config, envs, err := graph.LoadGraph(ctx, tile.Data.GraphName)
 	if err != nil {
 		return fmt.Errorf("ProcessTile.%w", err)
 	}
@@ -78,7 +78,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 
 	// Process graph
 	log.Logger(ctx).Sugar().Infof("process with graph '%s'", tile.Data.GraphName)
-	outfiles, err := g.Process(ctx, config, tiles)
+	outfiles, err := g.Process(ctx, dockerManager, config, envs, tiles)
 	if err != nil {
 		return fmt.Errorf("ProcessTile[%s].%w", tag, err)
 	}
