@@ -245,26 +245,51 @@ func (g *ProcessingGraph) Summary() string {
 	return s
 }
 
-func fileExists(cwd, file string) (string, error) {
-	if _, err := os.Stat(file); err == nil || !errors.Is(err, os.ErrNotExist) || cwd == "" {
+// getFile checks if file exists in local or try to download it if distant
+func getFile(ctx context.Context, workdir, file string) (string, error) {
+	// Does the file exist locally ?
+	_, err := os.Stat(file)
+	if err == nil || !errors.Is(err, os.ErrNotExist) {
 		return file, err
 	}
-	file = path.Join(cwd, file)
-	return fileExists("", file)
+	// Does the relative file exist locally ?
+	if workdir != "" {
+		localpath := path.Join(workdir, file)
+		if _, err := os.Stat(localpath); err == nil || !errors.Is(err, os.ErrNotExist) {
+			return localpath, err
+		}
+	}
+	// Try to download it
+	uri, e := uri.ParseUri(file)
+	if e != nil {
+		return "", service.MergeErrors(true, err, e)
+	}
+	localpath, err := ioutil.TempFile(workdir, path.Base(file))
+	if err != nil {
+		return "", fmt.Errorf("getFile[%s]: %w", localpath.Name(), err)
+	}
+	localpath.Close()
+	if err = uri.DownloadToFile(ctx, localpath.Name()); err != nil {
+		return "", fmt.Errorf("getFile[%s].%w", localpath.Name(), err)
+	}
+
+	return localpath.Name(), nil
 }
 
-func newProcessingGraph(snapPath string, steps []ProcessingStep, infiles [3][]InFile, outfiles [][]OutFile) (*ProcessingGraph, error) {
+func newProcessingGraph(ctx context.Context, snapPath string, steps []ProcessingStep, infiles [3][]InFile, outfiles [][]OutFile) (*ProcessingGraph, error) {
 	// Check commands
-	graphPath := Getenv("GRAPHPATH", "/data/graph")
 	snapRequired := false
 	for i, step := range steps {
-		cmd, err := fileExists(graphPath, step.Command)
-		if err != nil {
-			return nil, fmt.Errorf("newProcessingGraph: Command not found: %s", step.Command)
-		}
-		steps[i].Command = cmd
-		if step.Engine == snap {
+		switch step.Engine {
+		case snap:
 			snapRequired = true
+			fallthrough
+		case python, command:
+			cmd, err := getFile(ctx, graphPath, step.Command)
+			if err != nil {
+				return nil, fmt.Errorf("newProcessingGraph: Command not found: %s (%w)", step.Command, err)
+			}
+			steps[i].Command = cmd
 		}
 	}
 
@@ -286,25 +311,25 @@ func newProcessingGraph(snapPath string, steps []ProcessingStep, infiles [3][]In
 func LoadGraph(ctx context.Context, graphName string) (*ProcessingGraph, GraphConfig, error) {
 	switch graphName {
 	case "S1Preprocessing":
-		g, err := newS1PreProcessingGraph()
+		g, err := newS1PreProcessingGraph(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
 		return g, S1DefaultConfig(), nil
 	case "S1BackscatterCoherence":
-		g, err := newS1BsCohGraph()
+		g, err := newS1BsCohGraph(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
 		return g, S1DefaultConfig(), nil
 	case "S1CoregExtract":
-		g, err := newS1CoregExtractGraph()
+		g, err := newS1CoregExtractGraph(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
 		return g, S1DefaultConfig(), nil
 	case "S1Clean":
-		g, err := newS1CleanGraph()
+		g, err := newS1CleanGraph(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -316,26 +341,10 @@ func LoadGraph(ctx context.Context, graphName string) (*ProcessingGraph, GraphCo
 
 // LoadGraphFromFile returns the graph from a filename
 func LoadGraphFromFile(ctx context.Context, graphFile string) (*ProcessingGraph, GraphConfig, error) {
-	f, err := fileExists(Getenv("GRAPHPATH", "/data/graph"), graphFile)
-	if err != nil {
-		// Try to download it
-		graphFileUri, e := uri.ParseUri(graphFile)
-		if e != nil {
-			return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: unknown graph (%w-%v)", graphFile, err, e)
-		}
-		graphFilePath, err := ioutil.TempFile("", "")
-		if err != nil {
-			return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: unable to create temp file: %w", graphFile, err)
-		}
-		graphFilePath.Close()
-		defer os.Remove(graphFilePath.Name())
-		if err = graphFileUri.DownloadToFile(ctx, graphFilePath.Name()); err != nil {
-			return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: unable to download graph: %w", graphFile, err)
-		}
-
-		return LoadGraphFromFile(ctx, graphFilePath.Name())
+	var err error
+	if graphFile, err = getFile(ctx, graphPath, graphFile); err != nil {
+		return nil, nil, fmt.Errorf("LoadGraphFromFile.%w", err)
 	}
-	graphFile = f
 	jsonFile, err := os.Open(graphFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
@@ -352,8 +361,7 @@ func LoadGraphFromFile(ctx context.Context, graphFile string) (*ProcessingGraph,
 		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
 
-	snapPath := Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
-	graph, err := newProcessingGraph(snapPath, graphJSON.Steps, graphJSON.InFiles, graphJSON.OutFiles)
+	graph, err := newProcessingGraph(ctx, snapPath, graphJSON.Steps, graphJSON.InFiles, graphJSON.OutFiles)
 	if err != nil {
 		return nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
@@ -396,10 +404,13 @@ func Getenv(key, def string) string {
 	return def
 }
 
-// newS1PreProcessingGraph creates a new preprocessing graph for S1 (to use with )
-func newS1PreProcessingGraph() (*ProcessingGraph, error) {
-	snapPath := Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
+var (
+	graphPath = Getenv("GRAPHPATH", "/data/graph")
+	snapPath  = Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
+)
 
+// newS1PreProcessingGraph creates a new preprocessing graph for S1 (to use with )
+func newS1PreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define inputs
 	infiles := [3][]InFile{}
 
@@ -428,13 +439,11 @@ func newS1PreProcessingGraph() (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(snapPath, steps, infiles, outfiles)
+	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
 }
 
 // newS1BsCohGraph creates a new processing graph to compute Backscatter and Coherence of S1 images
-func newS1BsCohGraph() (*ProcessingGraph, error) {
-	snapPath := Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
-
+func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define inputs
 	infiles := [3][]InFile{
 		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, pass}},
@@ -667,13 +676,11 @@ func newS1BsCohGraph() (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(snapPath, steps, infiles, outfiles)
+	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
 }
 
 // newS1CoregExtractGraph creates a new processing graph to compute Coherence of S1 images
-func newS1CoregExtractGraph() (*ProcessingGraph, error) {
-	snapPath := Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
-
+func newS1CoregExtractGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define inputs
 	infiles := [3][]InFile{
 		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, pass}},
@@ -726,13 +733,11 @@ func newS1CoregExtractGraph() (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(snapPath, steps, infiles, outfiles)
+	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
 }
 
 // newS1CleanGraph creates a new graph to clean temporary images
-func newS1CleanGraph() (*ProcessingGraph, error) {
-	snapPath := Getenv("SNAPPATH", "/usr/local/snap/bin/gpt")
-
+func newS1CleanGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define inputs
 	infiles := [3][]InFile{{}, {}, {}}
 
@@ -746,7 +751,7 @@ func newS1CleanGraph() (*ProcessingGraph, error) {
 		{},
 	}
 
-	return newProcessingGraph(snapPath, []ProcessingStep{}, infiles, outfiles)
+	return newProcessingGraph(ctx, snapPath, []ProcessingStep{}, infiles, outfiles)
 }
 
 func cmdToString(cmd *exec.Cmd) string {
