@@ -23,6 +23,8 @@ COPY --from=builder /usr/lib/x86_64-linux-gnu/libgeos* \
                     /usr/lib/x86_64-linux-gnu/libstdc++.so.6 \
                     /lib/x86_64-linux-gnu/libgcc_s.so.1 \
                     /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /lib/x86_64-linux-gnu/libm.so.6 \
+                    /lib/x86_64-linux-gnu/
 
 COPY --from=builder /go/bin/cmd /workflow
 ENTRYPOINT ["/workflow"]
