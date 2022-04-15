@@ -45,7 +45,7 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 
 	log.Logger(ctx).Sugar().Infof("processing %s", scene.SourceID)
 	for sourceID := range scene.Data.TileMappings {
-		err := ProcessTile(ctx, storageService, scene, sourceID)
+		err := ProcessTile(ctx, storageService, scene, sourceID, workdir)
 		if err != nil {
 			return fmt.Errorf("ProcessScene.%w", err)
 		}
@@ -55,7 +55,7 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 }
 
 // ProcessTile extracts the tile from the scene and preprocesses it
-func ProcessTile(ctx context.Context, storageService service.Storage, scene common.Scene, tile string) error {
+func ProcessTile(ctx context.Context, storageService service.Storage, scene common.Scene, tile, workdir string) error {
 	tag := fmt.Sprintf("%s_%s", scene.Data.Date.Format("20060102"), tile)
 	ctx = log.WithFields(ctx, zap.String("image", tag))
 
@@ -68,6 +68,9 @@ func ProcessTile(ctx context.Context, storageService service.Storage, scene comm
 	for key, val := range scene.Data.GraphConfig {
 		config[key] = val
 	}
+
+	// Append workdir
+	config["workdir"] = workdir
 
 	// Input tile
 	mapping := scene.Data.TileMappings[tile]

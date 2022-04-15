@@ -45,6 +45,9 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 		config[key] = val
 	}
 
+	// Append workdir
+	config["workdir"] = workdir
+
 	// Input tiles
 	tiles := []common.Tile{tile.Tile}
 	if tile.Previous.SourceID == "" {
