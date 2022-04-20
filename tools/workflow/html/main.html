@@ -102,10 +102,21 @@
       forceStatus( "tile", $('#tile').val(), $('#force_tile_status').val() )
     });
 
+    function authHeaders(){
+      return {"authorization": "Bearer "+ localStorage.token}
+    }
+
+    function getJSON(cmd){
+      cmd["headers"] = authHeaders()
+      cmd["dataType"] = "json"
+      return $.ajax(cmd);
+    }
+
     function aoiInfo(){
       $("body").css("cursor", "progress");
       $.get({
-        url: $('#wfserver').val() + "aoi/" + $('#aoi').val()
+        url: $('#wfserver').val() + "aoi/" + $('#aoi').val(),
+        headers: authHeaders(),
       })
       .done(function( data ) {
         lines = data.split("\n");
@@ -140,7 +151,7 @@
 
     function loadScenes(scene_status){
       $("body").css("cursor", "progress");
-      $.getJSON({
+      getJSON({
         url: $('#wfserver').val() + "aoi/" + $('#aoi').val() + "/scenes" + (scene_status != "" ? "/" + scene_status : "" )
       })
       .done(function( data ) {
@@ -155,7 +166,7 @@
 
     function loadTiles(tile_status){
       $("body").css("cursor", "progress");
-      $.getJSON({
+      getJSON({
         url: $('#wfserver').val() + "aoi/" + $('#aoi').val() + "/tiles" + (tile_status != "" ? "/" + tile_status : "" )
       })
       .done(function( data ) {
@@ -170,7 +181,7 @@
 
     function loadScene(scene){
       $( "#scene" ).val(scene)
-      $.getJSON({
+      getJSON({
         url: $('#wfserver').val() + "scene/" + scene
       })
       .done(function( data ) {
@@ -183,7 +194,7 @@
 
     function loadTile(tile){
       $( "#tile" ).val(tile)
-      $.getJSON({
+      getJSON({
         url: $('#wfserver').val() + "tile/" + tile
       })
       .done(function( data ) {
@@ -223,6 +234,7 @@
     function putAction(action, type, id){
       $("body").css("cursor", "progress");
       $.ajax({
+        headers: authHeaders(),
         url: $('#wfserver').val() + type + "/" + id + "/" + action,
         type: 'PUT',
       })

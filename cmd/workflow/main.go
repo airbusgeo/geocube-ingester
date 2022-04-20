@@ -19,7 +19,6 @@ import (
 	"github.com/airbusgeo/geocube/interface/messaging/pgqueue"
 	"github.com/airbusgeo/geocube/interface/messaging/pubsub"
 	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
@@ -42,6 +41,8 @@ type catalogConfig struct {
 
 type config struct {
 	AppPort          string
+	TLS              bool
+	BearerAuth       string
 	DbConnection     string
 	PgqDbConnection  string
 	PsProject        string
@@ -55,6 +56,8 @@ type config struct {
 func newAppConfig() (*config, error) {
 	config := config{}
 	flag.StringVar(&config.AppPort, "port", "8080", "workflow port ot use")
+	flag.BoolVar(&config.TLS, "tls", false, "enable TLS protocol (certificate and key must be /tls/tls.crt and /tls/tls.key)")
+	flag.StringVar(&config.BearerAuth, "bearer-auth", "", "bearer authentication (token) (optional)")
 
 	// Database
 	flag.StringVar(&config.DbConnection, "db-connection", "", "database connection")
@@ -227,19 +230,29 @@ func run(ctx context.Context) error {
 	// Create Workflow Server
 	wf := workflow.NewWorkflow(db, downloaderPublisher, processorPublisher, &catalog)
 	// New handler
-	router := wf.NewHandler()
-	wf.CatalogHandler(router.(*mux.Router))
-	headersOk := handlers.AllowedHeaders([]string{"*"})
+	router := wf.NewRouter()
+	wf.CatalogHandler(router)
+	headersOk := handlers.AllowedHeaders([]string{"*", AuthorizationHeader})
 	originsOk := handlers.AllowedOrigins([]string{"*"})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "OPTIONS"})
+
+	// Authentication
+	bearerAuths = map[string]string{"default": config.BearerAuth}
+	router.Use(BearerAuthenticate)
+
 	s := http.Server{
 		Addr:    ":" + config.AppPort,
 		Handler: handlers.CORS(originsOk, headersOk, methodsOk)(router),
 	}
 	logMessaging += " listening on " + config.AppPort
 	go func() {
-		if err := s.ListenAndServe(); err != nil {
-			log.Logger(ctx).Error(err.Error())
+		if config.TLS {
+			err = s.ListenAndServeTLS("/tls/tls.crt", "/tls/tls.key")
+		} else {
+			err = s.ListenAndServe()
+		}
+		if err != nil && err != http.ErrServerClosed {
+			log.Logger(ctx).Fatal("srv.ListenAndServe", zap.Error(err))
 		}
 	}()
 

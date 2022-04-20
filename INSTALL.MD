@@ -380,6 +380,8 @@ For more information concerning flags and downloader argument, you can run:
 ```bash
 $ ./workflow --help
 Usage of ./workflow:
+  -bearer-auth string
+    	bearer authentication (token) (optional)
   -db-connection string
     	database connection
   -downloader-queue string
@@ -418,6 +420,8 @@ Usage of ./workflow:
     	username to connect to the Scihub catalog service
   -sobloo-apikey string
     	apikey to connect to the sobloo ordering service (optional)
+  -tls
+    	enable TLS protocol (certificate and key must be /tls/tls.crt and /tls/tls.key)
 ```
 
 # Installation - docker

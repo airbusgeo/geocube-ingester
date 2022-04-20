@@ -34,41 +34,33 @@ type config struct {
 	ScihubPassword        string
 	GCSAnnotationsBucket  string
 	WorkflowServer        string
+	WorkflowToken         string
 	ProcessingDir         string
 }
 
 func newAppConfig() (*config, error) {
-	area := flag.String("area", "", "Json of the area to process")
-	scenes := flag.String("scenes", "", "Json of the scenes to send to the workflow server (shortcut to reuse intermediate results)")
+	config := config{}
+	flag.StringVar(&config.Area, "area", "", "Json of the area to process")
+	flag.StringVar(&config.Scenes, "scenes", "", "Json of the scenes to send to the workflow server (shortcut to reuse intermediate results)")
 
-	geocubeServer := flag.String("geocube-server", "", "address of geocube server")
-	geocubeServerInsecure := flag.Bool("geocube-insecure", false, "connection to geocube server is insecure")
-	geocubeServerApiKey := flag.String("geocube-apikey", "", "geocube server api key")
-	scihubUsername := flag.String("scihub-username", "", "username to connect to the scihub catalog service")
-	scihubPassword := flag.String("scihub-password", "", "password to connect to the scihub catalog service")
-	gcsAnnotations := flag.String("gcs-annotations-bucket", "", "GCS bucket where scenes are stored (for annotations) (optional)")
-	workflowServer := flag.String("workflow-server", "", "address of workflow server")
-	processingDir := flag.String("workdir", "", "working directory to store intermediate results (could be empty or temporary)")
+	flag.StringVar(&config.GeocubeServer, "geocube-server", "", "address of geocube server")
+	flag.BoolVar(&config.GeocubeServerInsecure, "geocube-insecure", false, "connection to geocube server is insecure")
+	flag.StringVar(&config.GeocubeServerApiKey, "geocube-apikey", "", "geocube server api key")
+	flag.StringVar(&config.ScihubUsername, "scihub-username", "", "username to connect to the scihub catalog service")
+	flag.StringVar(&config.ScihubPassword, "scihub-password", "", "password to connect to the scihub catalog service")
+	flag.StringVar(&config.GCSAnnotationsBucket, "gcs-annotations-bucket", "", "GCS bucket where scenes are stored (for annotations) (optional)")
+	flag.StringVar(&config.WorkflowServer, "workflow-server", "", "address of workflow server")
+	flag.StringVar(&config.WorkflowToken, "workflow-token", "", "address of workflow server")
+	flag.StringVar(&config.ProcessingDir, "workdir", "", "working directory to store intermediate results (could be empty or temporary)")
 	flag.Parse()
 
-	if *geocubeServer == "" {
+	if config.GeocubeServer == "" {
 		return nil, fmt.Errorf("missing geocube server flag")
 	}
-	if *workflowServer == "" {
+	if config.WorkflowServer == "" {
 		return nil, fmt.Errorf("missing workflow server config flag")
 	}
-	return &config{
-		Area:                  *area,
-		Scenes:                *scenes,
-		GeocubeServer:         *geocubeServer,
-		GeocubeServerInsecure: *geocubeServerInsecure,
-		GeocubeServerApiKey:   *geocubeServerApiKey,
-		ScihubUsername:        *scihubUsername,
-		ScihubPassword:        *scihubPassword,
-		GCSAnnotationsBucket:  *gcsAnnotations,
-		WorkflowServer:        *workflowServer,
-		ProcessingDir:         *processingDir,
-	}, nil
+	return &config, nil
 }
 
 func main() {
@@ -107,6 +99,7 @@ func run(ctx context.Context) error {
 
 		// Workflow Server
 		c.WorkflowServer = config.WorkflowServer
+		c.WorkflowToken = config.WorkflowToken
 
 		// Working dir
 		c.WorkingDir = config.ProcessingDir
@@ -175,7 +168,7 @@ func sendScenes(ctx context.Context, areaJsonPath, scenesJsonPath string) error 
 	defer jsonFile2.Close()
 	byteValue, _ = ioutil.ReadAll(jsonFile2)
 	json.Unmarshal(byteValue, &scenesToIngest)
-	_, err = postScenesToIngest(ctx, c.WorkflowServer, area, scenesToIngest.Scenes)
+	_, err = postScenesToIngest(ctx, c.WorkflowServer, c.WorkflowToken, area, scenesToIngest.Scenes)
 	return err
 }
 
@@ -250,11 +243,11 @@ func IngestArea(ctx context.Context, area entities.AreaToIngest) (IngestAreaResu
 	switch entities.GetConstellation(area.SceneType.Constellation) {
 	case entities.Sentinel1:
 		// Get RootTiles
-		if rootLeafTiles, err = getRootTiles(c.WorkflowServer, area.AOIID); err != nil {
+		if rootLeafTiles, err = getRootTiles(ctx, c.WorkflowServer, c.WorkflowToken, area.AOIID); err != nil {
 			return result, fmt.Errorf("ingestArea.%w", err)
 		}
 		// Get LeafTiles
-		leafTiles, err := getLeafTiles(c.WorkflowServer, area.AOIID)
+		leafTiles, err := getLeafTiles(ctx, c.WorkflowServer, c.WorkflowToken, area.AOIID)
 		if err != nil {
 			return result, fmt.Errorf("ingestArea.%w", err)
 		}
@@ -282,7 +275,7 @@ func IngestArea(ctx context.Context, area entities.AreaToIngest) (IngestAreaResu
 
 	// Post scenes
 	log.Logger(ctx).Debug("Post scenes to ingest")
-	if result.ScenesID, err = postScenesToIngest(ctx, c.WorkflowServer, area, scenesToIngest); err != nil {
+	if result.ScenesID, err = postScenesToIngest(ctx, c.WorkflowServer, c.WorkflowToken, area, scenesToIngest); err != nil {
 		return result, fmt.Errorf("ingestArea.%w", err)
 	}
 	log.Logger(ctx).Debug("Done !")
@@ -320,14 +313,10 @@ func scenesFromJSON(workingdir, filename string) ([]*Scene, error) {
 */
 
 // getRootTiles form the workflow server
-func getRootTiles(workflowServer, aoiID string) ([]common.Tile, error) {
-	resp, err := http.Get(workflowServer + "/aoi/" + aoiID + "/roottiles")
+func getRootTiles(ctx context.Context, workflowServer, workflowToken, aoiID string) ([]common.Tile, error) {
+	body, err := service.HTTPGetWithAuth(ctx, workflowServer+"/aoi/"+aoiID+"/roottiles", "", "", workflowToken)
 	if err != nil {
-		return nil, fmt.Errorf("getRootTiles.Get: %w", err)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("getRootTiles.ReadAll: %w", err)
+		return nil, fmt.Errorf("getRootTiles.%w", err)
 	}
 	tiles := []common.Tile{}
 	if err = json.Unmarshal(body, &tiles); err != nil {
@@ -337,14 +326,10 @@ func getRootTiles(workflowServer, aoiID string) ([]common.Tile, error) {
 }
 
 // getLeafTiles form the workflow server
-func getLeafTiles(workflowServer, aoiID string) ([]common.Tile, error) {
-	resp, err := http.Get(workflowServer + "/aoi/" + aoiID + "/leaftiles")
+func getLeafTiles(ctx context.Context, workflowServer, workflowToken, aoiID string) ([]common.Tile, error) {
+	body, err := service.HTTPGetWithAuth(ctx, workflowServer+"/aoi/"+aoiID+"/leaftiles", "", "", workflowToken)
 	if err != nil {
-		return nil, fmt.Errorf("getLeafTiles.Get: %w", err)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("getLeafTiles.ReadAll: %w", err)
+		return nil, fmt.Errorf("getLeafTiles.%w", err)
 	}
 	tiles := []common.Tile{}
 	if err = json.Unmarshal(body, &tiles); err != nil {
@@ -355,11 +340,11 @@ func getLeafTiles(workflowServer, aoiID string) ([]common.Tile, error) {
 
 // postScenesToIngest sends the sceneToIngest to the workflow server
 // Returns the id of the posted scenes (even if PostScenesToIngest returns an error)
-func postScenesToIngest(ctx context.Context, workflowServer string, area entities.AreaToIngest, scenesToIngest []common.SceneToIngest) (map[string]int, error) {
+func postScenesToIngest(ctx context.Context, workflowServer, workflowToken string, area entities.AreaToIngest, scenesToIngest []common.SceneToIngest) (map[string]int, error) {
 	ids := map[string]int{}
 
 	// First, create AOI
-	resp, err := http.Post(workflowServer+"/aoi/"+area.AOIID, "application/json", bytes.NewBuffer(nil))
+	resp, err := service.HTTPPostWithAuth(ctx, workflowServer+"/aoi/"+area.AOIID, bytes.NewBuffer(nil), "", "", workflowToken)
 	if err != nil {
 		return ids, fmt.Errorf("PostScenesToIngest.PostAOI: %w", err)
 	}
@@ -373,7 +358,7 @@ func postScenesToIngest(ctx context.Context, workflowServer string, area entitie
 		if err != nil {
 			return ids, fmt.Errorf("PostScenesToIngest.Marshal: %w", err)
 		}
-		resp, err := http.Post(c.WorkflowServer+"/aoi/"+area.AOIID+"/scene", "application/json", bytes.NewBuffer(sceneb))
+		resp, err := service.HTTPPostWithAuth(ctx, workflowServer+"/aoi/"+area.AOIID+"/scene", bytes.NewBuffer(sceneb), "", "", workflowToken)
 		if err != nil {
 			return ids, fmt.Errorf("PostScenesToIngest.PostScenes: %w", err)
 		}

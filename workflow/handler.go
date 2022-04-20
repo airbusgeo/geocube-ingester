@@ -17,8 +17,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func (wf *Workflow) NewHandler() http.Handler {
+func (wf *Workflow) NewRouter() *mux.Router {
 	r := mux.NewRouter()
+	r.HandleFunc("/", wf.GetStatus).Methods("GET")
 	r.HandleFunc("/scene/{scene}", wf.GetSceneHandler).Methods("GET")
 	r.HandleFunc("/scene/{scene}/tiles", wf.ListSceneTilesHandler).Methods("GET")
 	r.HandleFunc("/scene/{scene}/retry", wf.RetrySceneHandler).Methods("PUT")
@@ -60,6 +61,12 @@ func ifElse(cond bool, valtrue, valfalse int) int {
 		return valtrue
 	}
 	return valfalse
+}
+
+// GetStatus returns ok
+func (wf *Workflow) GetStatus(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(200)
+	w.Write([]byte("ingester ok"))
 }
 
 // GetSceneHandler retrieves a scene

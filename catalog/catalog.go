@@ -18,6 +18,7 @@ import (
 type Catalog struct {
 	GeocubeClient        *geocube.Client
 	WorkflowServer       string
+	WorkflowToken        string
 	ScihubUser           string
 	ScihubPword          string
 	GCSAnnotationsBucket string
