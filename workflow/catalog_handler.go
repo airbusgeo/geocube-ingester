@@ -41,24 +41,22 @@ func readField(req *http.Request, field string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (wf *Workflow) loadArea(w http.ResponseWriter, req *http.Request, validate bool) (catalog.AreaToIngest, error) {
+func (wf *Workflow) loadArea(req *http.Request, validate bool) (catalog.AreaToIngest, error) {
 	area := catalog.AreaToIngest{}
 	areaJSON, err := readField(req, areaJSONField)
-	if err != nil || len(areaJSON) == 0 {
-		w.WriteHeader(400)
-		if err == nil {
-			err = fmt.Errorf("missing required field: '%s' (application/json)", areaJSONField)
-		}
-		fmt.Fprintf(w, "%v", err)
+	if err != nil {
 		return area, err
+	}
+	if len(areaJSON) == 0 {
+		return area, fmt.Errorf("loadArea: missing required field: '%s' (application/json)", areaJSONField)
 	}
 	if err := json.Unmarshal(areaJSON, &area); err != nil {
-		w.WriteHeader(400)
-		fmt.Fprintf(w, "%v\nJSON:\n%s", err, areaJSON)
-		return area, err
+		return area, fmt.Errorf("loadArea: %w\nJSON:\n%s", err, areaJSON)
 	}
 	if validate {
-		return area, wf.catalog.ValidateArea(&area)
+		if err := wf.catalog.ValidateArea(&area); err != nil {
+			return area, err
+		}
 	}
 	return area, nil
 }
@@ -155,9 +153,10 @@ func (wf *Workflow) postScenes(ctx context.Context, area catalog.AreaToIngest, s
 func (wf *Workflow) CatalogScenesHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
-	area, err := wf.loadArea(w, req, false)
+	area, err := wf.loadArea(req, false)
 	if err != nil {
-		log.Logger(ctx).Sugar().Warnf("wf.CatalogScenesHandler: %v", err)
+		w.WriteHeader(400)
+		fmt.Fprintf(w, "%v", err)
 		return
 	}
 
@@ -173,9 +172,10 @@ func (wf *Workflow) CatalogScenesHandler(w http.ResponseWriter, req *http.Reques
 // CatalogTilesHandler lists tiles for a given list of scenes (previous call of CatalogScenesHandler)
 func (wf *Workflow) CatalogTilesHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	area, err := wf.loadArea(w, req, false)
+	area, err := wf.loadArea(req, false)
 	if err != nil {
-		log.Logger(ctx).Sugar().Warnf("wf.CatalogTilesHandler: %v", err)
+		w.WriteHeader(400)
+		fmt.Fprintf(w, "%v", err)
 		return
 	}
 
@@ -197,9 +197,10 @@ func (wf *Workflow) CatalogTilesHandler(w http.ResponseWriter, req *http.Request
 func (wf *Workflow) CatalogPostAOIHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
-	area, err := wf.loadArea(w, req, true)
+	area, err := wf.loadArea(req, true)
 	if err != nil {
-		log.Logger(ctx).Sugar().Warnf("wf.CatalogPostAOIHandler: %v", err)
+		w.WriteHeader(400)
+		fmt.Fprintf(w, "%v", err)
 		return
 	}
 
@@ -228,7 +229,6 @@ func (wf *Workflow) CatalogPostAOIHandler(w http.ResponseWriter, req *http.Reque
 	}()
 
 	if ids, err = wf.postScenes(ctx, area, scenes); err != nil {
-		log.Logger(ctx).Sugar().Warnf("wf.CatalogPostAOIHandler.%v", err)
 		w.WriteHeader(500)
 		fmt.Fprintf(w, "%v", err)
 		return

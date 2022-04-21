@@ -92,7 +92,9 @@ func (c *Catalog) IngestedScenesInventoryFromTiles(ctx context.Context, tiles []
 func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest, scenes []*entities.Scene) ([]common.SceneToIngest, error) {
 	var scenesToIngest []common.SceneToIngest
 
-	c.ValidateArea(&area)
+	if err := c.ValidateArea(&area); err != nil {
+		return nil, fmt.Errorf("scenesToIngest.%w", err)
+	}
 	instances := area.InstancesID()
 
 	for _, scene := range scenes {

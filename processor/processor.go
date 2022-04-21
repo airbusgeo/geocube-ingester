@@ -101,7 +101,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 					log.Logger(ctx).Sugar().Infof("index layer %s", f.Layer)
 					if err := indexTile(ctx, gcclient, tiles[i], tiles[i].Scene.Data.InstancesID, tiles[i].Scene.Data.RecordID, f, uri); err != nil {
 						if geocube.Code(err) == codes.AlreadyExists {
-							log.Logger(ctx).Sugar().Warnf("ProcessTile: indexTile already exists")
+							log.Logger(ctx).Sugar().Warnf("layer already exists")
 						} else {
 							return fmt.Errorf("ProcessTile[%s].%w", tag, err)
 						}
