@@ -73,6 +73,9 @@ func (s *Status) Set(status common.Status, nb int64) {
 type WorkflowBackend interface {
 	// Create an AOI in database, may return ErrAlreadyExists
 	CreateAOI(ctx context.Context, aoi string) error
+	// AOIs returns the list of the aois fitting the pattern
+	// pattern [optional=""] aoi_patern
+	AOIs(ctx context.Context, pattern string) ([]string, error)
 
 	// Returns the status of the scenes of the aoi
 	ScenesStatus(ctx context.Context, aoi string) (Status, error)

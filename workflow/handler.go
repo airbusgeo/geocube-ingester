@@ -29,6 +29,7 @@ func (wf *Workflow) NewRouter() *mux.Router {
 	r.HandleFunc("/tile/{tile}/retry", wf.RetryTileHandler).Methods("PUT")
 	r.HandleFunc("/tile/{tile}/fail", wf.FailTileHandler).Methods("PUT")
 	r.HandleFunc("/tile/{tile}/force/{status}", wf.ForceTileStatusHandler).Methods("PUT")
+	r.HandleFunc("/aoi/", wf.ListAOIsHandler).Methods("GET")
 	r.HandleFunc("/aoi/{aoi}", wf.GetAOIStatusHandler).Methods("GET")
 	r.HandleFunc("/aoi/{aoi}", wf.CreateAOIHandler).Methods("POST")
 	r.HandleFunc("/aoi/{aoi}/dot", wf.PrintDotHandler).Methods("GET")
@@ -296,6 +297,20 @@ func (wf *Workflow) PrintDotHandler(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Logger(ctx).Error("print dot", zap.Error(err))
 	}
+}
+
+// ListAOIsHandler returns the list of aois
+func (wf *Workflow) ListAOIsHandler(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	pattern := mux.Vars(req)["pattern"]
+	aois, err := wf.AOIs(ctx, pattern)
+	if err != nil {
+		log.Logger(ctx).Sugar().Warnf("wf.aois: %v", err)
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "%v", err)
+		return
+	}
+	json.NewEncoder(w).Encode(aois)
 }
 
 // GetAOIStatusHandler returns infos on the aoi

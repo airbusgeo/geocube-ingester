@@ -85,6 +85,36 @@ func New(ctx context.Context, dbConnection string) (*BackendDB, error) {
 	return &BackendDB{db, Backend{pgInterface: db}}, nil
 }
 
+// AOIs implements WorkflowBackend
+func (b Backend) AOIs(ctx context.Context, aoi string) ([]string, error) {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	if aoi == "" {
+		rows, err = b.QueryContext(ctx, "select id from aoi ORDER BY id")
+	} else {
+		rows, err = b.QueryContext(ctx, "select id from aoi where id LIKE $1 ORDER BY id", aoi)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("aois.QueryContext: %w", err)
+	}
+	defer rows.Close()
+	aois := make([]string, 0)
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return nil, fmt.Errorf("aois.Scan: %w", err)
+		}
+		aois = append(aois, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("aois.rows.err: %w", err)
+	}
+	return aois, nil
+}
+
 // CreateAOI implements WorkflowBackend
 func (b Backend) CreateAOI(ctx context.Context, aoi string) error {
 	_, err := b.ExecContext(ctx, "insert into aoi(id) values($1)", aoi)

@@ -19,7 +19,7 @@
 <body>
 
   <label for="wfserver">Workflow server: </label>
-  <input type="text" id="wfserver" name="wfserver" value="http://127.0.0.1:8080/"><br><br>
+  <input style="width:300px" type="text" id="wfserver" name="wfserver" value="http://127.0.0.1:8080/"><br><br>
   
   <table>
     <tr >
@@ -29,6 +29,7 @@
     </tr>
     <tr style="vertical-align:top">
       <td>
+        <button id="btn_aois" style="width:255px">List all aois</button><br>
         <input style="width:142px" type="text" id="aoi" name="aoi" value="DenmarkDemo">
         <button id="btn_aoi" style="width:100px">Load aoi</button><br>
         <select style="width:150px" name="scenes_status" id="scenes_status" form="scenes_status_form">
@@ -49,9 +50,9 @@
         <button id="btn_tiles" style="width:100px">Load tiles</button><br>
       </td>
       <td>
-        <input size="10" type="text" id="scene" name="scene" placeholder="SceneId">
-        <button id="btn_scene" style="width:100px">Load scene</button>
-        <select style="width:150px" name="force_scene_status" id="force_scene_status" form="force_scene_status_form">
+        <input style="width:72px" type="text" id="scene" name="scene" placeholder="SceneId">
+        <button id="btn_scene" style="width:100px">Load scene</button><br>
+        <select style="width:80px" name="force_scene_status" id="force_scene_status" form="force_scene_status_form">
           <option value="NEW">NEW</option>
           <option value="PENDING">PENDING</option>
           <option value="RETRY">RETRY</option>
@@ -61,9 +62,9 @@
         <button id="btn_force_scene_status" style="width:100px">Force status</button>
       </td>
       <td>
-        <input size="10" type="text" id="tile" name="tile" placeholder="TileId">
-        <button id="btn_tile" style="width:100px">Load tile</button>
-        <select style="width:150px" name="force_tile_status" id="force_tile_status" form="force_tile_status_form">
+        <input style="width:72px" type="text" id="tile" name="tile" placeholder="TileId">
+        <button id="btn_tile" style="width:100px">Load tile</button><br>
+        <select style="width:80px" name="force_tile_status" id="force_tile_status" form="force_tile_status_form">
           <option value="NEW">NEW</option>
           <option value="PENDING">PENDING</option>
           <option value="RETRY">RETRY</option>
@@ -80,6 +81,9 @@
     </tr>
   </table>  
   <script>
+    $("#btn_aois").click(function() {
+      loadAOIS()
+    });
     $("#btn_aoi").click(function() {
       aoiInfo()
     });
@@ -112,10 +116,39 @@
       return $.ajax(cmd);
     }
 
+    function loadAOIS(){
+      $("body").css("cursor", "progress");
+      getJSON({
+        url: $('#wfserver').val() + "aoi/"
+      })
+      .done(function( json ) {
+        if (json == null || json.length == 0){
+          return ""
+        }
+        res = "<table>"
+        type_id = null
+        $.each( json, function( key, val ) {
+          value = formatLink("loadAOI", val, "'" + val + "'")
+          res += "<tr style=\"vertical-align:top\"><td>" + value + "</td></tr>";
+        })
+        $( "#result" ).html( res + "</table>" )
+      })
+      .fail(function(jqXHR, textStatus, error) {
+        $( "#result" ).html( "Request failed: " + textStatus + " responseText: " + jqXHR.responseText);
+      }).always(function(){
+        $("body").css("cursor", "default");
+      });
+    }
+
     function aoiInfo(){
+      loadAOI($('#aoi').val())
+    }
+
+    function loadAOI( aoi ){
+      $( "#aoi" ).val(aoi)
       $("body").css("cursor", "progress");
       $.get({
-        url: $('#wfserver').val() + "aoi/" + $('#aoi').val(),
+        url: $('#wfserver').val() + "aoi/" + aoi,
         headers: authHeaders(),
       })
       .done(function( data ) {
@@ -135,7 +168,7 @@
                 if (type_id != null && value != "0") {
                   value = formatLink("load" + type_id, value, "'" + status.toUpperCase() + "'")
                   if (status == "retry"){
-                    value += "<div id=\"" + "aoi" + $('#aoi').val() +"\"> (" + formatLink("retryAOI", "retry all scenes and tiles", "") + ")</div>"
+                    value += "<div id=\"" + "aoi" + aoi +"\"> (" + formatLink("retryAOI", "retry all scenes and tiles", "") + ")</div>"
                   }
                 }
                 break;
@@ -239,7 +272,7 @@
         type: 'PUT',
       })
       .done(function(data) {
-        $( "#"+type+id ).html("action sended");
+        $( "#"+type+id ).html("action sent");
       })
       .always(function(){
         $("body").css("cursor", "default");
