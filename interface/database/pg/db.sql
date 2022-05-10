@@ -18,7 +18,7 @@ CREATE TABLE public.scene (
     source_id text NOT NULL,
     data jsonb,
     PRIMARY KEY (id),
-    FOREIGN KEY (aoi_id) REFERENCES public.aoi(id)
+    FOREIGN KEY (aoi_id) REFERENCES public.aoi(id) ON DELETE CASCADE
 );
 CREATE INDEX idx_scene_aoi ON public.scene (aoi_id);
 
@@ -45,7 +45,7 @@ CREATE TABLE public.tile (
     UNIQUE (source_id, scene_id),
     FOREIGN KEY (prev) REFERENCES public.tile(id),
     FOREIGN KEY (ref) REFERENCES public.tile(id),
-    FOREIGN KEY (scene_id) REFERENCES public.scene(id)
+    FOREIGN KEY (scene_id) REFERENCES public.scene(id) ON DELETE CASCADE
 );
 CREATE INDEX idx_tile_scene ON public.tile (scene_id);
 CREATE INDEX idx_tile_prev ON public.tile (prev);

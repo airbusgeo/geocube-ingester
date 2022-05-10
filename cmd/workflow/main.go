@@ -234,7 +234,7 @@ func run(ctx context.Context) error {
 	wf.CatalogHandler(router)
 	headersOk := handlers.AllowedHeaders([]string{"*", AuthorizationHeader})
 	originsOk := handlers.AllowedOrigins([]string{"*"})
-	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "OPTIONS"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "OPTIONS", "DELETE"})
 
 	// Authentication
 	bearerAuths = map[string]string{"default": config.BearerAuth}

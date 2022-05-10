@@ -76,6 +76,8 @@ type WorkflowBackend interface {
 	// AOIs returns the list of the aois fitting the pattern
 	// pattern [optional=""] aoi_patern
 	AOIs(ctx context.Context, pattern string) ([]string, error)
+	// Delete an AOI from the database
+	DeleteAOI(ctx context.Context, aoi string) error
 
 	// Returns the status of the scenes of the aoi
 	ScenesStatus(ctx context.Context, aoi string) (Status, error)

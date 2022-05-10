@@ -32,6 +32,7 @@ func (wf *Workflow) NewRouter() *mux.Router {
 	r.HandleFunc("/aoi/", wf.ListAOIsHandler).Methods("GET")
 	r.HandleFunc("/aoi/{aoi}", wf.GetAOIStatusHandler).Methods("GET")
 	r.HandleFunc("/aoi/{aoi}", wf.CreateAOIHandler).Methods("POST")
+	r.HandleFunc("/aoi/{aoi}", wf.DeleteAOIHandler).Methods("DELETE")
 	r.HandleFunc("/aoi/{aoi}/dot", wf.PrintDotHandler).Methods("GET")
 	r.HandleFunc("/aoi/{aoi}/scene", wf.CreateSceneHandler).Methods("POST")
 	r.HandleFunc("/aoi/{aoi}/scenes", wf.ListScenesHandler).Methods("GET")
@@ -373,6 +374,18 @@ func (wf *Workflow) CreateAOIHandler(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		log.Logger(ctx).Sugar().Warnf("create: %v", err)
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "%v", err)
+		return
+	}
+	w.WriteHeader(204)
+}
+
+// DeleteAOIHandler delete an aoi, its scenes and its tile (cannot be reverted)
+func (wf *Workflow) DeleteAOIHandler(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	if err := wf.DeleteAOI(ctx, mux.Vars(req)["aoi"]); err != nil {
+		log.Logger(ctx).Sugar().Warnf("delete: %v", err)
 		w.WriteHeader(500)
 		fmt.Fprintf(w, "%v", err)
 		return

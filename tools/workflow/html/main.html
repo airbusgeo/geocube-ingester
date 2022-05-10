@@ -106,6 +106,10 @@
       forceStatus( "tile", $('#tile').val(), $('#force_tile_status').val() )
     });
 
+    function url(path) {
+      return new URL(path, $('#wfserver').val()).href
+    }
+
     function authHeaders(){
       return {"authorization": "Bearer "+ localStorage.token}
     }
@@ -119,7 +123,7 @@
     function loadAOIS(){
       $("body").css("cursor", "progress");
       getJSON({
-        url: $('#wfserver').val() + "aoi/"
+        url: url("aoi/")
       })
       .done(function( json ) {
         if (json == null || json.length == 0){
@@ -148,7 +152,7 @@
       $( "#aoi" ).val(aoi)
       $("body").css("cursor", "progress");
       $.get({
-        url: $('#wfserver').val() + "aoi/" + aoi,
+        url: url("aoi/" + aoi),
         headers: authHeaders(),
       })
       .done(function( data ) {
@@ -176,7 +180,7 @@
             res += "<tr style=\"vertical-align:top\"><td><b>" + status.replaceAll(" ", "&nbsp;") + "</b></td><td>" + value + "</td></tr>";
           }
         })
-        $( "#result" ).html( res + "</table>" )
+        $( "#result" ).html( res + "</table><button id=\"btn_delete_aoi\" onclick=\"deleteAOI('" + aoi + "')\">Remove AOI, scenes and tiles</button>" )
       }).always(function(){
         $("body").css("cursor", "default");
       });
@@ -185,7 +189,7 @@
     function loadScenes(scene_status){
       $("body").css("cursor", "progress");
       getJSON({
-        url: $('#wfserver').val() + "aoi/" + $('#aoi').val() + "/scenes" + (scene_status != "" ? "/" + scene_status : "" )
+        url: url("aoi/" + $('#aoi').val() + "/scenes" + (scene_status != "" ? "/" + scene_status : "" ))
       })
       .done(function( data ) {
         $( "#result" ).html( formatJson(data, "Scene", 2))
@@ -200,7 +204,7 @@
     function loadTiles(tile_status){
       $("body").css("cursor", "progress");
       getJSON({
-        url: $('#wfserver').val() + "aoi/" + $('#aoi').val() + "/tiles" + (tile_status != "" ? "/" + tile_status : "" )
+        url: url("aoi/" + $('#aoi').val() + "/tiles" + (tile_status != "" ? "/" + tile_status : "" ))
       })
       .done(function( data ) {
         $( "#result" ).html( formatJson(data, "Tile", 2))
@@ -215,7 +219,7 @@
     function loadScene(scene){
       $( "#scene" ).val(scene)
       getJSON({
-        url: $('#wfserver').val() + "scene/" + scene
+        url: url("scene/" + scene)
       })
       .done(function( data ) {
         $( "#sceneResult" ).html( formatJson(data, "Scene", 1))
@@ -228,7 +232,7 @@
     function loadTile(tile){
       $( "#tile" ).val(tile)
       getJSON({
-        url: $('#wfserver').val() + "tile/" + tile
+        url: url("tile/" + tile)
       })
       .done(function( data ) {
         $( "#tileResult" ).html( formatJson(data, "Tile", 1))
@@ -236,6 +240,20 @@
       .fail(function(jqXHR, textStatus, error) {
         $( "#tileResult" ).html( "Request failed: " + textStatus + " responseText: " + jqXHR.responseText);
       })
+    }
+
+    function deleteAOI(aoi){
+      if (confirm("Are you sure to delete the aoi '" + aoi + "' and all its scenes and tiles from the database ?\nIt does not delete the layers from the Geocube.")){
+        $("body").css("cursor", "progress");
+        $.ajax({
+          headers: authHeaders(),
+          url: url("aoi/" + aoi),
+          type: 'DELETE',
+        })
+        .always(function(){
+          $("body").css("cursor", "default");
+        });
+      }
     }
 
     function forceStatus(type, id, status){
@@ -268,7 +286,7 @@
       $("body").css("cursor", "progress");
       $.ajax({
         headers: authHeaders(),
-        url: $('#wfserver').val() + type + "/" + id + "/" + action,
+        url: url(type + "/" + id + "/" + action),
         type: 'PUT',
       })
       .done(function(data) {

@@ -128,6 +128,14 @@ func (b Backend) CreateAOI(ctx context.Context, aoi string) error {
 	}
 }
 
+// DeleteAOI implements WorkflowBackend
+func (b Backend) DeleteAOI(ctx context.Context, aoi string) error {
+	if _, err := b.ExecContext(ctx, "delete from aoi where id = $1", aoi); err != nil {
+		return fmt.Errorf("DeleteAOI.exec: %w", err)
+	}
+	return nil
+}
+
 // ScenesStatus implements WorkflowBackend
 func (b Backend) ScenesStatus(ctx context.Context, aoi string) (db.Status, error) {
 	s := db.Status{}
