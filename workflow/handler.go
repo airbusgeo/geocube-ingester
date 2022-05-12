@@ -511,7 +511,7 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 		if force || scene.Status == common.StatusRETRY {
 			done, err := wf.UpdateSceneStatus(ctx, scene.ID, common.StatusPENDING, &emptyMessage, force)
 			if err != nil {
-				errs = service.MergeErrors(false, errs, err)
+				errs = service.MergeErrors(true, errs, err)
 			} else if done {
 				nbScenes++
 			}
@@ -526,14 +526,14 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 			if scene.Status == common.StatusDONE {
 				tiles, err := wf.Tiles(ctx, "", scene.ID, "", false)
 				if err != nil {
-					errs = service.MergeErrors(false, errs, err)
+					errs = service.MergeErrors(true, errs, err)
 					continue
 				}
 				for _, tile := range tiles {
 					if force || tile.Status == common.StatusRETRY {
 						done, err := wf.UpdateTileStatus(ctx, tile.ID, common.StatusPENDING, &emptyMessage, force)
 						if err != nil {
-							errs = service.MergeErrors(false, errs, err)
+							errs = service.MergeErrors(true, errs, err)
 						} else if done {
 							nbTiles++
 						}
@@ -545,12 +545,12 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 		// Only load the tiles with the "RETRY" status
 		tiles, err := wf.Tiles(ctx, aoiID, 0, common.StatusRETRY.String(), false)
 		if err != nil {
-			errs = service.MergeErrors(false, errs, err)
+			errs = service.MergeErrors(true, errs, err)
 		} else {
 			for _, tile := range tiles {
 				done, err := wf.UpdateTileStatus(ctx, tile.ID, common.StatusPENDING, &emptyMessage, force)
 				if err != nil {
-					errs = service.MergeErrors(false, errs, err)
+					errs = service.MergeErrors(true, errs, err)
 				} else if done {
 					nbTiles++
 				}

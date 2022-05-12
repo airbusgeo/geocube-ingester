@@ -854,7 +854,7 @@ func (f *PythonLogFilter) WrapError(err error) error {
 		err = service.MergeErrors(true, err, fmt.Errorf(f.lastError))
 		if err != nil {
 			strerr := strings.ToLower(err.Error())
-			if strings.Contains(strerr, "FATAL") {
+			if strings.Contains(strerr, "FATAL ERROR:") {
 				err = service.MakeFatal(err)
 			} else {
 				for _, tmpErr := range temporaryErrs {
@@ -871,7 +871,7 @@ func (f *PythonLogFilter) WrapError(err error) error {
 // Filter implement log.Filter
 func (f *PythonLogFilter) Filter(msg string, defaultLevel zapcore.Level) (string, zapcore.Level, bool) {
 	trimmedmsg := strings.TrimSpace(msg)
-	if strings.HasPrefix(trimmedmsg, "FATAL:") || strings.HasPrefix(trimmedmsg, "ERROR:") {
+	if strings.HasPrefix(trimmedmsg, "FATAL ERROR:") || strings.HasPrefix(trimmedmsg, "ERROR:") {
 		f.lastError = msg
 		return msg, zapcore.ErrorLevel, false
 	}

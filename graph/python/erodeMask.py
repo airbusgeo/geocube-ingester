@@ -44,7 +44,7 @@ def erode_mask(filein, fileout, no_data, iterations):
     array[mask] = no_data
 
     if np.count_nonzero(array != no_data) == 0:
-        sys.exit("FATAL: {} empty".format(filein))
+        sys.exit("FATAL ERROR: {} empty".format(filein))
 
     # Set the nodata value as SNAP is not able to do it
     profile['nodata'] = no_data
