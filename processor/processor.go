@@ -15,14 +15,12 @@ import (
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 )
 
 // ProcessTile processes a tile.
 func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *geocube.Client, tile common.TileToProcess, workdir string) error {
 	tag := fmt.Sprintf("%s_%s", tile.Scene.Data.Date.Format("20060102"), tile.SourceID)
-	ctx = log.WithFields(ctx, zap.String("image", tag))
 
 	// Working dir
 	workdir = filepath.Join(workdir, uuid.New().String())
@@ -68,7 +66,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 		for _, infile := range infiles {
 			// Do not import twice
 			filename := service.LayerFileName(tiles[i], infile.Layer, infile.Extension)
-			if !imported.Exists(filename) && infile.Condition.Pass(tiles) {
+			if !imported.Exists(filename) && infile.Condition.Pass(tiles, nil) {
 				log.Logger(ctx).Sugar().Debugf("import layer '%s'", infile.Layer)
 				imported.Push(filename)
 				if err := storageService.ImportLayer(ctx, tiles[i], infile.Layer, infile.Extension, workdir); err != nil {

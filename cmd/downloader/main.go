@@ -218,7 +218,7 @@ func run(ctx context.Context) error {
 	}()
 
 	maxTries := 15
-	log.Logger(ctx).Debug("downloader starts " + logMessaging + " downloading image from " + strings.Join(providerNames, ", "))
+	log.Logger(ctx).Debug("downloader starts " + logMessaging + " downloading image from " + strings.Join(providerNames, ", ") + " exporting to " + config.StorageURI)
 	for {
 		err := jobConsumer.Pull(ctx, func(ctx context.Context, msg *messaging.Message) (err error) {
 			jobStarted = time.Now()
@@ -236,6 +236,8 @@ func run(ctx context.Context) error {
 			} else if scene.ID == 0 || len(scene.Data.TileMappings) == 0 {
 				return fmt.Errorf("invalid payload : %d-%d", scene.ID, len(scene.Data.TileMappings))
 			}
+
+			ctx = log.With(ctx, "image", scene.SourceID)
 
 			defer func() {
 				if err != nil && service.Temporary(err) {

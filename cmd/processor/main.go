@@ -150,7 +150,7 @@ func run(ctx context.Context) error {
 
 	maxTries := 15 //Must be less than the configured number of tries of the pubsub topic
 
-	log.Logger(ctx).Debug("processor starts" + logMessaging)
+	log.Logger(ctx).Debug("processor starts" + logMessaging + " from storage " + config.StorageURI)
 	for {
 		err := jobConsumer.Pull(ctx, func(ctx context.Context, msg *messaging.Message) (err error) {
 			jobStarted = time.Now()
@@ -167,6 +167,7 @@ func run(ctx context.Context) error {
 			} else if tile.ID == 0 {
 				return fmt.Errorf("invalid payload: %d", tile.ID)
 			}
+			ctx = log.With(ctx, "tile", fmt.Sprintf("%s_%s", tile.Scene.Data.Date.Format("20060102"), tile.SourceID))
 
 			defer func() {
 				if err != nil && service.Temporary(err) {

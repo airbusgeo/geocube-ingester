@@ -12,7 +12,6 @@ import (
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 //ProcessScene processes a scene.
@@ -43,7 +42,7 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 		return fmt.Errorf("ProcessScene.ImageProviders.%w", err)
 	}
 
-	log.Logger(ctx).Sugar().Infof("processing %s", scene.SourceID)
+	log.Logger(ctx).Sugar().Infof("processing %s with %s", scene.SourceID, scene.Data.GraphName)
 	for sourceID := range scene.Data.TileMappings {
 		err := ProcessTile(ctx, storageService, scene, sourceID, workdir)
 		if err != nil {
@@ -56,8 +55,7 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 
 // ProcessTile extracts the tile from the scene and preprocesses it
 func ProcessTile(ctx context.Context, storageService service.Storage, scene common.Scene, tile, workdir string) error {
-	tag := fmt.Sprintf("%s_%s", scene.Data.Date.Format("20060102"), tile)
-	ctx = log.WithFields(ctx, zap.String("image", tag))
+	ctx = log.With(ctx, "tile", tile)
 
 	// Load the graph
 	g, config, err := graph.LoadGraph(ctx, scene.Data.GraphName)
@@ -97,9 +95,11 @@ func ProcessTile(ctx context.Context, storageService service.Storage, scene comm
 		for _, f := range outtilefiles {
 			switch f.Action {
 			case graph.ToCreate:
-				if _, err := storageService.SaveLayer(ctx, tiles[i], f.Layer, f.Extension, ""); err != nil {
+				dst, err := storageService.SaveLayer(ctx, tiles[i], f.Layer, f.Extension, "")
+				if err != nil {
 					return fmt.Errorf("ProcessTile[%s].%w", logtilename, err)
 				}
+				log.Logger(ctx).Sugar().Debugf("%s exported to %s", logtilename, dst)
 			}
 		}
 	}

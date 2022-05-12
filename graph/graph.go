@@ -36,30 +36,40 @@ const (
 // TileCondition is a condition on tiles to do an action (execute a step, create a file...)
 type TileCondition struct {
 	Name string
-	Pass func([]common.Tile) bool
+	Pass func([]common.Tile, *File) bool
 }
 
 // condPass is a tileCondition always true
-var pass = TileCondition{"pass", func(tiles []common.Tile) bool { return true }}
+var pass = TileCondition{"pass", func(tiles []common.Tile, f *File) bool { return true }}
 
 // condDiffTile returns true if tile1 != tile2
-var condDiffT0T1 = TileCondition{"different_T0_T1", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[1].Scene.SourceID }}
-var condDiffT0T2 = TileCondition{"different_T0_T2", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[2].Scene.SourceID }}
-var condDiffT1T2 = TileCondition{"different_T1_T2", func(tiles []common.Tile) bool { return tiles[1].Scene.SourceID != tiles[2].Scene.SourceID }}
+var condDiffT0T1 = TileCondition{"different_T0_T1", func(tiles []common.Tile, f *File) bool { return tiles[0].Scene.SourceID != tiles[1].Scene.SourceID }}
+var condDiffT0T2 = TileCondition{"different_T0_T2", func(tiles []common.Tile, f *File) bool { return tiles[0].Scene.SourceID != tiles[2].Scene.SourceID }}
+var condDiffT1T2 = TileCondition{"different_T1_T2", func(tiles []common.Tile, f *File) bool { return tiles[1].Scene.SourceID != tiles[2].Scene.SourceID }}
 
 // condEqualTile returns true if tile1 == tile2
-var condEqualT0T1 = TileCondition{"equal_T0_T1", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID == tiles[1].Scene.SourceID }}
-var condEqualT0T2 = TileCondition{"equal_T0_T2", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID == tiles[2].Scene.SourceID }}
-var condEqualT1T2 = TileCondition{"equal_T1_T2", func(tiles []common.Tile) bool { return tiles[1].Scene.SourceID == tiles[2].Scene.SourceID }}
+var condEqualT0T1 = TileCondition{"equal_T0_T1", func(tiles []common.Tile, f *File) bool { return tiles[0].Scene.SourceID == tiles[1].Scene.SourceID }}
+var condEqualT0T2 = TileCondition{"equal_T0_T2", func(tiles []common.Tile, f *File) bool { return tiles[0].Scene.SourceID == tiles[2].Scene.SourceID }}
+var condEqualT1T2 = TileCondition{"equal_T1_T2", func(tiles []common.Tile, f *File) bool { return tiles[1].Scene.SourceID == tiles[2].Scene.SourceID }}
+
+// condIfExists return true if file exists
+var condFileExists = TileCondition{"file_exists", func(t []common.Tile, f *File) bool {
+	if f != nil {
+		_, err := os.Stat(service.LayerFileName(t[0], f.Layer, f.Extension))
+		return err == nil
+	}
+	return false
+}}
 
 var tileConditionJSON = map[string]TileCondition{
-	pass.Name:          pass,
-	condDiffT0T1.Name:  condDiffT0T1,
-	condDiffT0T2.Name:  condDiffT0T2,
-	condDiffT1T2.Name:  condDiffT1T2,
-	condEqualT0T1.Name: condEqualT0T1,
-	condEqualT0T2.Name: condEqualT0T2,
-	condEqualT1T2.Name: condEqualT1T2,
+	pass.Name:           pass,
+	condDiffT0T1.Name:   condDiffT0T1,
+	condDiffT0T2.Name:   condDiffT0T2,
+	condDiffT1T2.Name:   condDiffT1T2,
+	condEqualT0T1.Name:  condEqualT0T1,
+	condEqualT0T2.Name:  condEqualT0T2,
+	condEqualT1T2.Name:  condEqualT1T2,
+	condFileExists.Name: condFileExists,
 }
 
 type Arg interface{}
@@ -770,7 +780,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, tiles
 	snapFilter := SNAPLogFilter{}
 	cmdFilter := CmdLogFilter{}
 	for _, step := range g.steps {
-		if !step.Condition.Pass(tiles) {
+		if !step.Condition.Pass(tiles, nil) {
 			continue
 		}
 
@@ -811,7 +821,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, tiles
 	outfiles := make([][]OutFile, len(tiles))
 	for i, outfs := range g.outFiles {
 		for _, f := range outfs {
-			if f.Condition.Pass(tiles) {
+			if f.Condition.Pass(tiles, &f.File) {
 				if err := f.setDFormatOut(config); err != nil {
 					return nil, fmt.Errorf("process.%w", err)
 				}

@@ -9,12 +9,11 @@ import (
 	"github.com/airbusgeo/geocube/interface/autoscaler"
 	rc "github.com/airbusgeo/geocube/interface/autoscaler/k8s"
 	"github.com/airbusgeo/geocube/interface/autoscaler/qbas"
-	"go.uber.org/zap"
 )
 
 func runAutoscalers(ctx context.Context, downloaderBacklog, processorBacklog qbas.Queue, config autoscalerConfig) error {
 	// downloader autoscaler
-	ictx := log.WithFields(ctx, zap.String("rc", config.DownloaderRC))
+	ictx := log.With(ctx, "rc", config.DownloaderRC)
 
 	controller, err := rc.New(config.DownloaderRC, config.Namespace)
 	if err != nil {
@@ -36,7 +35,7 @@ func runAutoscalers(ctx context.Context, downloaderBacklog, processorBacklog qba
 	go as.Run(ictx, 30*time.Second)
 
 	// processor autoscaler
-	bctx := log.WithFields(ctx, zap.String("rc", config.ProcessorRC))
+	bctx := log.With(ctx, "rc", config.ProcessorRC)
 
 	controller, err = rc.New(config.ProcessorRC, config.Namespace)
 	if err != nil {
