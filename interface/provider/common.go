@@ -72,7 +72,7 @@ func displayProgress(ctx context.Context, prefix string, resp *grab.Response, pr
 	}
 }
 
-func downloadZipWithAuth(ctx context.Context, url, localDir, sceneName, provider string, user, pword *string, header_key string, header_value *string) error {
+func downloadZipWithAuth(ctx context.Context, url, localDir, sceneName, provider string, user, pword *string, header_key string, header_value *string, copyAuthOnRedirect bool) error {
 	localZip := sceneFilePath(localDir, sceneName, service.ExtensionZIP)
 	req, err := grab.NewRequest(localZip, url)
 	if err != nil {
@@ -90,7 +90,7 @@ func downloadZipWithAuth(ctx context.Context, url, localDir, sceneName, provider
 		req.HTTPRequest.Header.Add(header_key, *header_value)
 	}
 
-	if err := download(ctx, req, provider+":"+sceneName); err != nil {
+	if err := download(ctx, req, provider+":"+sceneName, copyAuthOnRedirect); err != nil {
 		return fmt.Errorf("downloadZipWithAuth.%w", err)
 	}
 
@@ -101,9 +101,22 @@ func downloadZipWithAuth(ctx context.Context, url, localDir, sceneName, provider
 	return nil
 }
 
+func checkRedirectAndCopyAuth(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return fmt.Errorf("stopped after 10 redirects")
+	}
+	if auth, ok := via[0].Header["Authorization"]; ok {
+		req.Header.Add("Authorization", auth[0])
+	}
+	return nil
+}
+
 // download a file with display every 5%
-func download(ctx context.Context, req *grab.Request, displayPrefix string) error {
+func download(ctx context.Context, req *grab.Request, displayPrefix string, copyAuthOnRedirect bool) error {
 	client := grab.NewClient()
+	if copyAuthOnRedirect {
+		client.HTTPClient.CheckRedirect = checkRedirectAndCopyAuth
+	}
 	resp := client.Do(req)
 
 	displayProgress(ctx, displayPrefix, resp, 0.05)

@@ -40,7 +40,7 @@ func (ip *ONDADiasImageProvider) Download(ctx context.Context, scene common.Scen
 
 	url := fmt.Sprintf(OndaDownloadProduct, sceneUUID)
 
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil, false); err != nil {
 		return fmt.Errorf("ONDADiasImageProvider.%w", err)
 	}
 	return nil

@@ -89,7 +89,7 @@ func (ip *SoblooImageProvider) Download(ctx context.Context, scene common.Scene,
 
 	url := fmt.Sprintf(SoblooHost+SoblooDownloadProduct, iid)
 	authorization_key := "Apikey " + ip.apikey
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), nil, nil, "Authorization", &authorization_key); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), nil, nil, "Authorization", &authorization_key, false); err != nil {
 		return fmt.Errorf("SoblooImageProvider.%w", err)
 	}
 	return nil

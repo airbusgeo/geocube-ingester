@@ -46,7 +46,7 @@ func (ip *PEPSDiasImageProvider) Download(ctx context.Context, scene common.Scen
 		return fmt.Errorf("PEPSDiasImageProvider.%w", err)
 	}
 
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil, false); err != nil {
 		return fmt.Errorf("PEPSDiasImageProvider.%w", err)
 	}
 	return nil

@@ -49,7 +49,7 @@ func (ip *MundiImageProvider) Download(ctx context.Context, scene common.Scene, 
 	}
 
 	authorizationToken := "seeedtoken=" + ip.seeedToken
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), nil, nil, "Cookie", &authorizationToken); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), nil, nil, "Cookie", &authorizationToken, false); err != nil {
 		return fmt.Errorf("MundiImageProvider.%w", err)
 	}
 	return nil

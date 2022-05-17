@@ -101,7 +101,7 @@ func (ip *CreoDiasImageProvider) Download(ctx context.Context, scene common.Scen
 	}
 
 	url += "?token=" + ip.token
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil, false); err != nil {
 		return fmt.Errorf("CreoDiasImageProvider.%w", err)
 	}
 	return nil

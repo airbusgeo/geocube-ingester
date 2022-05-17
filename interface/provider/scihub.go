@@ -37,7 +37,7 @@ func (ip *ScihubImageProvider) Download(ctx context.Context, scene common.Scene,
 	}
 
 	url := fmt.Sprintf(scihubDownloadProduct, sceneUUID)
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil); err != nil {
+	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil, false); err != nil {
 		return fmt.Errorf("ScihubImageProvider.%w", err)
 	}
 	return nil
