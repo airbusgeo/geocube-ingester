@@ -51,9 +51,20 @@ func sceneBurstsInventoryWorker(ctx context.Context, jobs <-chan *entities.Scene
 		select {
 		case <-ctx.Done():
 		default:
-			if err := sceneBurstsInventory(ctx, scene, pareaAOI, annotationsProviders); err != nil {
-				log.Logger(ctx).Sugar().Errorf("%v", err)
-				//return err
+			retryCount := 3
+			for {
+				err := sceneBurstsInventory(ctx, scene, pareaAOI, annotationsProviders)
+				if err == nil {
+					break
+				}
+				if retryCount == 0 {
+					log.Logger(ctx).Sugar().Errorf("%v", err)
+					return err
+				}
+				log.Logger(ctx).Sugar().Warnf("Retry in 10sec: %v", err)
+
+				retryCount--
+				time.Sleep(10 * time.Second)
 			}
 		}
 	}
