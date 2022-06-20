@@ -10,16 +10,15 @@ Interfaces are provided to add new sources of data or new satellites. See the do
 
 ## Installation
 
-Please read the [Installation guides](https://github.com/airbusgeo/geocube-ingester/blob/main/INSTALL.MD).
+Please read the [Installation guides](https://airbusgeo.github.io/geocube-ingester/installation/prerequisite/).
 
 ## Quickstart
-
 
 [Ingester Jupyter notebook](https://github.com/airbusgeo/geocube-ingester/blob/main/Jupyter/Geocube-Ingester-Demo.ipynb)
 
 ## Documentation
 
-Coming soon
+Documentation can be found [here](https://airbusgeo.github.io/geocube-ingester)
 
 ## Status
 

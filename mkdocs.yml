@@ -1,0 +1,29 @@
+site_name: Geocube Ingester
+site_url: https://github.com/airbusgeo/geocube-ingester
+nav:
+    - 'Home': index.md
+    - 'Getting started': quickstart.md
+    - 'Architecture':
+      - 'Services': architecture/services.md
+      - 'Interfaces': architecture/interfaces.md
+    - 'Installation':
+        - 'Prerequisite': installation/prerequisite.md
+        - 'Local environment': installation/local-install.md
+        - 'Docker': installation/docker-install.md
+        - 'Deploying with Kubernetes': installation/k8s-install.md
+        - 'Customize environment': installation/others.md
+    - 'User guide':
+        - 'Tutorials': user-guide/tutorials.md
+        - 'Payload': user-guide/payload.md
+        - 'Catalogue': user-guide/catalog.md
+        - 'Provider': user-guide/providers.md
+        - 'Processing graphs': user-guide/graph.md
+        - 'Monitoring': user-guide/monitoring.md
+    - 'About':
+      - 'Getting help': about/help.md
+      - 'Development': about/development.md
+      - 'Release Notes': about/release-notes.md
+theme: readthedocs
+markdown_extensions:
+    - toc:
+        baselevel: 2
