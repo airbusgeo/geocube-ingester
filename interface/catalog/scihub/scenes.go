@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	neturl "net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -167,8 +168,9 @@ func (s *Provider) queryScihub(ctx context.Context, baseurl, query string) ([]ma
 	var rawscenes []map[string]string
 	nextPage := true
 	query = neturl.QueryEscape(query)
+	totalPages := "?"
 	for index, rows := 0, 100; nextPage; index += rows {
-		log.Logger(ctx).Sugar().Debugf("Search page %d", index/rows)
+		log.Logger(ctx).Sugar().Debugf("Search page %d/%s", index/rows+1, totalPages)
 		// Load results
 		var xmlResults []byte
 		{
@@ -214,6 +216,7 @@ func (s *Provider) queryScihub(ctx context.Context, baseurl, query string) ([]ma
 				Rel  string `xml:"rel,attr"`
 				Href string `xml:"href,attr"`
 			} `xml:"link"`
+			TotalResults int `xml:"totalResults"`
 		}{}
 		if err := xml.Unmarshal(xmlResults, &results); err != nil {
 			return nil, fmt.Errorf("queryScihub.Unmarshal : %w (response: %s)", err, xmlResults)
@@ -243,6 +246,9 @@ func (s *Provider) queryScihub(ctx context.Context, baseurl, query string) ([]ma
 			if strings.ToLower(link.Rel) == "next" && link.Href != "" {
 				nextPage = true
 			}
+		}
+		if results.TotalResults != 0 {
+			totalPages = strconv.Itoa(results.TotalResults/rows + 1)
 		}
 	}
 
