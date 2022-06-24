@@ -231,7 +231,8 @@ func run(ctx context.Context) error {
 	wf := workflow.NewWorkflow(db, downloaderPublisher, processorPublisher, &catalog)
 	// New handler
 	router := wf.NewRouter()
-	wf.CatalogHandler(router)
+	catalog.Workflow = wf
+	catalog.AddHandler(router)
 	headersOk := handlers.AllowedHeaders([]string{"*", AuthorizationHeader})
 	originsOk := handlers.AllowedOrigins([]string{"*"})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "OPTIONS", "DELETE"})

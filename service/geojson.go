@@ -1,6 +1,11 @@
 package service
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"path/filepath"
+
 	"github.com/go-spatial/geom"
 	"github.com/go-spatial/geom/encoding/geojson"
 )
@@ -38,6 +43,19 @@ func mergeMultiPolygons(g geom.Geometry, mp *geom.MultiPolygon) error {
 			if err := mergeMultiPolygons(g, mp); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+func ToJSON(v interface{}, workingdir, filename string) error {
+	if workingdir != "" {
+		vb, err := json.Marshal(v)
+		if err != nil {
+			return fmt.Errorf("toJSON.Marshal: %w", err)
+		}
+		if err := ioutil.WriteFile(filepath.Join(workingdir, filename), vb, 0644); err != nil {
+			return fmt.Errorf("toJSON.WriteFile: %w", err)
 		}
 	}
 	return nil

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -54,12 +53,6 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.ProcessingDir, "workdir", "", "working directory to store intermediate results (could be empty or temporary)")
 	flag.Parse()
 
-	if config.GeocubeServer == "" {
-		return nil, fmt.Errorf("missing geocube server flag")
-	}
-	if config.WorkflowServer == "" {
-		return nil, fmt.Errorf("missing workflow server config flag")
-	}
 	return &config, nil
 }
 
@@ -82,12 +75,14 @@ func run(ctx context.Context) error {
 	c = catalog.Catalog{}
 	{
 		// Geocube client
-		var tlsConfig *tls.Config
-		if !config.GeocubeServerInsecure {
-			tlsConfig = &tls.Config{}
-		}
-		if c.GeocubeClient, err = service.NewGeocubeClient(ctx, config.GeocubeServer, config.GeocubeServerApiKey, tlsConfig); err != nil {
-			return err
+		if config.GeocubeServer != "" {
+			var tlsConfig *tls.Config
+			if !config.GeocubeServerInsecure {
+				tlsConfig = &tls.Config{}
+			}
+			if c.GeocubeClient, err = service.NewGeocubeClient(ctx, config.GeocubeServer, config.GeocubeServerApiKey, tlsConfig); err != nil {
+				return err
+			}
 		}
 
 		// Connection to the external catalogue service
@@ -98,8 +93,7 @@ func run(ctx context.Context) error {
 		c.GCSAnnotationsBucket = config.GCSAnnotationsBucket
 
 		// Workflow Server
-		c.WorkflowServer = config.WorkflowServer
-		c.WorkflowToken = config.WorkflowToken
+		c.Workflow = catalog.RemoteWorkflowManager{Server: config.WorkflowServer, Token: config.WorkflowToken}
 
 		// Working dir
 		c.WorkingDir = config.ProcessingDir
@@ -114,7 +108,7 @@ func run(ctx context.Context) error {
 
 	// HTTP Server
 	r := mux.NewRouter()
-	r.HandleFunc("/ingest", ingestAreaHandler).Methods("POST")
+	c.AddHandler(r)
 	s := http.Server{
 		Addr:    ":8080",
 		Handler: r,
@@ -144,7 +138,26 @@ func ingestArea(ctx context.Context, jsonPath string) error {
 		return err
 	}
 
-	_, err = IngestArea(ctx, area)
+	var workingDir string
+	if c.WorkingDir != "" {
+		workingDir = filepath.Join(c.WorkingDir, uuid.New().String())
+	}
+
+	if err = os.MkdirAll(workingDir, 0766); err != nil {
+		return service.MakeTemporary(fmt.Errorf("make directory %s: %w", workingDir, err))
+	}
+	defer func() {
+		if err == nil {
+			os.RemoveAll(workingDir)
+		} else {
+			fmt.Print("Catalog failed. Temporary files are still available here : " + workingDir)
+		}
+	}()
+	if err = os.Chdir(workingDir); err != nil {
+		return service.MakeTemporary(fmt.Errorf("chdir: %w", err))
+	}
+
+	_, err = c.IngestArea(ctx, area, nil, nil, workingDir)
 	return err
 }
 
@@ -168,132 +181,8 @@ func sendScenes(ctx context.Context, areaJsonPath, scenesJsonPath string) error 
 	defer jsonFile2.Close()
 	byteValue, _ = ioutil.ReadAll(jsonFile2)
 	json.Unmarshal(byteValue, &scenesToIngest)
-	_, err = postScenesToIngest(ctx, c.WorkflowServer, c.WorkflowToken, area, scenesToIngest.Scenes)
+	_, err = c.PostScenes(ctx, area, scenesToIngest.Scenes)
 	return err
-}
-
-func ingestAreaHandler(w http.ResponseWriter, req *http.Request) {
-	ctx := req.Context()
-	area := entities.AreaToIngest{}
-	dec := json.NewDecoder(req.Body)
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&area); err != nil {
-		w.WriteHeader(400)
-		return
-	}
-
-	result, err := IngestArea(ctx, area)
-	if err != nil {
-		log.Printf("ingest: %v", err)
-		w.WriteHeader(500)
-		fmt.Fprintf(w, "%v", err)
-		return
-	}
-	if resultb, err := json.Marshal(result); err != nil {
-		fmt.Fprint(w, err.Error())
-	} else {
-		fmt.Fprint(w, resultb)
-	}
-}
-
-// IngestAreaResult is the output of the catalog
-type IngestAreaResult struct {
-	ScenesID map[string]int `json:"scenes_id"`
-	TilesNb  int            `json:"tiles_nb"`
-}
-
-func IngestArea(ctx context.Context, area entities.AreaToIngest) (IngestAreaResult, error) {
-	var (
-		err            error
-		scenes         []*entities.Scene
-		rootLeafTiles  []common.Tile
-		workingDir     string
-		scenesToIngest []common.SceneToIngest
-		result         IngestAreaResult
-	)
-
-	if err := c.ValidateArea(&area); err != nil {
-		return result, fmt.Errorf("IngestArea.%w", err)
-	}
-
-	if c.WorkingDir != "" {
-		workingDir = filepath.Join(c.WorkingDir, uuid.New().String())
-	}
-
-	if err = os.MkdirAll(workingDir, 0766); err != nil {
-		return result, service.MakeTemporary(fmt.Errorf("make directory %s: %w", workingDir, err))
-	}
-	defer func() {
-		if err == nil {
-			os.RemoveAll(workingDir)
-		} else {
-			fmt.Print("Catalog failed. Temporary files are still available here : " + workingDir)
-		}
-	}()
-	if err = os.Chdir(workingDir); err != nil {
-		return result, service.MakeTemporary(fmt.Errorf("chdir: %w", err))
-	}
-
-	// Scene inventory
-	if scenes, err = c.DoScenesInventory(ctx, area); err != nil {
-		return result, fmt.Errorf("ingestArea.%w", err)
-	}
-	toJSON(struct{ Scenes []*entities.Scene }{Scenes: scenes}, workingDir, "scenesInventory.json")
-
-	switch entities.GetConstellation(area.SceneType.Constellation) {
-	case entities.Sentinel1:
-		// Get RootTiles
-		if rootLeafTiles, err = getRootTiles(ctx, c.WorkflowServer, c.WorkflowToken, area.AOIID); err != nil {
-			return result, fmt.Errorf("ingestArea.%w", err)
-		}
-		// Get LeafTiles
-		leafTiles, err := getLeafTiles(ctx, c.WorkflowServer, c.WorkflowToken, area.AOIID)
-		if err != nil {
-			return result, fmt.Errorf("ingestArea.%w", err)
-		}
-		rootLeafTiles = append(rootLeafTiles, leafTiles...)
-	}
-
-	// Tiles inventory
-	result.TilesNb, err = c.DoTilesInventory(ctx, area, scenes, rootLeafTiles)
-	if err != nil {
-		return result, fmt.Errorf("ingestArea.%w", err)
-	}
-	toJSON(struct{ Scenes []*entities.Scene }{Scenes: scenes}, workingDir, "tilesInventory.json")
-
-	defer func() {
-		c.DeletePendingRecords(ctx, scenes, result.ScenesID)
-	}()
-
-	// Create scenes to ingest
-	log.Logger(ctx).Debug("Create scenes to ingest")
-	scenesToIngest, err = c.ScenesToIngest(ctx, area, scenes)
-	if err != nil {
-		return result, fmt.Errorf("ingestArea.%w", err)
-	}
-	toJSON(struct{ Scenes []common.SceneToIngest }{Scenes: scenesToIngest}, workingDir, "scenesToIngest.json")
-
-	// Post scenes
-	log.Logger(ctx).Debug("Post scenes to ingest")
-	if result.ScenesID, err = postScenesToIngest(ctx, c.WorkflowServer, c.WorkflowToken, area, scenesToIngest); err != nil {
-		return result, fmt.Errorf("ingestArea.%w", err)
-	}
-	log.Logger(ctx).Debug("Done !")
-
-	return result, err
-}
-
-func toJSON(v interface{}, workingdir, filename string) error {
-	if workingdir != "" {
-		vb, err := json.Marshal(v)
-		if err != nil {
-			return fmt.Errorf("toJSON.Marshal: %w", err)
-		}
-		if err := ioutil.WriteFile(workingdir+"/"+filename, vb, 0644); err != nil {
-			return fmt.Errorf("toJSON.WriteFile: %w", err)
-		}
-	}
-	return nil
 }
 
 /*
@@ -311,76 +200,3 @@ func scenesFromJSON(workingdir, filename string) ([]*Scene, error) {
 	return scenes.Scenes, nil
 }
 */
-
-// getRootTiles form the workflow server
-func getRootTiles(ctx context.Context, workflowServer, workflowToken, aoiID string) ([]common.Tile, error) {
-	body, err := service.HTTPGetWithAuth(ctx, workflowServer+"/aoi/"+aoiID+"/roottiles", "", "", workflowToken)
-	if err != nil {
-		return nil, fmt.Errorf("getRootTiles.%w", err)
-	}
-	tiles := []common.Tile{}
-	if err = json.Unmarshal(body, &tiles); err != nil {
-		return nil, fmt.Errorf("getRootTiles.Unmarshal[%s]: %w", body, err)
-	}
-	return tiles, nil
-}
-
-// getLeafTiles form the workflow server
-func getLeafTiles(ctx context.Context, workflowServer, workflowToken, aoiID string) ([]common.Tile, error) {
-	body, err := service.HTTPGetWithAuth(ctx, workflowServer+"/aoi/"+aoiID+"/leaftiles", "", "", workflowToken)
-	if err != nil {
-		return nil, fmt.Errorf("getLeafTiles.%w", err)
-	}
-	tiles := []common.Tile{}
-	if err = json.Unmarshal(body, &tiles); err != nil {
-		return nil, fmt.Errorf("getLeafTiles.Unmarshal: %w", err)
-	}
-	return tiles, nil
-}
-
-// postScenesToIngest sends the sceneToIngest to the workflow server
-// Returns the id of the posted scenes (even if PostScenesToIngest returns an error)
-func postScenesToIngest(ctx context.Context, workflowServer, workflowToken string, area entities.AreaToIngest, scenesToIngest []common.SceneToIngest) (map[string]int, error) {
-	ids := map[string]int{}
-
-	// First, create AOI
-	resp, err := service.HTTPPostWithAuth(ctx, workflowServer+"/aoi/"+area.AOIID, bytes.NewBuffer(nil), "", "", workflowToken)
-	if err != nil {
-		return ids, fmt.Errorf("PostScenesToIngest.PostAOI: %w", err)
-	}
-	if resp.StatusCode != 200 && resp.StatusCode != 204 && resp.StatusCode != 409 {
-		return ids, fmt.Errorf("PostScenesToIngest.PostAOI: %s", resp.Status)
-	}
-
-	// Then, send scenes
-	for _, scene := range scenesToIngest {
-		sceneb, err := json.Marshal(scene)
-		if err != nil {
-			return ids, fmt.Errorf("PostScenesToIngest.Marshal: %w", err)
-		}
-		resp, err := service.HTTPPostWithAuth(ctx, workflowServer+"/aoi/"+area.AOIID+"/scene", bytes.NewBuffer(sceneb), "", "", workflowToken)
-		if err != nil {
-			return ids, fmt.Errorf("PostScenesToIngest.PostScenes: %w", err)
-		}
-		if resp.StatusCode == 409 {
-			//Scene already exists
-			log.Logger(ctx).Sugar().Warnf("Scene %s already exists", scene.SourceID)
-			continue
-		}
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return ids, fmt.Errorf("PostScenesToIngest.ReadAll: %w", err)
-		}
-		if resp.StatusCode != 200 {
-			return ids, fmt.Errorf("PostScenesToIngest.PostScenes: %s", string(body))
-		}
-		sceneID := struct {
-			ID int `json:"id"`
-		}{}
-		if err := json.Unmarshal(body, &sceneID); err != nil {
-			return ids, fmt.Errorf("PostScenesToIngest.Unmarshal(%s): %w", string(body), err)
-		}
-		ids[scene.SourceID] = sceneID.ID
-	}
-	return ids, nil
-}

@@ -9,6 +9,7 @@ import (
 	geocube "github.com/airbusgeo/geocube-client-go/client"
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/geocube-ingester/common"
+	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/go-spatial/geom/encoding/wkt"
 	"github.com/paulsmith/gogeos/geos"
@@ -17,8 +18,7 @@ import (
 // Catalog is the main class of this package
 type Catalog struct {
 	GeocubeClient        *geocube.Client
-	WorkflowServer       string
-	WorkflowToken        string
+	Workflow             WorkflowManager
 	ScihubUser           string
 	ScihubPword          string
 	GCSAnnotationsBucket string
@@ -157,4 +157,67 @@ func (c *Catalog) DeletePendingRecords(ctx context.Context, scenes []*entities.S
 	if _, e := c.GeocubeClient.DeleteRecords(ids); e != nil {
 		log.Logger(ctx).Sugar().Warnf("Catalog.IngestScenes : unable to delete unused records (%v): %v", ids, e)
 	}
+}
+
+// IngestAreaResult is the output of the catalog
+type IngestAreaResult struct {
+	ScenesID map[string]int `json:"scenes_id"`
+	TilesNb  int            `json:"tiles_nb"`
+}
+
+func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, scenes []*entities.Scene, scenesWithTiles []*entities.Scene, outputDir string) (IngestAreaResult, error) {
+	var (
+		err            error
+		scenesToIngest []common.SceneToIngest
+		result         IngestAreaResult
+	)
+
+	if err := c.ValidateArea(&area); err != nil {
+		return result, fmt.Errorf("IngestArea.%w", err)
+	}
+
+	// Scene inventory
+	if scenes == nil && scenesWithTiles == nil {
+		if scenes, err = c.DoScenesInventory(ctx, area); err != nil {
+			return result, fmt.Errorf("ingestArea.%w", err)
+		}
+		service.ToJSON(struct{ Scenes []*entities.Scene }{Scenes: scenes}, outputDir, "scenesInventory.json")
+	}
+
+	// Tile inventory
+	if scenesWithTiles == nil {
+		result.TilesNb, err = c.FindTiles(ctx, area, scenes)
+		if err != nil {
+			return result, fmt.Errorf("ingestArea.%w", err)
+		}
+		service.ToJSON(struct{ Scenes []*entities.Scene }{Scenes: scenes}, outputDir, "tilesInventory.json")
+	}
+
+	defer func() {
+		c.DeletePendingRecords(ctx, scenes, result.ScenesID)
+	}()
+
+	// Create scenes to ingest
+	log.Logger(ctx).Debug("Create scenes to ingest")
+	scenesToIngest, err = c.ScenesToIngest(ctx, area, scenes)
+	if err != nil {
+		return result, fmt.Errorf("ingestArea.%w", err)
+	}
+	service.ToJSON(struct{ Scenes []common.SceneToIngest }{Scenes: scenesToIngest}, outputDir, "scenesToIngest.json")
+
+	// Post scenes
+	log.Logger(ctx).Debug("Post scenes to ingest")
+	if result.ScenesID, err = c.PostScenes(ctx, area, scenesToIngest); err != nil {
+		return result, fmt.Errorf("ingestArea.%w", err)
+	}
+	log.Logger(ctx).Debug("Done !")
+
+	result.TilesNb = 0
+	for _, scene := range scenes {
+		if _, ok := result.ScenesID[scene.SourceID]; ok {
+			result.TilesNb += len(scene.Tiles)
+		}
+	}
+
+	return result, err
 }
