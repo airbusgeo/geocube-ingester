@@ -19,9 +19,16 @@ import (
 	"github.com/paulsmith/gogeos/geos"
 )
 
+const (
+	ApiHubQueryURL = "https://apihub.copernicus.eu/apihub/search?q="
+	DHUSQueryURL   = "https://scihub.copernicus.eu/dhus/search?q="
+)
+
 type Provider struct {
 	Username string
 	Password string
+	URL      string
+	Name     string
 }
 
 func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) ([]*entities.Scene, error) {
@@ -50,46 +57,36 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 			fmt.Sprintf("(endPosition:[ %s TO %s ] )", startDate, endDate))
 	}
 
-	// Append parameters
-	for k, v := range area.SceneType.Parameters {
-		area.SceneType.Parameters[k] = v
-	}
+	// Default values
+	parametersMap := map[string]string{}
 	switch entities.GetConstellation(area.SceneType.Constellation) {
 	case entities.Sentinel1:
-		area.SceneType.Parameters["platformname"] = "Sentinel-1"
-		// Default values
-		if _, ok := area.SceneType.Parameters["producttype"]; !ok {
-			area.SceneType.Parameters["producttype"] = "SLC"
-		}
-		if _, ok := area.SceneType.Parameters["polarisationmode"]; !ok {
-			area.SceneType.Parameters["polarisationmode"] = "VV VH"
-		}
-		if _, ok := area.SceneType.Parameters["sensoroperationalmode"]; !ok {
-			area.SceneType.Parameters["sensoroperationalmode"] = "IW"
-		}
+		parametersMap["platformname"] = "Sentinel-1"
+		parametersMap["producttype"] = "SLC"
+		parametersMap["polarisationmode"] = "VV VH"
+		parametersMap["sensoroperationalmode"] = "IW"
 	case entities.Sentinel2:
-		area.SceneType.Parameters["platformname"] = "Sentinel-2"
-		// Default values
-		if _, ok := area.SceneType.Parameters["producttype"]; !ok {
-			area.SceneType.Parameters["producttype"] = "S2MSI1C"
-		}
+		parametersMap["platformname"] = "Sentinel-2"
+		parametersMap["producttype"] = "S2MSI1C"
 	default:
 		return nil, fmt.Errorf("constellation not supported: " + area.SceneType.Constellation)
 	}
 
+	// Append user-defined parameters
 	for k, v := range area.SceneType.Parameters {
-		parameters = append(parameters, fmt.Sprintf("( %s:%s )", k, v))
+		parametersMap[k] = v
 	}
 
+	// Create query
+	for k, v := range parametersMap {
+		parameters = append(parameters, fmt.Sprintf("( %s:%s )", k, v))
+	}
 	query := "(" + strings.Join(parameters, " AND ") + ")"
 
 	// Execute query
-	rawscenes, err := s.queryScihub(ctx, "https://apihub.copernicus.eu/apihub/search?q=", query)
+	rawscenes, err := s.queryScihub(ctx, s.URL, query)
 	if err != nil {
-		log.Logger(ctx).Sugar().Debugf("apihub failed with error : %v. Trying dhus instead", err)
-		if rawscenes, err = s.queryScihub(ctx, "https://scihub.copernicus.eu/dhus/search?q=", query); err != nil {
-			return nil, fmt.Errorf("Scihub.searchScenes.%w", err)
-		}
+		return nil, fmt.Errorf("Scihub.searchScenes.%w", err)
 	}
 
 	// Parse results
@@ -170,7 +167,7 @@ func (s *Provider) queryScihub(ctx context.Context, baseurl, query string) ([]ma
 	query = neturl.QueryEscape(query)
 	totalPages := "?"
 	for index, rows := 0, 100; nextPage; index += rows {
-		log.Logger(ctx).Sugar().Debugf("Search page %d/%s", index/rows+1, totalPages)
+		log.Logger(ctx).Sugar().Debugf("[%s] Search page %d/%s", s.Name, index/rows+1, totalPages)
 		// Load results
 		var xmlResults []byte
 		{

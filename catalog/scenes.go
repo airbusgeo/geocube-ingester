@@ -15,6 +15,7 @@ import (
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/scihub"
+	"github.com/airbusgeo/geocube-ingester/interface/catalog/sobloo"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/go-spatial/geom"
@@ -29,11 +30,13 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 	// Search
 	var sceneProviders []catalog.ScenesProvider
 	if c.ScihubUser != "" {
-		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword})
+		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword, Name: "ApiHub", URL: scihub.ApiHubQueryURL})
+		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword, Name: "DHUS", URL: scihub.DHUSQueryURL})
 	}
 
+	sceneProviders = append(sceneProviders, &sobloo.Provider{})
 	if len(sceneProviders) == 0 {
-		return nil, fmt.Errorf("no catalog are configured")
+		return nil, fmt.Errorf("no catalog is configured")
 	}
 
 	var err, e error
