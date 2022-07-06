@@ -163,7 +163,7 @@ func (ss *StorageStrategy) ImportLayer(ctx context.Context, tile common.Tile, la
 
 // DeleteLayer implements Storage
 func (ss *StorageStrategy) DeleteLayer(ctx context.Context, tile common.Tile, layer Layer, ext Extension) error {
-	if ext == ExtensionDIMAP {
+	if ext == ExtensionDIMAP || ext == ExtensionSAFE {
 		ext = ExtensionZIP
 	}
 
