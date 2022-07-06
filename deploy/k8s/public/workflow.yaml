@@ -196,7 +196,7 @@ spec:
             - "--docker-registry-username=_json_key"
             - "--docker-registry-password=$(DOCKER_REGISTRY_PASSWORD)"
             - "--docker-registry-server=..."
-            - "--docker-credentials-filepath=..."
+            - "--docker-mount-volumes=..."
             - "--docker-envs=..."
             - "--with-docker-engine"
           image: {{PROCESSOR_IMAGE}}

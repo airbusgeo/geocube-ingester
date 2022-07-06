@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"path"
 	"strings"
 	"sync"
 	"time"
@@ -25,19 +24,19 @@ import (
 )
 
 type dockerManager struct {
-	Client                *client.Client
-	Envs                  []string
-	CredentialFileToMount string
-	AuthConfig            string //encode base64
-	LogFilter             *DockerLogFilter
+	Client         *client.Client
+	Envs           []string
+	VolumesToMount []string
+	AuthConfig     string //encode base64
+	LogFilter      *DockerLogFilter
 }
 
 type DockerConfig struct {
-	Envs               []string
-	RegistryServer     string // "https://eu.gcr.io" for gcs
-	RegistryUserName   string // _json_key for gcs
-	RegistryPassword   string // service account for gcs
-	CredentialFilePath string // Credentials file to mount in to docker image
+	Envs             []string
+	RegistryServer   string // "https://eu.gcr.io" for gcs
+	RegistryUserName string // _json_key for gcs
+	RegistryPassword string // service account for gcs
+	VolumesToMount   string // List of volumes to mount (comma separated)
 }
 
 // SetFlags configures flag for a docker config
@@ -55,8 +54,8 @@ func (cfg *DockerConfig) SetFlags() *string {
 	// Docker processing Images connection
 	flag.StringVar(&cfg.RegistryUserName, "docker-registry-username", "_json_key", "username to authentication on private registry")
 	flag.StringVar(&cfg.RegistryPassword, "docker-registry-password", "", "password to authentication on private registry")
-	flag.StringVar(&cfg.RegistryServer, "docker-registry-server", "https://eu.gcr.io", "password to authentication on private registry")
-	flag.StringVar(&cfg.CredentialFilePath, "docker-credentials-filepath", "", "credentials file to mount in docker processes")
+	flag.StringVar(&cfg.RegistryServer, "docker-registry-server", "https://eu.gcr.io", "address of server to authenticate on private registry")
+	flag.StringVar(&cfg.VolumesToMount, "docker-mount-volumes", "", "list of volumes to mount on the docker (comma separated)")
 
 	return flag.String("docker-envs", "", "docker variable env key white list (comma sep) ")
 }
@@ -85,11 +84,13 @@ func NewDockerManager(ctx context.Context, config DockerConfig) (DockerManager, 
 	}
 
 	d := dockerManager{
-		Client:                cli,
-		Envs:                  config.Envs,
-		AuthConfig:            encodedAuthLogin,
-		CredentialFileToMount: config.CredentialFilePath,
-		LogFilter:             &DockerLogFilter{},
+		Client:     cli,
+		Envs:       config.Envs,
+		AuthConfig: encodedAuthLogin,
+		LogFilter:  &DockerLogFilter{},
+	}
+	if len(config.VolumesToMount) > 0 {
+		d.VolumesToMount = strings.Split(config.VolumesToMount, ",")
 	}
 
 	if err := d.Ping(ctx); err != nil {
@@ -121,10 +122,12 @@ func (d *dockerManager) Process(ctx context.Context, workdir, cmd string, args [
 		return fmt.Errorf("Process: %w", err)
 	}
 
-	log.Logger(ctx).Info("pulling image " + cmd)
-	imageInfo, err := d.pullImage(ctx, cmd)
+	imageInfo, err := d.localImageInfo(ctx, cmd)
 	if err != nil {
-		return fmt.Errorf("Process: %w", err)
+		log.Logger(ctx).Info("pulling image " + cmd)
+		if imageInfo, err = d.pullImage(ctx, cmd); err != nil {
+			return fmt.Errorf("Process: %w", err)
+		}
 	}
 	log.Logger(ctx).Info(cmd + " pulled")
 	var availableEnvs []string
@@ -144,11 +147,11 @@ func (d *dockerManager) Process(ctx context.Context, workdir, cmd string, args [
 		ReadOnly: false,
 	})
 
-	if d.CredentialFileToMount != "" {
+	for _, volume := range d.VolumesToMount {
 		volumeToMount = append(volumeToMount, mount.Mount{
 			Type:     mount.TypeBind,
-			Source:   path.Dir(d.CredentialFileToMount),
-			Target:   path.Dir(d.CredentialFileToMount),
+			Source:   volume,
+			Target:   volume,
 			ReadOnly: true,
 		})
 	}
@@ -171,7 +174,6 @@ func (d *dockerManager) Process(ctx context.Context, workdir, cmd string, args [
 	}
 
 	if err = d.runContainer(ctx, createdContainer.ID); err != nil {
-		err = d.LogFilter.WrapError(err)
 		return fmt.Errorf("failed to run %s container: %w", cmd, err)
 	}
 
@@ -203,7 +205,10 @@ func (d *dockerManager) pullImage(ctx context.Context, image string) (types.Imag
 	} else {
 		log.Logger(ctx).Sugar().Debugf(string(imagePullb))
 	}
+	return d.localImageInfo(ctx, image)
+}
 
+func (d *dockerManager) localImageInfo(ctx context.Context, image string) (types.ImageSummary, error) {
 	filter := filters.NewArgs()
 	filter.Add("reference", image)
 

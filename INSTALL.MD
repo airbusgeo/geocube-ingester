@@ -258,14 +258,14 @@ Usage of ./downloader:
     	creodias account password (optional)
   -creodias-username string
     	creodias account username (optional). To configure Creodias as a potential image Provider.
-  -docker-credentials-filepath string
-    	credentials file to mount in docker processes
   -docker-envs string
     	docker variable env key white list (comma sep) 
+  -docker-mount-volumes string
+    	list of volumes to mount on the docker (comma separated)
   -docker-registry-password string
     	password to authentication on private registry
   -docker-registry-server string
-    	password to authentication on private registry (default "https://eu.gcr.io")
+    	address of server to authenticate on private registry (default "https://eu.gcr.io")
   -docker-registry-username string
     	username to authentication on private registry (default "_json_key")
   -event-queue string
@@ -343,14 +343,14 @@ For more information concerning flags and downloader argument, you can run:
 ```bash
 $ ./processor --help
 Usage of ./processor:
-  -docker-credentials-filepath string
-    	credentials file to mount in docker processes
   -docker-envs string
     	docker variable env key white list (comma sep) 
+  -docker-mount-volumes string
+    	list of volumes to mount on the docker (comma separated)
   -docker-registry-password string
     	password to authentication on private registry
   -docker-registry-server string
-    	password to authentication on private registry (default "https://eu.gcr.io")
+    	address of server to authenticate on private registry (default "https://eu.gcr.io")
   -docker-registry-username string
     	username to authentication on private registry (default "_json_key")
   -event-queue string
