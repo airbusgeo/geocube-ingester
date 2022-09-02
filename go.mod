@@ -15,7 +15,7 @@ require (
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/frankban/quicktest v1.14.0 // indirect
-	github.com/go-spatial/geom v0.0.0-20220426070044-6e8855d2cfe6
+	github.com/go-spatial/geom v0.0.0-20220918193402-3cd2f5a9a082
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
