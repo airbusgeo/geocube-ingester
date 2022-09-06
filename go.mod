@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/pubsub v1.23.0
 	cloud.google.com/go/storage v1.23.0
 	github.com/Microsoft/go-winio v0.5.1 // indirect
-	github.com/airbusgeo/geocube v0.5.1
+	github.com/airbusgeo/geocube v0.6.0
 	github.com/airbusgeo/geocube-client-go v0.2.0
 	github.com/airbusgeo/osio v0.1.3
 	github.com/cavaliercoder/grab v2.0.0+incompatible

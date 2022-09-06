@@ -30,7 +30,7 @@ github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
 # github.com/airbusgeo/errs v0.0.3
 github.com/airbusgeo/errs
-# github.com/airbusgeo/geocube v0.5.1
+# github.com/airbusgeo/geocube v0.6.0
 ## explicit
 github.com/airbusgeo/geocube/interface/autoscaler
 github.com/airbusgeo/geocube/interface/autoscaler/k8s
