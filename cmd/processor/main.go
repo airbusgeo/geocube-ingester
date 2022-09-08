@@ -151,12 +151,13 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	var dockerManager graph.DockerManager
+	graphOpts := []graph.Option{}
 	if config.WithDockerEngine {
-		dockerManager, err = graph.NewDockerManager(ctx, config.Docker)
+		dockerManager, err := graph.NewDockerManager(ctx, config.Docker)
 		if err != nil {
 			return err
 		}
+		graphOpts = append(graphOpts, graph.WithDockerManager(dockerManager))
 	}
 
 	jobStarted := time.Time{}
@@ -218,7 +219,7 @@ func run(ctx context.Context) error {
 				return fmt.Errorf("too many retries")
 			}
 
-			if err = processor.ProcessTile(ctx, storageService, gcclient, dockerManager, tile, config.WorkingDir); err != nil {
+			if err = processor.ProcessTile(ctx, storageService, gcclient, tile, config.WorkingDir, graphOpts); err != nil {
 				if msg.TryCount >= maxTries {
 					return fmt.Errorf("too many retries: %w", err)
 				}

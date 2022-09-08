@@ -34,6 +34,41 @@ const (
 	snapDateFormat = "02Jan2006"
 )
 
+type Option interface {
+	setOpt(opts *graphOpts)
+}
+
+type graphOpts struct {
+	snapPath      string
+	dockerManager DockerManager
+}
+
+type snapOpt struct{}
+
+func WithSnap() interface {
+	Option
+} {
+	return snapOpt{}
+}
+
+func (so snapOpt) setOpt(opts *graphOpts) {
+	opts.snapPath = snapPath
+}
+
+type dockerOpt struct {
+	dockerManager DockerManager
+}
+
+func WithDockerManager(dockerManager DockerManager) interface {
+	Option
+} {
+	return dockerOpt{dockerManager}
+}
+
+func (so dockerOpt) setOpt(opts *graphOpts) {
+	opts.dockerManager = so.dockerManager
+}
+
 // TileCondition is a condition on tiles to do an action (execute a step, create a file...)
 type TileCondition struct {
 	Name string
@@ -225,9 +260,9 @@ type GraphEnvs []string
 // ProcessingGraph is a set of steps
 type ProcessingGraph struct {
 	steps    []ProcessingStep
-	snap     string
 	InFiles  [3][]InFile
 	outFiles [][]OutFile
+	opts     graphOpts
 }
 
 func (g *ProcessingGraph) Summary() string {
@@ -291,9 +326,9 @@ func getFile(ctx context.Context, workdir, file string) (string, error) {
 	return localpath.Name(), nil
 }
 
-func newProcessingGraph(ctx context.Context, snapPath string, steps []ProcessingStep, infiles [3][]InFile, outfiles [][]OutFile) (*ProcessingGraph, error) {
+func newProcessingGraph(ctx context.Context, steps []ProcessingStep, infiles [3][]InFile, outfiles [][]OutFile, opts ...Option) (*ProcessingGraph, error) {
 	// Check commands
-	snapRequired := false
+	snapRequired, dockerRequired := false, false
 	for i, step := range steps {
 		switch step.Engine {
 		case snap:
@@ -305,25 +340,36 @@ func newProcessingGraph(ctx context.Context, snapPath string, steps []Processing
 				return nil, fmt.Errorf("newProcessingGraph: Command not found: %s (%w)", step.Command, err)
 			}
 			steps[i].Command = cmd
+		case docker:
+			dockerRequired = true
 		}
 	}
 
-	if snapRequired {
-		if _, err := os.Stat(snapPath); err != nil {
-			return nil, fmt.Errorf("newProcessingGraph: SNAP not found: %s", snapPath)
-		}
-	}
-
-	return &ProcessingGraph{
-		snap:     snapPath,
+	g := ProcessingGraph{
 		steps:    steps,
 		InFiles:  infiles,
 		outFiles: outfiles,
-	}, nil
+	}
+	for _, opt := range opts {
+		opt.setOpt(&g.opts)
+	}
+
+	if snapRequired {
+		if _, err := os.Stat(g.opts.snapPath); err != nil {
+			return nil, fmt.Errorf("newProcessingGraph: SNAP not found: %s", g.opts.snapPath)
+		}
+	}
+	if dockerRequired {
+		if g.opts.dockerManager == nil {
+			return nil, fmt.Errorf("docker engine is not configured")
+		}
+	}
+
+	return &g, nil
 }
 
 // LoadGraph returns the graph from its name and its default configuration
-func LoadGraph(ctx context.Context, graphName string) (*ProcessingGraph, GraphConfig, GraphEnvs, error) {
+func LoadGraph(ctx context.Context, graphName string, opts ...Option) (*ProcessingGraph, GraphConfig, GraphEnvs, error) {
 	switch graphName {
 	case "S1Preprocessing":
 		g, err := newS1PreProcessingGraph(ctx)
@@ -375,11 +421,11 @@ func LoadGraph(ctx context.Context, graphName string) (*ProcessingGraph, GraphCo
 		return g, SpotDefaultConfig(), nil, nil
 	}
 
-	return LoadGraphFromFile(ctx, graphName)
+	return LoadGraphFromFile(ctx, graphName, opts...)
 }
 
 // LoadGraphFromFile returns the graph from a filename
-func LoadGraphFromFile(ctx context.Context, graphFile string) (*ProcessingGraph, GraphConfig, GraphEnvs, error) {
+func LoadGraphFromFile(ctx context.Context, graphFile string, opts ...Option) (*ProcessingGraph, GraphConfig, GraphEnvs, error) {
 	var err error
 	if graphFile, err = getFile(ctx, graphPath, graphFile); err != nil {
 		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile.%w", err)
@@ -399,8 +445,8 @@ func LoadGraphFromFile(ctx context.Context, graphFile string) (*ProcessingGraph,
 	if err := json.Unmarshal(byteValue, &graphJSON); err != nil {
 		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
-
-	graph, err := newProcessingGraph(ctx, snapPath, graphJSON.Steps, graphJSON.InFiles, graphJSON.OutFiles)
+	opts = append(opts, WithSnap())
+	graph, err := newProcessingGraph(ctx, graphJSON.Steps, graphJSON.InFiles, graphJSON.OutFiles, opts...)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
@@ -490,7 +536,7 @@ func newS1PreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
+	return newProcessingGraph(ctx, steps, infiles, outfiles, WithSnap())
 }
 
 // newS1BsCohGraph creates a new processing graph to compute Backscatter and Coherence of S1 images
@@ -727,7 +773,7 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
+	return newProcessingGraph(ctx, steps, infiles, outfiles, WithSnap())
 }
 
 // newS1CoregExtractGraph creates a new processing graph to compute Coherence of S1 images
@@ -784,7 +830,7 @@ func newS1CoregExtractGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
+	return newProcessingGraph(ctx, steps, infiles, outfiles, WithSnap())
 }
 
 // newS1CleanGraph creates a new graph to clean temporary images
@@ -802,7 +848,7 @@ func newS1CleanGraph(ctx context.Context) (*ProcessingGraph, error) {
 		{},
 	}
 
-	return newProcessingGraph(ctx, snapPath, []ProcessingStep{}, infiles, outfiles)
+	return newProcessingGraph(ctx, []ProcessingStep{}, infiles, outfiles)
 }
 
 func newPhrPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
@@ -836,7 +882,7 @@ func newPhrPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
+	return newProcessingGraph(ctx, steps, infiles, outfiles)
 }
 
 func newSpotPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
@@ -870,7 +916,7 @@ func newSpotPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
+	return newProcessingGraph(ctx, steps, infiles, outfiles)
 }
 
 func newPhrProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
@@ -897,7 +943,7 @@ func newPhrProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 		{},
 	}
 
-	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
+	return newProcessingGraph(ctx, steps, infiles, outfiles)
 }
 
 func newSpotProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
@@ -921,7 +967,7 @@ func newSpotProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 		{},
 	}
 
-	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
+	return newProcessingGraph(ctx, steps, infiles, outfiles)
 }
 
 func cmdToString(cmd *exec.Cmd) string {
@@ -934,7 +980,7 @@ func cmdToString(cmd *exec.Cmd) string {
 
 // Process runs the graph
 // Returns the files to create or to delete
-func (g *ProcessingGraph) Process(ctx context.Context, dockerManager DockerManager, config GraphConfig, graphEnvs GraphEnvs, tiles []common.Tile) ([][]OutFile, error) {
+func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graphEnvs GraphEnvs, tiles []common.Tile) ([][]OutFile, error) {
 	var filter LogFilter
 	pythonFilter := PythonLogFilter{}
 	snapFilter := SNAPLogFilter{}
@@ -954,7 +1000,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, dockerManager DockerManag
 		var cmd *exec.Cmd
 		switch step.Engine {
 		case snap:
-			cmd = exec.Command(g.snap, args...)
+			cmd = exec.Command(g.opts.snapPath, args...)
 			filter = &snapFilter
 
 		case python:
@@ -966,9 +1012,6 @@ func (g *ProcessingGraph) Process(ctx context.Context, dockerManager DockerManag
 			filter = &cmdFilter
 
 		case docker:
-			if dockerManager == nil {
-				return nil, errors.New("docker engine is not supported")
-			}
 			stepCmd := strings.ToLower(step.Command)
 			var envs []string
 
@@ -978,7 +1021,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, dockerManager DockerManag
 			//graph envs
 			envs = append(envs, graphEnvs...)
 
-			if err = dockerManager.Process(ctx, config["workdir"], stepCmd, args, envs); err != nil {
+			if err = g.opts.dockerManager.Process(ctx, config["workdir"], stepCmd, args, envs); err != nil {
 				return nil, err
 			}
 		}

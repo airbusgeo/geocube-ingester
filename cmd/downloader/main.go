@@ -250,12 +250,13 @@ func run(ctx context.Context) error {
 		http.ListenAndServe(":9000", nil)
 	}()
 
-	var dockerManager graph.DockerManager
+	graphOpts := []graph.Option{}
 	if config.WithDockerEngine {
-		dockerManager, err = graph.NewDockerManager(ctx, config.Docker)
+		dockerManager, err := graph.NewDockerManager(ctx, config.Docker)
 		if err != nil {
 			return err
 		}
+		graphOpts = append(graphOpts, graph.WithDockerManager(dockerManager))
 	}
 
 	maxTries := 15
@@ -306,7 +307,7 @@ func run(ctx context.Context) error {
 				return fmt.Errorf("too many retries")
 			}
 
-			if err := downloader.ProcessScene(ctx, imageProviders, storageService, dockerManager, scene, config.WorkingDir); err != nil {
+			if err := downloader.ProcessScene(ctx, imageProviders, storageService, scene, config.WorkingDir, graphOpts); err != nil {
 				if msg.TryCount >= maxTries {
 					return fmt.Errorf("too many retries: %w", err)
 				}
