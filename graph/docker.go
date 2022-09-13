@@ -93,7 +93,7 @@ func NewDockerManager(ctx context.Context, config DockerConfig) (DockerManager, 
 		d.VolumesToMount = strings.Split(config.VolumesToMount, ",")
 	}
 
-	if err := d.Ping(ctx); err != nil {
+	if err := d.Ping(ctx, 5*time.Minute); err != nil {
 		return nil, fmt.Errorf("NewDockerManager: %w", err)
 	}
 
@@ -104,21 +104,27 @@ type DockerManager interface {
 	Process(ctx context.Context, cmd, workdir string, args []string, envs []string) error
 }
 
-func (d *dockerManager) Ping(ctx context.Context) error {
+func (d *dockerManager) Ping(ctx context.Context, timeout time.Duration) error {
 	var err error
-	for try := 0; try < 10; try++ {
-		if _, err = d.Client.Ping(ctx); err == nil {
-			log.Logger(ctx).Info("docker daemon is started")
-			return nil
+	ctx, cnl := context.WithTimeout(ctx, timeout)
+	defer cnl()
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("failed to found docker daemon: %w", err)
+		default:
+			if _, err = d.Client.Ping(ctx); err == nil {
+				log.Logger(ctx).Info("docker daemon is started")
+				return nil
+			}
+			log.Logger(ctx).Info("Waiting for docker daemon...")
+			time.Sleep(5 * time.Second)
 		}
-		log.Logger(ctx).Info("Waiting for docker daemon...")
-		time.Sleep(5 * time.Second)
 	}
-	return fmt.Errorf("failed to found docker daemon: %w", err)
 }
 
 func (d *dockerManager) Process(ctx context.Context, workdir, cmd string, args []string, envs []string) error {
-	if err := d.Ping(ctx); err != nil {
+	if err := d.Ping(ctx, time.Minute); err != nil {
 		return fmt.Errorf("Process: %w", err)
 	}
 
@@ -243,12 +249,11 @@ func (d *dockerManager) runContainer(ctx context.Context, containerID string) er
 		return fmt.Errorf("failed to retrieve logs")
 	}
 
-	defer containerLogs.Close()
-
 	logwg := sync.WaitGroup{}
 	logwg.Add(1)
 	go func() {
 		defer logwg.Done()
+		defer containerLogs.Close()
 		d.logLines(ctx, containerLogs)
 	}()
 
@@ -260,16 +265,10 @@ func (d *dockerManager) runContainer(ctx context.Context, containerID string) er
 		if err != nil {
 			return err
 		}
-	case <-statusCh:
-	}
-
-	info, err := d.Client.ContainerInspect(ctx, containerID)
-	if err != nil {
-		return fmt.Errorf("failed to inspect container status")
-	}
-
-	if info.State.ExitCode == 1 {
-		return d.LogFilter.WrapError(fmt.Errorf("an error occured"))
+	case exit := <-statusCh:
+		if exit.StatusCode == 1 {
+			return d.LogFilter.WrapError(fmt.Errorf("an error occured"))
+		}
 	}
 
 	return nil
