@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/airbusgeo/geocube-ingester/interface/catalog/oneatlas"
+
 	geocube "github.com/airbusgeo/geocube-client-go/client"
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -26,21 +28,29 @@ import (
 
 // ScenesInventory makes an inventory of all the scenes covering the area between startDate and endDate
 // The scenes are retrieved from scihub
-func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) ([]*entities.Scene, error) {
+func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
 	// Search
 	var sceneProviders []catalog.ScenesProvider
 	if c.ScihubUser != "" {
 		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword, Name: "ApiHub", URL: scihub.ApiHubQueryURL})
 		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword, Name: "DHUS", URL: scihub.DHUSQueryURL})
 	}
+	if c.OneAtlasCatalogUser != "" {
+		sceneProviders = append(sceneProviders, oneatlas.NewOneAtlasProvider(ctx,
+			c.OneAtlasCatalogUser,
+			c.OneAtlasApikey,
+			c.OneAtlasCatalogEndpoint,
+			c.OneAtlasOrderEndpoint,
+			c.OneAtlasAuthenticationEndpoint))
+	}
 
 	sceneProviders = append(sceneProviders, &sobloo.Provider{})
 	if len(sceneProviders) == 0 {
-		return nil, fmt.Errorf("no catalog is configured")
+		return entities.Scenes{}, fmt.Errorf("no catalog is configured")
 	}
 
 	var err, e error
-	var scenes []*entities.Scene
+	var scenes entities.Scenes
 	for _, sceneProvider := range sceneProviders {
 		scenes, e = sceneProvider.SearchScenes(ctx, area, aoi)
 		if err = service.MergeErrors(false, err, e); err == nil {
@@ -48,16 +58,16 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 		}
 	}
 	if err != nil {
-		return nil, fmt.Errorf("ScenesInventory.%w", err)
+		return entities.Scenes{}, fmt.Errorf("ScenesInventory.%w", err)
 	}
 
 	// Refine inventory
-	scenes, err = refineInventory(area, scenes, aoi)
+	scenes.Scenes, err = refineInventory(area, scenes.Scenes, aoi)
 	if err != nil {
-		return nil, fmt.Errorf("ScenesInventory.%w", err)
+		return entities.Scenes{}, fmt.Errorf("ScenesInventory.%w", err)
 	}
 
-	log.Logger(ctx).Sugar().Debugf("%d scenes found", len(scenes))
+	log.Logger(ctx).Sugar().Debugf("%d scenes found", len(scenes.Scenes))
 
 	return scenes, nil
 }
@@ -92,7 +102,7 @@ func (c *Catalog) IngestedScenesInventoryFromTiles(ctx context.Context, tiles []
 }
 
 // ScenesToIngest creates the payload for each scene
-func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest, scenes []*entities.Scene) ([]common.SceneToIngest, error) {
+func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest, scenes entities.Scenes) ([]common.SceneToIngest, error) {
 	var scenesToIngest []common.SceneToIngest
 
 	if err := c.ValidateArea(&area); err != nil {
@@ -100,7 +110,7 @@ func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest
 	}
 	instances := area.InstancesID()
 
-	for _, scene := range scenes {
+	for _, scene := range scenes.Scenes {
 		if len(scene.Tiles) == 0 || scene.Ingested {
 			continue
 		}
@@ -196,7 +206,7 @@ func removeDoubleEntries(scenes []*entities.Scene) []*entities.Scene {
 
 // removeOutsideAOI removes scenes that are located outside the AOI
 // The search routine works over a simplified representation of the AOI.
-// This may then include acquistions that do not overlap with the AOI.
+// This may then include acquisitions that do not overlap with the AOI.
 // In this step we sort out the scenes that are completely outside the actual AOI.
 // Credit: OpenSarToolkit
 func removeOutsideAOI(scenes []*entities.Scene, aoi geos.Geometry) ([]*entities.Scene, error) {

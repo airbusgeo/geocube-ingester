@@ -1,0 +1,50 @@
+{
+    "name":"Toulouse",
+    "type":"Feature",
+    "geometry":{
+        "type": "MultiPolygon",
+        "coordinates":
+        [
+          [
+            [
+              [
+                1.48,43.53
+              ],
+              [
+                1.48,43.51
+              ],
+              [
+                1.50,43.51
+              ],
+              [
+                1.50,43.53
+              ],
+              [
+                1.48,43.53
+              ]
+            ]
+          ]
+    	]
+    },
+    "start_time":"2020-01-01T00:00:00.000Z",
+    "end_time":"2022-01-01T00:00:00.000Z",
+	"scene_type":{
+        "constellation":"PHR",
+        "parameters": {
+            "productType": "bundle",
+            "cloudCover": "[0,80]"
+        }
+    },
+    "scene_graph_name":"PhrPreProcessing",
+    "tile_graph_name":"PhrProcessing",
+    "graph_config":{},
+    "layers":{
+	"MS": {"variable":"Multispectral_4bands", "instance":"default"},
+        "P": {"variable":"Panchromatic", "instance":"default"}
+    },
+    "record_tags":{
+        "source": "tutorial",
+	"provider": "geocube-ingester",
+	"area":"Toulouse"
+    }
+}

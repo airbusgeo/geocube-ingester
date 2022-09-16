@@ -22,7 +22,7 @@ import (
 type Provider struct {
 }
 
-func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) ([]*entities.Scene, error) {
+func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
 	// Construct Query
 	mapKey := map[string]string{
 		"constellation":         "identification.collection:eq",
@@ -45,7 +45,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		parametersMap[mapKey["constellation"]] = "Sentinel-2"
 		parametersMap[mapKey["producttype"]] = "S2MSI1C"
 	default:
-		return nil, fmt.Errorf("constellation not supported: " + area.SceneType.Constellation)
+		return entities.Scenes{}, fmt.Errorf("constellation not supported: " + area.SceneType.Constellation)
 	}
 	for k, v := range area.SceneType.Parameters {
 		if nk, ok := mapKey[k]; ok {
@@ -68,12 +68,12 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 	{
 		convexhull, err := aoi.ConvexHull()
 		if err != nil {
-			return nil, fmt.Errorf("SearchScenes.ConvexHull: %w", err)
+			return entities.Scenes{}, fmt.Errorf("SearchScenes.ConvexHull: %w", err)
 		}
 
 		convexhullWKT, err := convexhull.ToWKT()
 		if err != nil {
-			return nil, fmt.Errorf("SearchScenes.ToWKT: %w", err)
+			return entities.Scenes{}, fmt.Errorf("SearchScenes.ToWKT: %w", err)
 		}
 		parameters = append(parameters, "gintersect="+neturl.QueryEscape(convexhullWKT))
 	}
@@ -84,7 +84,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 	// Execute query
 	rawscenes, err := s.querySobloo(ctx, provider.SoblooHost+provider.SoblooSearch, strings.Join(parameters, "&"))
 	if err != nil {
-		return nil, fmt.Errorf("SearchScenes.%w", err)
+		return entities.Scenes{}, fmt.Errorf("SearchScenes.%w", err)
 	}
 
 	// Parse results
@@ -136,7 +136,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		}
 	}
 
-	return scenes, nil
+	return entities.Scenes{Scenes: scenes}, nil
 }
 
 type soblooHits struct {

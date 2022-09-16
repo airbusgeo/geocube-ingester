@@ -34,6 +34,8 @@ const (
 	Unknown   constellation = iota
 	Sentinel1 constellation = iota // MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC.SAFE
 	Sentinel2 constellation = iota // MMM_MSIXXX_YYYYMMDDTHHMMSS_Nxxyy_ROOO_Txxxxx_<Product Discriminator>.SAFE or MMM_CCCC_FFFFDDDDDD_ssss_YYYYMMDDTHHMMSS_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS.SAFE
+	Pleiades  constellation = iota // DS_PHR1B_201706161037358_XXX_XX_XXXXXXX_XXXX_XXXXX
+	Spot      constellation = iota // DS_SPOT7_201806232333174_XXX_XXX_XXX_XXX_XXXXXXX_XXXXX
 )
 
 func fmtBytes(bytes int64) string {
@@ -204,6 +206,12 @@ func getConstellation(sceneName string) constellation {
 	if strings.HasPrefix(sceneName, "S2") {
 		return Sentinel2
 	}
+	if strings.HasPrefix(sceneName, "DS_PHR") {
+		return Pleiades
+	}
+	if strings.HasPrefix(sceneName, "DS_SPOT") {
+		return Spot
+	}
 	return Unknown
 }
 
@@ -275,15 +283,47 @@ func Info(sceneName string) (map[string]string, error) {
 			"SCENE":         sceneName,
 			"MISSION_ID":    sceneName[0:3],
 			"PRODUCT_LEVEL": sceneName[16:19],
-			"DATE":          sceneName[25:33],
-			"YEAR":          sceneName[25:29],
-			"MONTH":         sceneName[29:31],
-			"DAY":           sceneName[31:33],
-			"TIME":          sceneName[34:40],
-			"HOUR":          sceneName[34:36],
-			"MINUTE":        sceneName[36:38],
-			"SECOND":        sceneName[38:40],
 			"ORBIT":         sceneName[42:45],
+		}, nil
+	case Pleiades:
+		// DS_PHR1A_201006181052297_FR1_PX_E001N43_0612_06488
+		if len(sceneName) < len("DS_PHRNN_YYYYMMDDHHMMSSS_RRR_PP_XxxxYyy_KKLL_TTTTT") {
+			return nil, fmt.Errorf("invalid Pleiades file name: " + sceneName)
+		}
+		return map[string]string{
+			"MISSION_ID":     sceneName[3:8],
+			"DATE":           sceneName[9:23],
+			"YEAR":           sceneName[9:13],
+			"MONTH":          sceneName[13:15],
+			"DAY":            sceneName[15:17],
+			"TIME":           sceneName[17:23],
+			"HOUR":           sceneName[17:19],
+			"MINUTE":         sceneName[19:21],
+			"SECOND":         sceneName[21:23],
+			"MODE":           sceneName[29:31],
+			"LONGITUDE":      sceneName[32:36],
+			"LATITUDE":       sceneName[36:39],
+			"LONGITUDE_STEP": sceneName[40:42],
+			"LATITUDE_STEP":  sceneName[42:44],
+		}, nil
+	case Spot:
+		// DS_SPOT6_201212051035424_FR1_FR1_FR1_FR1_E002N41_01174
+		if len(sceneName) < len("DS_SPOTN_YYYYMMDDHHMMSSS_AAA_aaa_RRR_rrr_XxxxYyy_TTTTT") {
+			return nil, fmt.Errorf("invalid Spot file name: " + sceneName)
+		}
+		return map[string]string{
+			"MISSION_ID": sceneName[3:8],
+			"SAT_NUMBER": sceneName[7:8],
+			"DATE":       sceneName[9:23],
+			"YEAR":       sceneName[9:13],
+			"MONTH":      sceneName[13:15],
+			"DAY":        sceneName[15:17],
+			"TIME":       sceneName[17:23],
+			"HOUR":       sceneName[17:19],
+			"MINUTE":     sceneName[19:21],
+			"SECOND":     sceneName[21:23],
+			"LONGITUDE":  sceneName[41:46],
+			"LATITUDE":   sceneName[46:49],
 		}, nil
 	}
 	return nil, fmt.Errorf("GSImageProvider: constellation not supported")

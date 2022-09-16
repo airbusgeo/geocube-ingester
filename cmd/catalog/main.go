@@ -35,6 +35,9 @@ type config struct {
 	WorkflowServer        string
 	WorkflowToken         string
 	ProcessingDir         string
+	OneAtlasUsername      string
+	OneAtlasApikey        string
+	OneAtlasEndpoint      string
 }
 
 func newAppConfig() (*config, error) {
@@ -51,6 +54,9 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.WorkflowServer, "workflow-server", "", "address of workflow server")
 	flag.StringVar(&config.WorkflowToken, "workflow-token", "", "address of workflow server")
 	flag.StringVar(&config.ProcessingDir, "workdir", "", "working directory to store intermediate results (could be empty or temporary)")
+	flag.StringVar(&config.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
+	flag.StringVar(&config.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas account password (optional)")
+	flag.StringVar(&config.OneAtlasEndpoint, "oneatlas-endpoint", "", "oneatlas endpoint to use")
 	flag.Parse()
 
 	return &config, nil
@@ -97,6 +103,11 @@ func run(ctx context.Context) error {
 
 		// Working dir
 		c.WorkingDir = config.ProcessingDir
+
+		// OneAtlas connection
+		c.OneAtlasCatalogUser = config.OneAtlasUsername
+		c.OneAtlasApikey = config.OneAtlasApikey
+		c.OneAtlasCatalogEndpoint = config.OneAtlasEndpoint
 	}
 
 	if config.Area != "" {
@@ -157,7 +168,7 @@ func ingestArea(ctx context.Context, jsonPath string) error {
 		return service.MakeTemporary(fmt.Errorf("chdir: %w", err))
 	}
 
-	_, err = c.IngestArea(ctx, area, nil, nil, workingDir)
+	_, err = c.IngestArea(ctx, area, entities.Scenes{}, entities.Scenes{}, workingDir)
 	return err
 }
 

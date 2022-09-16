@@ -15,6 +15,7 @@ COPY common common
 COPY graph graph
 COPY service service
 COPY interface/provider interface/provider
+COPY interface/shared interface/shared
 COPY downloader downloader
 COPY cmd/downloader cmd
 RUN cd cmd && go install .

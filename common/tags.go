@@ -12,6 +12,7 @@ const (
 	TagRelativeOrbit        = "relativeOrbit"
 	TagOrbit                = "orbit"
 	TagProductType          = "productType"
+	TagDownloadURL          = "downloadURL"
 	TagSliceNumber          = "sliceNumber"
 	TagLastRelativeOrbit    = "lastRelativeOrbit"
 	TagLastOrbit            = "lastOrbit"

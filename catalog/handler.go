@@ -58,7 +58,7 @@ func (c *Catalog) loadArea(req *http.Request) (catalog.AreaToIngest, error) {
 	return area, nil
 }
 
-func loadScenes(w http.ResponseWriter, req *http.Request, field string, ignore_empty bool) ([]*catalog.Scene, error) {
+func loadScenes(w http.ResponseWriter, req *http.Request, field string, ignore_empty bool) (catalog.Scenes, error) {
 	scenes := catalog.Scenes{}
 
 	scenesJSON, err := readField(req, field)
@@ -70,17 +70,17 @@ func loadScenes(w http.ResponseWriter, req *http.Request, field string, ignore_e
 			}
 			fmt.Fprintf(w, "%v", err)
 		}
-		return nil, err
+		return catalog.Scenes{}, err
 	}
 	if err := json.Unmarshal(scenesJSON, &scenes); err != nil {
 		w.WriteHeader(400)
 		fmt.Fprintf(w, "%s %v", scenesJSON, err)
-		return nil, err
+		return catalog.Scenes{}, err
 	}
 	return scenes, nil
 }
 
-func (c *Catalog) FindTiles(ctx context.Context, area catalog.AreaToIngest, scenes []*catalog.Scene) (int, error) {
+func (c *Catalog) FindTiles(ctx context.Context, area catalog.AreaToIngest, scenes catalog.Scenes) (int, error) {
 	if c.Workflow == nil {
 		return 0, fmt.Errorf("FindTiles: WorkflowServer is not defined")
 	}
@@ -200,7 +200,7 @@ func (c Catalog) PostAOIHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var scenes, tiles []*catalog.Scene
+	var scenes, tiles catalog.Scenes
 	// Try to load tiles
 	if tiles, err = loadScenes(w, req, tilesJSONField, true); err != nil {
 		// Or try to load scenes

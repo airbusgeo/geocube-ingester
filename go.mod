@@ -9,6 +9,7 @@ require (
 	github.com/airbusgeo/geocube v0.6.0
 	github.com/airbusgeo/geocube-client-go v0.2.0
 	github.com/airbusgeo/osio v0.1.3
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/cavaliercoder/grab v2.0.0+incompatible
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker v20.10.17+incompatible

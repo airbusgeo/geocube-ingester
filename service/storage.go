@@ -30,6 +30,8 @@ const (
 	LayerBackscatterVH Layer = "sigma0_VH"
 	LayerCoherenceVV   Layer = "coh_VV"
 	LayerCoherenceVH   Layer = "coh_VH"
+	LayerPanchromatic  Layer = "P"
+	LayerMultiSpectral Layer = "MS"
 )
 
 // Extension of a layer
@@ -41,6 +43,7 @@ const (
 	ExtensionZIP       Extension = "zip"
 	ExtensionDIMAP     Extension = "dim"
 	ExtensionDIMAPData Extension = "data"
+	ExtensionDIMAPXml  Extension = "xml"
 	ExtensionGTiff     Extension = "tif"
 )
 

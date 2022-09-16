@@ -12,5 +12,5 @@ type AnnotationsProvider interface {
 }
 
 type ScenesProvider interface {
-	SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) ([]*entities.Scene, error)
+	SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error)
 }

@@ -349,6 +349,30 @@ func LoadGraph(ctx context.Context, graphName string) (*ProcessingGraph, GraphCo
 			return nil, nil, nil, err
 		}
 		return g, S1DefaultConfig(), nil, nil
+	case "PhrPreProcessing":
+		g, err := newPhrPreProcessingGraph(ctx)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return g, PhrDefaultConfig(), nil, nil
+	case "SpotPreProcessing":
+		g, err := newSpotPreProcessingGraph(ctx)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return g, SpotDefaultConfig(), nil, nil
+	case "PhrProcessing":
+		g, err := newPhrProcessingGraph(ctx)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return g, PhrDefaultConfig(), nil, nil
+	case "SpotProcessing":
+		g, err := newSpotProcessingGraph(ctx)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return g, SpotDefaultConfig(), nil, nil
 	}
 
 	return LoadGraphFromFile(ctx, graphName)
@@ -407,6 +431,18 @@ func S1DefaultConfig() GraphConfig {
 		"bs_erode_iterations":        "10",
 		"coh_erode_iterations":       "10",
 		"dformat_out":                "float32,0,0,1", // option to map float32[0,1] to another lighter format (ie. int16,-32768,0,1000)
+	}
+}
+
+func PhrDefaultConfig() GraphConfig {
+	return GraphConfig{
+		"dformat_out": "Int16,0,0,32767",
+	}
+}
+
+func SpotDefaultConfig() GraphConfig {
+	return GraphConfig{
+		"dformat_out": "Int16,0,0,32767",
 	}
 }
 
@@ -767,6 +803,125 @@ func newS1CleanGraph(ctx context.Context) (*ProcessingGraph, error) {
 	}
 
 	return newProcessingGraph(ctx, snapPath, []ProcessingStep{}, infiles, outfiles)
+}
+
+func newPhrPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
+	steps := []ProcessingStep{
+		{
+			Engine:    python,
+			Command:   path.Join(python, "extract_dimap.py"),
+			Condition: pass,
+
+			Args: map[string]Arg{
+				"workdir":       ArgConfig("workdir"),
+				"file-ms-out":   ArgOut{service.LayerMultiSpectral, service.ExtensionGTiff},
+				"file-pan-out":  ArgOut{service.LayerPanchromatic, service.ExtensionGTiff},
+				"constellation": ArgFixed("PHR"),
+			},
+		},
+	}
+
+	// Define inputs
+	infiles := [3][]InFile{
+		{},
+		{},
+		{},
+	}
+
+	// Define outputs
+	outfiles := [][]OutFile{
+		{
+			{File: File{Layer: service.LayerMultiSpectral, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: pass},
+			{File: File{Layer: service.LayerPanchromatic, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: pass},
+		},
+	}
+
+	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
+}
+
+func newSpotPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
+	steps := []ProcessingStep{
+		{
+			Engine:    python,
+			Command:   path.Join(python, "extract_dimap.py"),
+			Condition: pass,
+
+			Args: map[string]Arg{
+				"workdir":       ArgConfig("workdir"),
+				"file-ms-out":   ArgOut{service.LayerMultiSpectral, service.ExtensionGTiff},
+				"file-pan-out":  ArgOut{service.LayerPanchromatic, service.ExtensionGTiff},
+				"constellation": ArgFixed("SPOT"),
+			},
+		},
+	}
+
+	// Define inputs
+	infiles := [3][]InFile{
+		{},
+		{},
+		{},
+	}
+
+	// Define outputs
+	outfiles := [][]OutFile{
+		{
+			{File: File{Layer: service.LayerMultiSpectral, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: pass},
+			{File: File{Layer: service.LayerPanchromatic, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: pass},
+		},
+	}
+
+	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
+}
+
+func newPhrProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
+	// Define inputs
+	infiles := [3][]InFile{
+		{
+			{File{service.LayerMultiSpectral, service.ExtensionGTiff}, pass},
+			{File{service.LayerPanchromatic, service.ExtensionGTiff}, pass},
+		},
+		{},
+		{},
+	}
+
+	// Define Steps
+	var steps []ProcessingStep
+
+	// Define outputs
+	outfiles := [][]OutFile{
+		{
+			newOutFile(service.LayerMultiSpectral, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 4, ToIndex, pass),
+			newOutFile(service.LayerPanchromatic, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, pass),
+		},
+		{},
+		{},
+	}
+
+	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
+}
+
+func newSpotProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
+	// Define inputs
+	infiles := [3][]InFile{
+		{{File{service.LayerMultiSpectral, service.ExtensionGTiff}, pass}},
+		{{File{service.LayerPanchromatic, service.ExtensionGTiff}, pass}},
+		{},
+	}
+
+	// Define Steps
+	var steps []ProcessingStep
+
+	// Define outputs
+	outfiles := [][]OutFile{
+		{
+			newOutFile(service.LayerMultiSpectral, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 4, ToIndex, pass),
+			newOutFile(service.LayerPanchromatic, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, pass),
+		},
+		{},
+		{},
+	}
+
+	return newProcessingGraph(ctx, snapPath, steps, infiles, outfiles)
 }
 
 func cmdToString(cmd *exec.Cmd) string {

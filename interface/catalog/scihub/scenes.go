@@ -31,18 +31,18 @@ type Provider struct {
 	Name     string
 }
 
-func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) ([]*entities.Scene, error) {
+func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
 	// Construct Query
 	var parameters []string
 	{
 		convexhull, err := aoi.ConvexHull()
 		if err != nil {
-			return nil, fmt.Errorf("Scihub.searchScenes.ConvexHull: %w", err)
+			return entities.Scenes{}, fmt.Errorf("Scihub.searchScenes.ConvexHull: %w", err)
 		}
 
 		convexhullWKT, err := convexhull.ToWKT()
 		if err != nil {
-			return nil, fmt.Errorf("Scihub.searchScenes.ToWKT: %w", err)
+			return entities.Scenes{}, fmt.Errorf("Scihub.searchScenes.ToWKT: %w", err)
 		}
 
 		parameters = append(parameters, "( footprint:\"Intersects("+convexhullWKT+")\")")
@@ -69,7 +69,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		parametersMap["platformname"] = "Sentinel-2"
 		parametersMap["producttype"] = "S2MSI1C"
 	default:
-		return nil, fmt.Errorf("constellation not supported: " + area.SceneType.Constellation)
+		return entities.Scenes{}, fmt.Errorf("constellation not supported: " + area.SceneType.Constellation)
 	}
 
 	// Append user-defined parameters
@@ -86,7 +86,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 	// Execute query
 	rawscenes, err := s.queryScihub(ctx, s.URL, query)
 	if err != nil {
-		return nil, fmt.Errorf("Scihub.searchScenes.%w", err)
+		return entities.Scenes{}, fmt.Errorf("Scihub.searchScenes.%w", err)
 	}
 
 	// Parse results
@@ -96,20 +96,20 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		requiredElements := []string{"platformname", "identifier", "beginposition", "uuid", "ingestiondate", "orbitdirection", "relativeorbitnumber", "orbitnumber", "producttype", "footprint"}
 		for _, elem := range requiredElements {
 			if _, ok := rawscene[elem]; !ok {
-				return nil, fmt.Errorf("Scihub.searchScenes: Missing element " + elem + " in results")
+				return entities.Scenes{}, fmt.Errorf("Scihub.searchScenes: Missing element " + elem + " in results")
 			}
 		}
 
 		// Parse date
 		date, err := time.Parse(time.RFC3339Nano, rawscene["beginposition"])
 		if err != nil {
-			return nil, fmt.Errorf("Scihub.searchScenes.TimeParse: %w", err)
+			return entities.Scenes{}, fmt.Errorf("Scihub.searchScenes.TimeParse: %w", err)
 		}
 
 		// Parse aoi
 		wktAOI := strings.ToUpper(rawscene["footprint"])
 		if _, err := wkt.DecodeString(wktAOI); err != nil {
-			return nil, fmt.Errorf("Scihub.searchScenes.wktDecodeString[%s]: %w", wktAOI, err)
+			return entities.Scenes{}, fmt.Errorf("Scihub.searchScenes.wktDecodeString[%s]: %w", wktAOI, err)
 		}
 
 		// Create scene
@@ -157,7 +157,10 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		}
 	}
 
-	return scenes, nil
+	return entities.Scenes{
+		Scenes:     scenes,
+		Properties: nil,
+	}, nil
 }
 
 func (s *Provider) queryScihub(ctx context.Context, baseurl, query string) ([]map[string]string, error) {

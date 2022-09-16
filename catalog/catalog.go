@@ -17,12 +17,17 @@ import (
 
 // Catalog is the main class of this package
 type Catalog struct {
-	GeocubeClient        *geocube.Client
-	Workflow             WorkflowManager
-	ScihubUser           string
-	ScihubPword          string
-	GCSAnnotationsBucket string
-	WorkingDir           string
+	GeocubeClient                  *geocube.Client
+	Workflow                       WorkflowManager
+	ScihubUser                     string
+	ScihubPword                    string
+	OneAtlasCatalogUser            string
+	OneAtlasApikey                 string
+	OneAtlasCatalogEndpoint        string
+	OneAtlasOrderEndpoint          string
+	OneAtlasAuthenticationEndpoint string
+	GCSAnnotationsBucket           string
+	WorkingDir                     string
 }
 
 func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
@@ -67,18 +72,18 @@ func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
 }
 
 // DoScenesInventory lists scenes for a given AOI, satellites and interval of time
-func (c *Catalog) DoScenesInventory(ctx context.Context, area entities.AreaToIngest) ([]*entities.Scene, error) {
+func (c *Catalog) DoScenesInventory(ctx context.Context, area entities.AreaToIngest) (entities.Scenes, error) {
 	// geos AOI
 	aoi, err := geos.FromWKT(wkt.MustEncode(area.AOI))
 	if err != nil {
-		return nil, fmt.Errorf("DoScenesInventory.FromWKT: %w", err)
+		return entities.Scenes{}, fmt.Errorf("DoScenesInventory.FromWKT: %w", err)
 	}
 
 	// Search scenes covering this area
 	log.Logger(ctx).Sugar().Debugf("Search scenes for AOI %s from %v to %v", area.AOIID, area.StartTime, area.EndTime)
 	scenes, err := c.ScenesInventory(ctx, &area, *aoi)
 	if err != nil {
-		return nil, fmt.Errorf("DoScenesInventory.%w", err)
+		return entities.Scenes{}, fmt.Errorf("DoScenesInventory.%w", err)
 	}
 
 	runtime.KeepAlive(aoi)
@@ -87,7 +92,7 @@ func (c *Catalog) DoScenesInventory(ctx context.Context, area entities.AreaToIng
 }
 
 // DoTilesInventory creates an inventory of all the tiles of the given scenes
-func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToIngest, scenes []*entities.Scene, rootLeaf []common.Tile) (int, error) {
+func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToIngest, scenes entities.Scenes, rootLeaf []common.Tile) (int, error) {
 	switch entities.GetConstellation(area.SceneType.Constellation) {
 	case entities.Sentinel1:
 		// geos AOI
@@ -97,7 +102,7 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 		}
 
 		log.Logger(ctx).Debug("Create burst inventory")
-		scenes, burstsNb, err := c.BurstsInventory(ctx, area, *aoi, scenes)
+		scenes, burstsNb, err := c.BurstsInventory(ctx, area, *aoi, scenes.Scenes)
 		if err != nil {
 			return 0, fmt.Errorf("DoTilesInventory.%w", err)
 		}
@@ -115,8 +120,8 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 
 		runtime.KeepAlive(aoi)
 
-	case entities.Sentinel2:
-		for _, scene := range scenes {
+	case entities.Sentinel2, entities.Spot, entities.Pleiades:
+		for _, scene := range scenes.Scenes {
 			scene.Tiles = append(scene.Tiles, &entities.Tile{
 				TileLite: entities.TileLite{
 					SourceID: scene.SourceID,
@@ -131,7 +136,7 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 
 	// Set graphname & count tiles
 	tilesNb := 0
-	for _, scene := range scenes {
+	for _, scene := range scenes.Scenes {
 		for _, tile := range scene.Tiles {
 			tile.Data.GraphName = area.TileGraphName
 		}
@@ -142,14 +147,14 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 }
 
 // DeletePendingRecords deletes records of scenes that have not been successfully posted to the workflow server
-func (c *Catalog) DeletePendingRecords(ctx context.Context, scenes []*entities.Scene, scenesID map[string]int) {
+func (c *Catalog) DeletePendingRecords(ctx context.Context, scenes entities.Scenes, scenesID map[string]int) {
 	if c.GeocubeClient == nil {
 		return
 	}
 
 	// Delete records of scenes that have not been successfully posted to the workflow server
 	var ids []string
-	for _, s := range scenes {
+	for _, s := range scenes.Scenes {
 		if _, ok := scenesID[s.SourceID]; !ok && s.Data.RecordID != "" && s.OwnRecord {
 			ids = append(ids, s.Data.RecordID)
 		}
@@ -165,7 +170,7 @@ type IngestAreaResult struct {
 	TilesNb  int            `json:"tiles_nb"`
 }
 
-func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, scenes []*entities.Scene, scenesWithTiles []*entities.Scene, outputDir string) (IngestAreaResult, error) {
+func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, scenes, scenesWithTiles entities.Scenes, outputDir string) (IngestAreaResult, error) {
 	var (
 		err            error
 		scenesToIngest []common.SceneToIngest
@@ -177,20 +182,20 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 	}
 
 	// Scene inventory
-	if scenes == nil && scenesWithTiles == nil {
+	if scenes.Scenes == nil && scenesWithTiles.Scenes == nil {
 		if scenes, err = c.DoScenesInventory(ctx, area); err != nil {
 			return result, fmt.Errorf("ingestArea.%w", err)
 		}
-		service.ToJSON(struct{ Scenes []*entities.Scene }{Scenes: scenes}, outputDir, "scenesInventory.json")
+		service.ToJSON(struct{ Scenes entities.Scenes }{Scenes: scenes}, outputDir, "scenesInventory.json")
 	}
 
 	// Tile inventory
-	if scenesWithTiles == nil {
+	if scenesWithTiles.Scenes == nil {
 		result.TilesNb, err = c.FindTiles(ctx, area, scenes)
 		if err != nil {
 			return result, fmt.Errorf("ingestArea.%w", err)
 		}
-		service.ToJSON(struct{ Scenes []*entities.Scene }{Scenes: scenes}, outputDir, "tilesInventory.json")
+		service.ToJSON(struct{ Scenes entities.Scenes }{Scenes: scenes}, outputDir, "tilesInventory.json")
 	}
 
 	defer func() {
@@ -213,7 +218,7 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 	log.Logger(ctx).Debug("Done !")
 
 	result.TilesNb = 0
-	for _, scene := range scenes {
+	for _, scene := range scenes.Scenes {
 		if _, ok := result.ScenesID[scene.SourceID]; ok {
 			result.TilesNb += len(scene.Tiles)
 		}

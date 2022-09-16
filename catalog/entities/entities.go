@@ -70,6 +70,8 @@ type AreaToIngest struct {
 const (
 	Sentinel1              = "Sentinel1"
 	Sentinel2              = "Sentinel2"
+	Pleiades               = "PHR"
+	Spot                   = "SPOT"
 	UndefinedConstellation = "undefined"
 )
 
@@ -81,6 +83,10 @@ func GetConstellation(constellation string) string {
 		return Sentinel1
 	case "sentinel2", "sentinel-2":
 		return Sentinel2
+	case "phr":
+		return Pleiades
+	case "spot":
+		return Spot
 	}
 	if strings.HasPrefix(constellation, "s1") {
 		return Sentinel1
@@ -182,7 +188,10 @@ func (scene *Scene) fromFeature(feature geojson.Feature) error {
 	return nil
 }
 
-type Scenes []*Scene
+type Scenes struct {
+	Scenes     []*Scene
+	Properties map[string]string
+}
 
 // UnmarshalJSON implements the json.Unmarshaler interface for Scenes
 func (scenes *Scenes) UnmarshalJSON(data []byte) error {
@@ -192,10 +201,10 @@ func (scenes *Scenes) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("UnmarshalJSON: %w", err)
 	}
 	// Convert FeatureCollection to a list of scenes
-	*scenes = make([]*Scene, len(fc.Features))
+	scenes.Scenes = make([]*Scene, len(fc.Features))
 	for i, feature := range fc.Features {
-		(*scenes)[i] = &Scene{}
-		if err := (*scenes)[i].fromFeature(feature); err != nil {
+		scenes.Scenes[i] = &Scene{}
+		if err := scenes.Scenes[i].fromFeature(feature); err != nil {
 			return fmt.Errorf("UnmarshalJSON.%w", err)
 		}
 	}
@@ -207,10 +216,13 @@ func (scenes Scenes) MarshalJSON() ([]byte, error) {
 	var err error
 
 	// Create FeatureCollection to hold the scene
-	fc := geojson.FeatureCollection{
-		Features: make([]geojson.Feature, len(scenes)),
+	fc := featureCollection{
+		FeatureCollection: geojson.FeatureCollection{
+			Features: make([]geojson.Feature, len(scenes.Scenes)),
+		},
+		Properties: scenes.Properties,
 	}
-	for i, scene := range scenes {
+	for i, scene := range scenes.Scenes {
 		if fc.Features[i], err = scene.toFeature(); err != nil {
 			return nil, fmt.Errorf("MarshalJSON.%w", err)
 		}
@@ -219,4 +231,9 @@ func (scenes Scenes) MarshalJSON() ([]byte, error) {
 	}
 	// Marshal FeatureCollection
 	return json.Marshal(fc)
+}
+
+type featureCollection struct {
+	geojson.FeatureCollection
+	Properties map[string]string `json:"properties,omitempty"`
 }

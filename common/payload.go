@@ -25,6 +25,7 @@ type SceneAttrs struct {
 	GraphConfig  map[string]string      `json:"graph_config"`
 	RecordID     string                 `json:"record_id"`
 	InstancesID  map[string]string      `json:"instances_id"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 type TileAttrs struct {

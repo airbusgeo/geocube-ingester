@@ -30,19 +30,24 @@ type config struct {
 	EventQueue      string
 	PgqDbConnection string
 
-	LocalProviderPath string
-	PepsUsername      string
-	PepsPassword      string
-	OndaUsername      string
-	OndaPassword      string
-	ASFToken          string
-	ScihubUsername    string
-	ScihubPassword    string
-	CreodiasUsername  string
-	CreodiasPassword  string
-	SoblooApiKey      string
-	MundiSeeedToken   string
-	GSProviderBuckets []string
+	LocalProviderPath              string
+	PepsUsername                   string
+	PepsPassword                   string
+	OndaUsername                   string
+	OndaPassword                   string
+	ASFToken                       string
+	ScihubUsername                 string
+	ScihubPassword                 string
+	CreodiasUsername               string
+	CreodiasPassword               string
+	OneAtlasUsername               string
+	OneAtlasDownloadEndpoint       string
+	OneAtlasOrderEndpoint          string
+	OneAtlasApikey                 string
+	OneAtlasAuthenticationEndpoint string
+	SoblooApiKey                   string
+	MundiSeeedToken                string
+	GSProviderBuckets              []string
 
 	WithDockerEngine bool
 	Docker           graph.DockerConfig
@@ -73,6 +78,11 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.CreodiasPassword, "creodias-password", "", "creodias account password (optional)")
 	flag.StringVar(&config.SoblooApiKey, "sobloo-apikey", "", "sobloo api-key (optional). To configure Sobloo as a potential image Provider.")
 	flag.StringVar(&config.MundiSeeedToken, "mundi-seeed-token", "", "mundi seeed-token (optional). To configure Mundi as a potential image Provider.")
+	flag.StringVar(&config.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
+	flag.StringVar(&config.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas apikey to use")
+	flag.StringVar(&config.OneAtlasDownloadEndpoint, "oneatlas-download-endpoint", "https://access.foundation.api.oneatlas.airbus.com/api/v1/items", "oneatlas download endpoint to use")
+	flag.StringVar(&config.OneAtlasOrderEndpoint, "oneatlas-order-endpoint", "https://data.api.oneatlas.airbus.com", "oneatlas order endpoint to use")
+	flag.StringVar(&config.OneAtlasAuthenticationEndpoint, "oneatlas-auth-endpoint", "https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token", "oneatlas order endpoint to use")
 	gsProviderBuckets := flag.String("gs-provider-buckets", "", `Google Storage buckets. List of constellation:bucket comma-separated (optional). To configure GS as a potential image Provider.
 	bucket can contain several {IDENTIFIER} than will be replaced according to the sceneName.
 	IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
@@ -213,6 +223,16 @@ func run(ctx context.Context) error {
 	if config.CreodiasUsername != "" {
 		providerNames = append(providerNames, "Creodias ("+config.CreodiasUsername+")")
 		imageProviders = append(imageProviders, provider.NewCreoDiasImageProvider(config.CreodiasUsername, config.CreodiasPassword))
+	}
+	if config.OneAtlasUsername != "" {
+		providerNames = append(providerNames, "OneAtlas")
+		imageProviders = append(imageProviders, provider.NewOneAtlasProvider(ctx,
+			config.OneAtlasUsername,
+			config.OneAtlasApikey,
+			config.OneAtlasDownloadEndpoint,
+			config.OneAtlasOrderEndpoint,
+			config.OneAtlasAuthenticationEndpoint,
+		))
 	}
 	if len(imageProviders) == 0 {
 		return fmt.Errorf("no image providers defined... ")

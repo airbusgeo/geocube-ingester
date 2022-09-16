@@ -31,12 +31,17 @@ type autoscalerConfig struct {
 }
 
 type catalogConfig struct {
-	GeocubeServer         string
-	GeocubeServerInsecure bool
-	GeocubeServerApiKey   string
-	ScihubUsername        string
-	ScihubPassword        string
-	GCStorage             string
+	GeocubeServer                  string
+	GeocubeServerInsecure          bool
+	GeocubeServerApiKey            string
+	ScihubUsername                 string
+	ScihubPassword                 string
+	GCStorage                      string
+	OneAtlasUsername               string
+	OneAtlasApikey                 string
+	OneAtlasEndpoint               string
+	OneAtlasOrderEndpoint          string
+	OneAtlasAuthenticationEndpoint string
 }
 
 type config struct {
@@ -85,6 +90,12 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.CatalogConfig.ScihubUsername, "scihub-username", "", "username to connect to the Scihub catalog service")
 	flag.StringVar(&config.CatalogConfig.ScihubPassword, "scihub-password", "", "password to connect to the Scihub catalog service")
 	flag.StringVar(&config.CatalogConfig.GCStorage, "gcstorage", "", "GCS url where scenes are stored (for annotations) (optional)")
+	flag.StringVar(&config.CatalogConfig.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
+	flag.StringVar(&config.CatalogConfig.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas account apikey (optional)")
+	flag.StringVar(&config.CatalogConfig.OneAtlasEndpoint, "oneatlas-endpoint", "https://search.foundation.api.oneatlas.airbus.com/api/v2/opensearch", "oneatlas endpoint to use")
+	flag.StringVar(&config.CatalogConfig.OneAtlasOrderEndpoint, "oneatlas-order-endpoint", "https://data.api.oneatlas.airbus.com", "oneatlas order endpoint to use")
+	flag.StringVar(&config.CatalogConfig.OneAtlasAuthenticationEndpoint, "oneatlas-auth-endpoint", "https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token", "oneatlas order endpoint to use")
+
 	flag.Parse()
 
 	if config.AppPort == "" {
@@ -225,6 +236,13 @@ func run(ctx context.Context) error {
 		catalog.ScihubPword = config.CatalogConfig.ScihubPassword
 		// GCStorage
 		catalog.GCSAnnotationsBucket = config.CatalogConfig.GCStorage
+
+		// OneAtlas
+		catalog.OneAtlasCatalogUser = config.CatalogConfig.OneAtlasUsername
+		catalog.OneAtlasApikey = config.CatalogConfig.OneAtlasApikey
+		catalog.OneAtlasCatalogEndpoint = config.CatalogConfig.OneAtlasEndpoint
+		catalog.OneAtlasOrderEndpoint = config.CatalogConfig.OneAtlasOrderEndpoint
+		catalog.OneAtlasAuthenticationEndpoint = config.CatalogConfig.OneAtlasAuthenticationEndpoint
 	}
 
 	// Create Workflow Server

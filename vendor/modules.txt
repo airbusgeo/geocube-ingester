@@ -53,6 +53,9 @@ github.com/airbusgeo/geocube-client-go/pb
 github.com/airbusgeo/osio
 github.com/airbusgeo/osio/gcs
 github.com/airbusgeo/osio/internal
+# github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
+## explicit
+github.com/araddon/dateparse
 # github.com/btubbs/pgq v0.0.0-20190101193147-0a3335913e86
 github.com/btubbs/pgq
 # github.com/cavaliercoder/grab v2.0.0+incompatible
