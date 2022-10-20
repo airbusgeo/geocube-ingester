@@ -36,12 +36,14 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword, Name: "DHUS", URL: scihub.DHUSQueryURL})
 	}
 	if c.OneAtlasCatalogUser != "" {
-		sceneProviders = append(sceneProviders, oneatlas.NewOneAtlasProvider(ctx,
+		oneAtlasProvider, oneAtlasProviderCncl := oneatlas.NewOneAtlasProvider(ctx,
 			c.OneAtlasCatalogUser,
 			c.OneAtlasApikey,
 			c.OneAtlasCatalogEndpoint,
 			c.OneAtlasOrderEndpoint,
-			c.OneAtlasAuthenticationEndpoint))
+			c.OneAtlasAuthenticationEndpoint)
+		sceneProviders = append(sceneProviders, oneAtlasProvider)
+		defer oneAtlasProviderCncl()
 	}
 
 	sceneProviders = append(sceneProviders, &sobloo.Provider{})

@@ -21,14 +21,15 @@ type OneAtlasProvider struct {
 	orderManager     shared.OrderManager
 }
 
-func NewOneAtlasProvider(ctx context.Context, user, apikey, downloadEndpoint, orderEndpoint, authenticationEndpoint string) *OneAtlasProvider {
+func NewOneAtlasProvider(ctx context.Context, user, apikey, downloadEndpoint, orderEndpoint, authenticationEndpoint string) (*OneAtlasProvider, context.CancelFunc) {
+	orderManager, cncl := shared.NewOrderManager(ctx, orderEndpoint, authenticationEndpoint, apikey)
 	return &OneAtlasProvider{
 		user:             user,
 		password:         apikey,
 		downloadEndpoint: downloadEndpoint,
 		client:           grab.NewClient(),
-		orderManager:     shared.NewOrderManager(ctx, orderEndpoint, authenticationEndpoint, apikey),
-	}
+		orderManager:     orderManager,
+	}, cncl
 }
 
 // Name implements ImageProvider

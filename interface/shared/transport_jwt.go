@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/airbusgeo/geocube-ingester/service/log"
 
@@ -28,7 +29,7 @@ type defaultTokenManager struct {
 	clientID              string
 }
 
-func newDefaultTokenManager(ctx context.Context, client *http.Client, authenticationEndpoint string, apikey string, clientID string) tokenManager {
+func newDefaultTokenManager(ctx context.Context, client *http.Client, authenticationEndpoint string, apikey string, clientID string) (tokenManager, context.CancelFunc) {
 	tokenManager := &defaultTokenManager{
 		httpClient:            client,
 		authenticationAddress: authenticationEndpoint,
@@ -44,6 +45,8 @@ func newDefaultTokenManager(ctx context.Context, client *http.Client, authentica
 		tokenManager.token.Store(token)
 	}
 
+	ctx, cncl := context.WithCancel(ctx)
+
 	go func() {
 		for {
 			var nextRefresh time.Duration
@@ -53,14 +56,18 @@ func newDefaultTokenManager(ctx context.Context, client *http.Client, authentica
 				nextRefresh = 30 * time.Second
 			} else {
 				tokenManager.token.Store(token)
-				nextRefresh = expiration / 2
+				nextRefresh = 9 * expiration / 10
 			}
 			log.Logger(ctx).Sugar().Debugf("will refresh token in %s", nextRefresh.String())
-			time.Sleep(nextRefresh)
+			select {
+			case <-time.After(nextRefresh):
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 
-	return tokenManager
+	return tokenManager, cncl
 }
 
 func (t *defaultTokenManager) Get() (string, error) {

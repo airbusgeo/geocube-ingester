@@ -226,13 +226,15 @@ func run(ctx context.Context) error {
 	}
 	if config.OneAtlasUsername != "" {
 		providerNames = append(providerNames, "OneAtlas")
-		imageProviders = append(imageProviders, provider.NewOneAtlasProvider(ctx,
+		oneatlasProvider, cncl := provider.NewOneAtlasProvider(ctx,
 			config.OneAtlasUsername,
 			config.OneAtlasApikey,
 			config.OneAtlasDownloadEndpoint,
 			config.OneAtlasOrderEndpoint,
 			config.OneAtlasAuthenticationEndpoint,
-		))
+		)
+		defer cncl()
+		imageProviders = append(imageProviders, oneatlasProvider)
 	}
 	if len(imageProviders) == 0 {
 		return fmt.Errorf("no image providers defined... ")

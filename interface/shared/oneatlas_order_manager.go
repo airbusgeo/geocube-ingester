@@ -26,25 +26,26 @@ type OrderManager interface {
 	GetAccountInformation() (AccountInformation, error)
 }
 
-func NewOrderManager(ctx context.Context, orderEndpoint, authenticationEndpoint, apikey string) *orderManagerImpl {
+func NewOrderManager(ctx context.Context, orderEndpoint, authenticationEndpoint, apikey string) (*orderManagerImpl, context.CancelFunc) {
 	client := &http.Client{}
 
+	tokenManager, cncl := newDefaultTokenManager(
+		ctx,
+		client,
+		authenticationEndpoint,
+		apikey,
+		"IDP")
 	client.Transport = &transportJwt{
 		originalTransport: http.DefaultTransport,
 		blackList:         []string{authenticationEndpoint},
-		tokenManager: newDefaultTokenManager(
-			ctx,
-			client,
-			authenticationEndpoint,
-			apikey,
-			"IDP"),
+		tokenManager:      tokenManager,
 	}
 
 	return &orderManagerImpl{
 		client:        client,
 		apikey:        apikey,
 		orderEndpoint: orderEndpoint,
-	}
+	}, cncl
 }
 
 func (m *orderManagerImpl) Create(orderRequest OrderRequest) error {

@@ -24,14 +24,15 @@ type provider struct {
 	orderManager shared.OrderManager
 }
 
-func NewOneAtlasProvider(ctx context.Context, username, apikey, endpoint, orderEndpoint, authenticationEndpoint string) *provider {
+func NewOneAtlasProvider(ctx context.Context, username, apikey, endpoint, orderEndpoint, authenticationEndpoint string) (*provider, context.CancelFunc) {
+	orderManager, cncl := shared.NewOrderManager(ctx, orderEndpoint, authenticationEndpoint, apikey)
 	return &provider{
 		username:     username,
 		password:     apikey,
 		endpoint:     endpoint,
 		client:       &http.Client{},
-		orderManager: shared.NewOrderManager(ctx, orderEndpoint, authenticationEndpoint, apikey),
-	}
+		orderManager: orderManager,
+	}, cncl
 }
 
 func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
