@@ -147,6 +147,8 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 			scenes[i].Tags[common.TagSliceNumber] = rawscene["slicenumber"]
 			scenes[i].Tags[common.TagLastOrbit] = rawscene["lastorbitnumber"]
 			scenes[i].Tags[common.TagLastRelativeOrbit] = rawscene["lastrelativeorbitnumber"]
+		case entities.Sentinel2:
+			scenes[i].Tags[common.TagCloudCoverPercentage] = rawscene["cloudcoverpercentage"]
 		}
 
 		// Copy area tags
@@ -208,9 +210,10 @@ func (s *Provider) queryScihub(ctx context.Context, baseurl, query string) ([]ma
 				Message string `xml:"message"`
 			} `xml:"error"`
 			Entries []struct {
-				StrElements  []Element `xml:"str"`
-				IntElements  []Element `xml:"int"`
-				DateElements []Element `xml:"date"`
+				StrElements    []Element `xml:"str"`
+				IntElements    []Element `xml:"int"`
+				DoubleElements []Element `xml:"double"`
+				DateElements   []Element `xml:"date"`
 			} `xml:"entry"`
 			Links []struct {
 				Rel  string `xml:"rel,attr"`
@@ -232,6 +235,9 @@ func (s *Provider) queryScihub(ctx context.Context, baseurl, query string) ([]ma
 				rawscene[elem.Name] = elem.Value
 			}
 			for _, elem := range entry.IntElements {
+				rawscene[elem.Name] = elem.Value
+			}
+			for _, elem := range entry.DoubleElements {
 				rawscene[elem.Name] = elem.Value
 			}
 			for _, elem := range entry.DateElements {
