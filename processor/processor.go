@@ -109,7 +109,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 			case graph.ToDelete:
 				log.Logger(ctx).Sugar().Infof("delete layer '%s'", f.Layer)
 				if err := storageService.DeleteLayer(ctx, tiles[i], f.Layer, f.Extension); err != nil && !errors.As(err, &service.ErrFileNotFound{}) {
-					return err
+					return fmt.Errorf("ProcessTile[%s].%w", tag, err)
 				}
 			}
 		}
