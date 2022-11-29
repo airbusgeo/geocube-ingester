@@ -82,6 +82,12 @@ func GetBodyRetry(url string, nbTries int) ([]byte, error) {
 			continue
 		}
 		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+				return nil, fmt.Errorf(resp.Status)
+			}
+			continue
+		}
 		if body, err = ioutil.ReadAll(resp.Body); err == nil {
 			return body, nil
 		}
