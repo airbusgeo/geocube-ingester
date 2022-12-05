@@ -99,7 +99,9 @@ func run(ctx context.Context) error {
 		c.GCSAnnotationsBucket = config.GCSAnnotationsBucket
 
 		// Workflow Server
-		c.Workflow = catalog.RemoteWorkflowManager{Server: config.WorkflowServer, Token: config.WorkflowToken}
+		if config.WorkflowServer != "" {
+			c.Workflow = catalog.RemoteWorkflowManager{Server: config.WorkflowServer, Token: config.WorkflowToken}
+		}
 
 		// Working dir
 		c.WorkingDir = config.ProcessingDir
