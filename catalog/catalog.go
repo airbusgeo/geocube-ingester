@@ -196,6 +196,8 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 			return result, fmt.Errorf("ingestArea.%w", err)
 		}
 		service.ToJSON(struct{ Scenes entities.Scenes }{Scenes: scenes}, outputDir, "tilesInventory.json")
+	} else {
+		scenes = scenesWithTiles
 	}
 
 	defer func() {
