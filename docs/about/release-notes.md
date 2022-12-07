@@ -6,6 +6,7 @@
 - catalog/scenes and catalog/tiles: fields are low case
 
 ### Functionalities
+- Downloader: add a new provider from URL (use --url-provider)
 
 ### Bug fixes
 - LocalProvider does not require that a date is included in the product name

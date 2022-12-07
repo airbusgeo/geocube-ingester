@@ -31,6 +31,7 @@ type config struct {
 	PgqDbConnection string
 
 	LocalProviderPath                 string
+	URLProvider                       bool
 	PepsUsername                      string
 	PepsPassword                      string
 	OndaUsername                      string
@@ -68,6 +69,7 @@ func newAppConfig() (*config, error) {
 
 	// Providers
 	flag.StringVar(&config.LocalProviderPath, "local-path", "", "local path where images are stored (optional). To configure a local path as a potential image Provider.")
+	flag.BoolVar(&config.URLProvider, "url-provider", false, "enable a provider that use the `download_link` from the metadata to get the product (optional)")
 	flag.StringVar(&config.PepsUsername, "peps-username", "", "peps account username (optional). To configure PEPS as a potential image Provider.")
 	flag.StringVar(&config.PepsPassword, "peps-password", "", "peps account password (optional)")
 	flag.StringVar(&config.ASFToken, "asf-token", "", "ASF token (optional). To configure Alaska Satellite Facility as a potential image Provider.")
@@ -183,7 +185,10 @@ func run(ctx context.Context) error {
 	if config.LocalProviderPath != "" {
 		providerNames = append(providerNames, "local ("+config.LocalProviderPath+")")
 		imageProviders = append(imageProviders, provider.NewLocalImageProvider(config.LocalProviderPath))
-
+	}
+	if config.URLProvider {
+		providerNames = append(providerNames, "url")
+		imageProviders = append(imageProviders, provider.NewURLImageProvider())
 	}
 	if config.FTPPath != "" {
 		ftpp := provider.NewFTPImageProvider(config.FTPPath, config.FTPUsername, config.FTPPassword)
