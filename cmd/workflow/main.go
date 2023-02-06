@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/airbusgeo/geocube-ingester/catalog"
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -149,7 +150,8 @@ func run(ctx context.Context) error {
 
 			if config.DownloaderQueue != "" {
 				logMessaging += fmt.Sprintf(" pushing downloaderJobs on pgqueue:%s", config.DownloaderQueue)
-				downloaderPublisher = pgqueue.NewPublisher(w, config.DownloaderQueue, pgqueue.WithMaxRetries(5))
+				downloaderPublisher = pgqueue.NewPublisher(w, config.DownloaderQueue, pgqueue.WithMaxRetries(5),
+					pgqueue.WithJobRetryWaits([]time.Duration{10 * time.Minute, 10 * time.Minute, 10 * time.Minute, 10 * time.Minute, 10 * time.Minute, 10 * time.Minute, 10 * time.Minute, 10 * time.Minute, 10 * time.Minute}))
 				downloaderQueue = pgqueue.NewConsumer(db, config.DownloaderQueue)
 			}
 
