@@ -95,30 +95,45 @@ func (c *Catalog) DoScenesInventory(ctx context.Context, area entities.AreaToIng
 func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToIngest, scenes entities.Scenes, rootLeaf []common.Tile) (int, error) {
 	switch entities.GetConstellation(area.SceneType.Constellation) {
 	case entities.Sentinel1:
-		// geos AOI
-		aoi, err := geos.FromWKT(wkt.MustEncode(area.AOI))
-		if err != nil {
-			return 0, fmt.Errorf("DoTilesInventory.FromWKT: %w", err)
+		if area.SceneGraphName == common.GraphCopyProductToStorage {
+			// No bursts inventory if we copy the product to the storage
+			for _, scene := range scenes.Scenes {
+				scene.Tiles = append(scene.Tiles, &entities.Tile{
+					TileLite: entities.TileLite{
+						SourceID: scene.SourceID,
+						SceneID:  scene.SourceID,
+						Date:     scene.Data.Date,
+					},
+					GeometryWKT: scene.GeometryWKT,
+				})
+				scene.Data.TileMappings[scene.SourceID] = common.TileMapping{}
+			}
+		} else {
+			// burst inventory intersecting AOI
+			aoi, err := geos.FromWKT(wkt.MustEncode(area.AOI))
+			if err != nil {
+				return 0, fmt.Errorf("DoTilesInventory.FromWKT: %w", err)
+			}
+
+			log.Logger(ctx).Debug("Create burst inventory")
+			scenes, burstsNb, err := c.BurstsInventory(ctx, area, *aoi, scenes.Scenes)
+			if err != nil {
+				return 0, fmt.Errorf("DoTilesInventory.%w", err)
+			}
+
+			log.Logger(ctx).Debug("Append previous ingested scenes")
+			ingestedScenes, err := c.IngestedScenesInventoryFromTiles(ctx, rootLeaf)
+			if err != nil {
+				return 0, fmt.Errorf("DoTilesInventory.%w", err)
+			}
+			scenes = append(scenes, ingestedScenes...)
+
+			log.Logger(ctx).Debug("Sort burst inventory")
+			nTrackSwaths := c.BurstsSort(ctx, scenes)
+			log.Logger(ctx).Sugar().Debugf("%d bursts found in %d tracks and swaths", burstsNb, nTrackSwaths)
+
+			runtime.KeepAlive(aoi)
 		}
-
-		log.Logger(ctx).Debug("Create burst inventory")
-		scenes, burstsNb, err := c.BurstsInventory(ctx, area, *aoi, scenes.Scenes)
-		if err != nil {
-			return 0, fmt.Errorf("DoTilesInventory.%w", err)
-		}
-
-		log.Logger(ctx).Debug("Append previous ingested scenes")
-		ingestedScenes, err := c.IngestedScenesInventoryFromTiles(ctx, rootLeaf)
-		if err != nil {
-			return 0, fmt.Errorf("DoTilesInventory.%w", err)
-		}
-		scenes = append(scenes, ingestedScenes...)
-
-		log.Logger(ctx).Debug("Sort burst inventory")
-		nTrackSwaths := c.BurstsSort(ctx, scenes)
-		log.Logger(ctx).Sugar().Debugf("%d bursts found in %d tracks and swaths", burstsNb, nTrackSwaths)
-
-		runtime.KeepAlive(aoi)
 
 	case entities.Sentinel2, entities.Spot, entities.Pleiades:
 		for _, scene := range scenes.Scenes {

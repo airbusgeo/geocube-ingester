@@ -371,6 +371,10 @@ func newProcessingGraph(ctx context.Context, steps []ProcessingStep, infiles [3]
 // LoadGraph returns the graph from its name and its default configuration
 func LoadGraph(ctx context.Context, graphName string, opts ...Option) (*ProcessingGraph, GraphConfig, GraphEnvs, error) {
 	switch graphName {
+	case common.GraphCopyProductToStorage:
+		return LoadGraphFromFile(ctx, "library/CopyProductToStorage.json", opts...)
+	case common.GraphPass:
+		return LoadGraphFromFile(ctx, "library/Pass.json", opts...)
 	case "S1Preprocessing":
 		g, err := newS1PreProcessingGraph(ctx)
 		if err != nil {

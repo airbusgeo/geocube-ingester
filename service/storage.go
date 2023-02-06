@@ -40,12 +40,13 @@ type Extension string
 
 // List of supported extension
 const (
-	ExtensionSAFE      Extension = "SAFE"
+	ExtensionGTiff Extension = "tif"
+	// The following extensions are exported as zip file
 	ExtensionZIP       Extension = "zip"
+	ExtensionSAFE      Extension = "SAFE"
 	ExtensionDIMAP     Extension = "dim"
 	ExtensionDIMAPData Extension = "data"
-	ExtensionDIMAPXml  Extension = "xml"
-	ExtensionGTiff     Extension = "tif"
+	ExtensionAll       Extension = "all"
 )
 
 // ErrFileNotFound is an error returned by ImportLayer or DeleteLayer
@@ -108,20 +109,33 @@ func NewStorageStrategy(ctx context.Context, storageURI string) (*StorageStrateg
 func (ss *StorageStrategy) SaveLayer(ctx context.Context, tile common.Tile, layer Layer, ext Extension, localdir string) (string, error) {
 	src := path.Join(localdir, LayerFileName(tile, layer, ext))
 
-	if ext == ExtensionDIMAP {
-		ext = ExtensionZIP
-		src = withExt(src, ext)
-		if err := archiver.NewZip().Archive([]string{withExt(src, ExtensionDIMAP), withExt(src, ExtensionDIMAPData)}, src); err != nil {
+	if storedAsZip(ext) {
+		folders := []string{src}
+		switch ext {
+		case ExtensionDIMAP:
+			folders = append(folders, withExt(src, ExtensionDIMAPData))
+		case ExtensionAll:
+			if _, err := os.Stat(src); err != nil {
+				files, err := os.ReadDir(localdir)
+				if err != nil {
+					return "", fmt.Errorf("SaveLayer.Archive: %w", err)
+				}
+				folders = folders[:0]
+				for _, f := range files {
+					folders = append(folders, path.Join(localdir, f.Name()))
+				}
+			}
+		}
+		// Zip
+		dst := withExt(src, ExtensionZIP)
+		if err := archiver.NewZip().Archive(folders, dst); err != nil {
 			return "", fmt.Errorf("SaveLayer.Archive: %w", err)
 		}
-		defer os.Remove(src)
-	} else if ext == ExtensionSAFE {
+		defer os.Remove(dst)
+
+		// Update source and extension
+		src = dst
 		ext = ExtensionZIP
-		src = withExt(src, ext)
-		if err := archiver.NewZip().Archive([]string{withExt(src, ExtensionSAFE)}, src); err != nil {
-			return "", fmt.Errorf("SaveLayer.Archive: %w", err)
-		}
-		defer os.Remove(src)
 	}
 
 	f, err := os.Open(src)
@@ -140,7 +154,8 @@ func (ss *StorageStrategy) SaveLayer(ctx context.Context, tile common.Tile, laye
 
 // ImportLayer implements Storage
 func (ss *StorageStrategy) ImportLayer(ctx context.Context, tile common.Tile, layer Layer, ext Extension, localdir string) error {
-	if ext == ExtensionDIMAP || ext == ExtensionSAFE {
+	oriext := ext
+	if storedAsZip(ext) {
 		ext = ExtensionZIP
 	}
 
@@ -155,8 +170,12 @@ func (ss *StorageStrategy) ImportLayer(ctx context.Context, tile common.Tile, la
 	}
 
 	if ext == ExtensionZIP {
-		zip := archiver.Zip{OverwriteExisting: true}
-		if err := zip.Unarchive(dst, path.Dir(dst)); err != nil {
+		zip := archiver.Zip{OverwriteExisting: true, MkdirAll: true}
+		dstDir := path.Dir(dst)
+		if oriext == ExtensionAll {
+			dstDir = path.Join(dstDir, LayerFileName(tile, layer, oriext))
+		}
+		if err := zip.Unarchive(dst, dstDir); err != nil {
 			return fmt.Errorf("ImportLayer.Unarchive: %w", err)
 		}
 		os.Remove(dst)
@@ -167,7 +186,7 @@ func (ss *StorageStrategy) ImportLayer(ctx context.Context, tile common.Tile, la
 
 // DeleteLayer implements Storage
 func (ss *StorageStrategy) DeleteLayer(ctx context.Context, tile common.Tile, layer Layer, ext Extension) error {
-	if ext == ExtensionDIMAP || ext == ExtensionSAFE {
+	if storedAsZip(ext) {
 		ext = ExtensionZIP
 	}
 
@@ -189,6 +208,14 @@ func (ss *StorageStrategy) getPath(tile common.Tile, filename string) string {
 		uri += "/"
 	}
 	return uri + path.Join(tile.Scene.AOI, tile.Scene.SourceID, "tiles", tile.SourceID, filename)
+}
+
+func storedAsZip(ext Extension) bool {
+	switch ext {
+	case ExtensionDIMAP, ExtensionDIMAPData, ExtensionAll, ExtensionSAFE:
+		return true
+	}
+	return false
 }
 
 func withExt(filepath string, ext Extension) string {

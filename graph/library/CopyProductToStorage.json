@@ -10,16 +10,10 @@
    [
     {
      "layer": "product",
-     "extension": "SAFE",
-     "action": "to_create"
+     "extension": "all",
+     "action": "to_create",
+     "condition": "pass"
     }
-   ],
-   [],
-   []
-  ],
-  "out_files_conditions": [
-   [
-    "pass"
    ],
    [],
    []

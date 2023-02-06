@@ -119,7 +119,6 @@ const (
     ExtensionZIP       Extension = "zip"
     ExtensionDIMAP     Extension = "dim"
     ExtensionDIMAPData Extension = "data"
-    ExtensionDIMAPXml  Extension = "xml"
     ExtensionGTiff     Extension = "tif"
 )
 ```
