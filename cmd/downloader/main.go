@@ -35,6 +35,7 @@ type config struct {
 	PepsPassword                   string
 	OndaUsername                   string
 	OndaPassword                   string
+	OndaAllowOrder                 bool
 	ASFToken                       string
 	ScihubUsername                 string
 	ScihubPassword                 string
@@ -71,6 +72,7 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.PepsPassword, "peps-password", "", "peps account password (optional)")
 	flag.StringVar(&config.OndaUsername, "onda-username", "", "onda account username (optional). To configure ONDA as a potential image Provider.")
 	flag.StringVar(&config.OndaPassword, "onda-password", "", "onda account password (optional)")
+	flag.BoolVar(&config.OndaAllowOrder, "onda-allow-order", false, "allow onda to order offline product (optional)")
 	flag.StringVar(&config.ASFToken, "asf-token", "", "ASF token (optional). To configure Alaska Satellite Facility as a potential image Provider.")
 	flag.StringVar(&config.ScihubUsername, "scihub-username", "", "scihub account username (optional). To configure Scihub as a potential image Provider.")
 	flag.StringVar(&config.ScihubPassword, "scihub-password", "", "scihub account password (optional)")
@@ -206,7 +208,7 @@ func run(ctx context.Context) error {
 	}
 	if config.OndaUsername != "" {
 		providerNames = append(providerNames, "Onda ("+config.OndaUsername+")")
-		imageProviders = append(imageProviders, provider.NewONDADiasImageProvider(config.OndaUsername, config.OndaPassword))
+		imageProviders = append(imageProviders, provider.NewONDADiasImageProvider(config.OndaUsername, config.OndaPassword, false))
 	}
 	if config.ASFToken != "" {
 		providerNames = append(providerNames, "ASF ("+config.ASFToken+")")
@@ -235,6 +237,12 @@ func run(ctx context.Context) error {
 		)
 		defer cncl()
 		imageProviders = append(imageProviders, oneatlasProvider)
+	}
+
+	// If everything else failed, try to order
+	if config.OndaUsername != "" && config.OndaAllowOrder {
+		providerNames = append(providerNames, "Onda ("+config.OndaUsername+")")
+		imageProviders = append(imageProviders, provider.NewONDADiasImageProvider(config.OndaUsername, config.OndaPassword, config.OndaAllowOrder))
 	}
 	if len(imageProviders) == 0 {
 		return fmt.Errorf("no image providers defined... ")
