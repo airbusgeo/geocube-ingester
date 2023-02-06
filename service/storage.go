@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	gstorage "cloud.google.com/go/storage"
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -183,7 +184,11 @@ func (ss *StorageStrategy) DeleteLayer(ctx context.Context, tile common.Tile, la
 
 // getPath returns the local path of the layer of the tile
 func (ss *StorageStrategy) getPath(tile common.Tile, filename string) string {
-	return ss.uri.String() + path.Join(tile.Scene.AOI, tile.Scene.SourceID, "tiles", tile.SourceID, filename)
+	uri := ss.uri.String()
+	if !strings.HasSuffix(uri, "/") {
+		uri += "/"
+	}
+	return uri + path.Join(tile.Scene.AOI, tile.Scene.SourceID, "tiles", tile.SourceID, filename)
 }
 
 func withExt(filepath string, ext Extension) string {
