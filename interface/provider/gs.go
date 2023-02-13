@@ -19,7 +19,7 @@ import (
 
 // GSImageProvider implements ImageProvider for Google Storage Sentinel2 and LANDSAT buckets
 type GSImageProvider struct {
-	buckets map[common.Constellation]string
+	buckets map[common.Constellation][]string
 }
 
 // Name implements ImageProvider
@@ -29,7 +29,7 @@ func (ip *GSImageProvider) Name() string {
 
 // NewGSImageProvider creates a new ImageProvider from Google Storage Sentinel2 and LANDSAT buckets
 func NewGSImageProvider() *GSImageProvider {
-	return &GSImageProvider{buckets: map[common.Constellation]string{}}
+	return &GSImageProvider{buckets: map[common.Constellation][]string{}}
 }
 
 // AddBucket to the provider
@@ -39,9 +39,9 @@ func NewGSImageProvider() *GSImageProvider {
 func (ip *GSImageProvider) AddBucket(constellation, bucket string) error {
 	switch strings.ToLower(constellation) {
 	case "sentinel1", "sentinel-1":
-		ip.buckets[common.Sentinel1] = bucket
+		ip.buckets[common.Sentinel1] = append(ip.buckets[common.Sentinel1], bucket)
 	case "sentinel2", "sentinel-2":
-		ip.buckets[common.Sentinel2] = bucket
+		ip.buckets[common.Sentinel2] = append(ip.buckets[common.Sentinel2], bucket)
 	default:
 		return fmt.Errorf("GSImageProvider: constellation not supported")
 	}
@@ -52,7 +52,7 @@ func (ip *GSImageProvider) AddBucket(constellation, bucket string) error {
 func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	sceneName := scene.SourceID
 	constellation := common.GetConstellationFromProductId(sceneName)
-	bucket, ok := ip.buckets[constellation]
+	buckets, ok := ip.buckets[constellation]
 	if constellation == common.Unknown || !ok {
 		return fmt.Errorf("GSImageProvider: constellation not supported")
 	}
@@ -61,16 +61,18 @@ func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, loc
 		return fmt.Errorf("GSImageProvider: %w", err)
 	}
 
-	url := common.FormatBrackets(bucket, format)
+	for _, bucket := range buckets {
+		url := common.FormatBrackets(bucket, format)
 
-	if filepath.Ext(url) == "."+string(service.ExtensionZIP) {
-		if err := ip.downloadZip(ctx, url, localDir); err != nil {
+		if filepath.Ext(url) == "."+string(service.ExtensionZIP) {
+			if err := ip.downloadZip(ctx, url, localDir); err != nil {
+				return fmt.Errorf("GSImageProvider[%s].%w", url, err)
+			}
+		} else if files, err := ip.downloadDirectory(ctx, url, filepath.Join(localDir, filepath.Base(url))); err != nil {
 			return fmt.Errorf("GSImageProvider[%s].%w", url, err)
+		} else if len(files) == 0 {
+			return fmt.Errorf("GSImageProvider[%s]: not found", url)
 		}
-	} else if files, err := ip.downloadDirectory(ctx, url, filepath.Join(localDir, filepath.Base(url))); err != nil {
-		return fmt.Errorf("GSImageProvider[%s].%w", url, err)
-	} else if len(files) == 0 {
-		return fmt.Errorf("GSImageProvider[%s]: not found", url)
 	}
 	return nil
 }
