@@ -1112,7 +1112,7 @@ func (f *PythonLogFilter) WrapError(err error) error {
 // Filter implement log.Filter
 func (f *PythonLogFilter) Filter(msg string, defaultLevel zapcore.Level) (string, zapcore.Level, bool) {
 	trimmedmsg := strings.TrimSpace(msg)
-	if strings.HasPrefix(trimmedmsg, "FATAL ERROR:") || strings.HasPrefix(trimmedmsg, "ERROR:") {
+	if strings.Contains(trimmedmsg, "FATAL ERROR:") || strings.HasPrefix(trimmedmsg, "ERROR:") {
 		f.lastError = msg
 		return msg, zapcore.ErrorLevel, false
 	}
