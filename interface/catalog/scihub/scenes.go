@@ -35,17 +35,12 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 	// Construct Query
 	var parameters []string
 	{
-		convexhull, err := aoi.ConvexHull()
-		if err != nil {
-			return entities.Scenes{}, fmt.Errorf("Scihub.searchScenes.ConvexHull: %w", err)
-		}
-
-		convexhullWKT, err := convexhull.ToWKT()
+		aoiWKT, err := aoi.ToWKT()
 		if err != nil {
 			return entities.Scenes{}, fmt.Errorf("Scihub.searchScenes.ToWKT: %w", err)
 		}
 
-		parameters = append(parameters, "( footprint:\"Intersects("+convexhullWKT+")\")")
+		parameters = append(parameters, "( footprint:\"Intersects("+aoiWKT+")\")")
 	}
 
 	// Append time
