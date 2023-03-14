@@ -15,7 +15,6 @@ import (
 
 type orderManagerImpl struct {
 	orderEndpoint string
-	apikey        string
 	client        *http.Client
 }
 
@@ -43,7 +42,6 @@ func NewOrderManager(ctx context.Context, orderEndpoint, authenticationEndpoint,
 
 	return &orderManagerImpl{
 		client:        client,
-		apikey:        apikey,
 		orderEndpoint: orderEndpoint,
 	}, cncl
 }
@@ -79,7 +77,7 @@ func (m *orderManagerImpl) GetStatus(orderRequest OrderRequest) (map[string]Orde
 	nbPage := 0
 	deliveries := make(map[string]OrderStatus)
 	for {
-		requestURL := m.orderEndpoint + "/api/v1/orders" + fmt.Sprintf("?kind=order.data.gb.product&itemsPerPage=%d&page=%d", itemPerPage, startPage)
+		requestURL := m.orderEndpoint + "/api/v1/orders" + fmt.Sprintf("?kind=order.data.product&itemsPerPage=%d&page=%d", itemPerPage, startPage)
 
 		request, err := http.NewRequest(http.MethodGet, requestURL, nil)
 		if err != nil {
@@ -161,7 +159,7 @@ func (m *orderManagerImpl) GetPrice(orderRequest OrderRequest) (OrderPrice, erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return OrderPrice{}, fmt.Errorf("failed to check order price")
+		return OrderPrice{}, fmt.Errorf("failed to check order price %s", resp.Status)
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)

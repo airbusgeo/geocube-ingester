@@ -64,7 +64,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		parametersMap["platformname"] = "Sentinel-2"
 		parametersMap["producttype"] = "S2MSI1C"
 	default:
-		return entities.Scenes{}, fmt.Errorf("constellation not supported: " + area.SceneType.Constellation)
+		return entities.Scenes{}, fmt.Errorf("Scihub: constellation not supported: " + area.SceneType.Constellation)
 	}
 
 	// Append user-defined parameters

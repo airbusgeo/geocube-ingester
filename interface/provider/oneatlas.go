@@ -123,12 +123,12 @@ func (o *OneAtlasProvider) sendOrderRequest(scene common.Scene) (string, error) 
 	}
 
 	orderRequest := shared.OrderRequest{
-		Kind: "order.data.gb.product",
+		Kind: "order.data.product",
 		Products: []shared.Product{{
 			CrsCode:               "urn:ogc:def:crs:EPSG::4326",
 			ProductType:           "bundle",
-			RadiometricProcessing: "REFLECTANCE",
-			Aoi:                   aoi, ID: scene.Data.UUID, ImageFormat: "image/jp2"}},
+			RadiometricProcessing: "BASIC16",
+			Aoi:                   aoi, ID: scene.Data.UUID, ImageFormat: "image/geotiff"}},
 	}
 
 	status, err := o.orderManager.GetStatus(orderRequest)

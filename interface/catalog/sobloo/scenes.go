@@ -45,7 +45,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		parametersMap[mapKey["constellation"]] = "Sentinel-2"
 		parametersMap[mapKey["producttype"]] = "S2MSI1C"
 	default:
-		return entities.Scenes{}, fmt.Errorf("constellation not supported: " + area.SceneType.Constellation)
+		return entities.Scenes{}, fmt.Errorf("Sobloo: constellation not supported: " + area.SceneType.Constellation)
 	}
 	for k, v := range area.SceneType.Parameters {
 		if nk, ok := mapKey[k]; ok {

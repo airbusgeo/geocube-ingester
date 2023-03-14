@@ -12,6 +12,8 @@ import (
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/interface/shared"
+	"github.com/airbusgeo/geocube-ingester/service"
+	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/araddon/dateparse"
 	"github.com/paulsmith/gogeos/geos"
 )
@@ -99,6 +101,18 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 			return entities.Scenes{}, fmt.Errorf("failed to parse productType: %v", feature.Properties["productType"])
 		}
 
+		constellation, ok := feature.Properties["constellation"].(string)
+		if !ok {
+			return entities.Scenes{}, fmt.Errorf("failed to parse constellation: %v", feature.Properties["constellation"])
+		}
+
+		platform, ok := feature.Properties["platform"].(string)
+		if !ok {
+			return entities.Scenes{}, fmt.Errorf("failed to parse platform: %v", feature.Properties["platform"])
+		}
+
+		cloudcover, _ := feature.Properties["cloudcover"].(string)
+
 		if p.isSceneAlreadyAdded(parentIdentifier, acquisitionIdentifier, scenes) {
 			continue
 		}
@@ -106,7 +120,18 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		intersectGeometry, err := p.GetIntersectGeometry(feature.Geometry, aoi)
 		if err != nil {
 			return entities.Scenes{}, fmt.Errorf("failed to get geometry intersection: %w", err)
-
+		}
+		if empty, err := intersectGeometry.IsEmpty(); err != nil {
+			return entities.Scenes{}, fmt.Errorf("failed to get geometry intersection: %w", err)
+		} else if empty {
+			log.Logger(ctx).Sugar().Debugf("Empty intersection with %s", acquisitionIdentifier)
+			continue
+		}
+		if area, err := intersectGeometry.Area(); err != nil {
+			return entities.Scenes{}, fmt.Errorf("failed to get geometry intersection: %w", err)
+		} else if area < 0.00001 {
+			log.Logger(ctx).Sugar().Debugf("Too small intersection with %s (area=%fdeg²)", acquisitionIdentifier, area)
+			continue
 		}
 
 		wktGeometry, err := intersectGeometry.ToWKT()
@@ -126,7 +151,7 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		metadata[common.DownloadLinkMetadata] = downloadURL
 		g, err := p.computeGeometryFromAOI(*intersectGeometry)
 		if err != nil {
-			return entities.Scenes{}, fmt.Errorf("failed to compute geometry from intersect geometry")
+			return entities.Scenes{}, fmt.Errorf("failed to compute geometry from intersect geometry: %w", err)
 		}
 
 		metadata["geometry"] = *g
@@ -149,10 +174,13 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 			},
 			ProductName: acquisitionIdentifier,
 			Tags: map[string]string{
-				common.TagSourceID:      parentIdentifier,
-				common.TagUUID:          id,
-				common.TagIngestionDate: acquisitionDate.String(),
-				common.TagProductType:   productType,
+				common.TagSourceID:             parentIdentifier,
+				common.TagUUID:                 id,
+				common.TagIngestionDate:        acquisitionDate.String(),
+				common.TagProductType:          productType,
+				common.TagConstellation:        constellation,
+				common.TagSatellite:            platform,
+				common.TagCloudCoverPercentage: cloudcover,
 			},
 			GeometryWKT: wktGeometry,
 		}
@@ -173,69 +201,75 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 
 			orderProducts = append(orderProducts, shared.Product{
 				CrsCode:               "urn:ogc:def:crs:EPSG::4326",
-				ProductType:           "bundle",
-				RadiometricProcessing: "REFLECTANCE",
+				ProductType:           productType,
+				RadiometricProcessing: "BASIC16",
 				Aoi:                   aoi,
 				ID:                    newScene.Data.UUID,
-				ImageFormat:           "image/jp2",
+				ImageFormat:           "image/geotiff",
 			})
 		}
 		scenes = append(scenes, newScene)
 	}
 
-	orderRequest := shared.OrderRequest{
-		Kind:     "order.data.gb.product",
-		Products: orderProducts,
-	}
-
-	price, err := p.orderManager.GetPrice(orderRequest)
-	if err != nil {
-		return entities.Scenes{}, fmt.Errorf("failed to check price before start order: %w", err)
-	}
-
-	var globalAmount int
-	amountUnit := price.AmountUnit
-	orderStatus, err := p.orderManager.GetStatus(orderRequest)
-	switch {
-	case err == shared.ErrOrderNotFound:
-		for _, scene := range scenes {
-			for _, d := range price.Deliveries {
-				if strings.EqualFold(d.ID, scene.Scene.Data.UUID) {
-					globalAmount += d.Amount
-					scene.Tags["EstimatedCost"] = fmt.Sprintf("%d", d.Amount)
-					scene.Tags["amountUnit"] = d.AmountUnit
-				}
-			}
-		}
-
-	case err != nil:
-		return entities.Scenes{}, fmt.Errorf("failed to get status order: %w", err)
-	default:
-		for _, scene := range scenes {
-			sceneOrderStatus, ok := orderStatus[scene.Scene.Data.UUID]
-			if ok {
-				if strings.EqualFold(sceneOrderStatus.State, "delivered") {
-					scene.Data.Metadata["downloadLink"] = sceneOrderStatus.DownloadLink
-				}
-				continue
-			}
-
-			for _, d := range price.Deliveries {
-				if strings.EqualFold(d.ID, scene.Scene.Data.UUID) {
-					globalAmount += d.Amount
-					scene.Tags["estimatedCost"] = fmt.Sprintf("%d", d.Amount)
-					scene.Tags["amountUnit"] = d.AmountUnit
-				}
-			}
-		}
-	}
 	scenesResult := entities.Scenes{
-		Scenes: scenes,
-		Properties: map[string]string{
-			"globalEstimatedCost": fmt.Sprintf("%d", globalAmount),
-			"amountUnit":          amountUnit,
-		},
+		Scenes:     scenes,
+		Properties: map[string]string{},
 	}
+
+	if getPrice, ok := area.SceneType.Parameters["GetPrice"]; ok && strings.ToLower(getPrice) == "true" {
+		log.Logger(ctx).Sugar().Debugf("Check price")
+		orderRequest := shared.OrderRequest{
+			Kind:     "order.data.product",
+			Products: orderProducts,
+		}
+
+		price, err := p.orderManager.GetPrice(orderRequest)
+		if err != nil {
+			return entities.Scenes{}, fmt.Errorf("failed to check price before start order: %w", err)
+		}
+
+		var globalAmount int
+		amountUnit := price.AmountUnit
+		orderStatus, err := p.orderManager.GetStatus(orderRequest)
+		switch {
+		case err == shared.ErrOrderNotFound:
+			for _, scene := range scenes {
+				for _, d := range price.Deliveries {
+					if strings.EqualFold(d.ID, scene.Scene.Data.UUID) {
+						globalAmount += d.Amount
+						scene.Tags["EstimatedCost"] = fmt.Sprintf("%d", d.Amount)
+						scene.Tags["amountUnit"] = d.AmountUnit
+						continue
+					}
+				}
+			}
+
+		case err != nil:
+			return entities.Scenes{}, fmt.Errorf("failed to get status order: %w", err)
+		default:
+			for _, scene := range scenes {
+				sceneOrderStatus, ok := orderStatus[scene.Scene.Data.UUID]
+				if ok {
+					if strings.EqualFold(sceneOrderStatus.State, "delivered") {
+						scene.Data.Metadata[common.DownloadLinkMetadata] = sceneOrderStatus.DownloadLink
+					}
+					continue
+				}
+
+				for _, d := range price.Deliveries {
+					if strings.EqualFold(d.ID, scene.Scene.Data.UUID) {
+						globalAmount += d.Amount
+						scene.Tags["estimatedCost"] = fmt.Sprintf("%d", d.Amount)
+						scene.Tags["amountUnit"] = d.AmountUnit
+					}
+				}
+			}
+		}
+
+		scenesResult.Properties["globalEstimatedCost"] = fmt.Sprintf("%d", globalAmount)
+		scenesResult.Properties["amountUnit"] = amountUnit
+	}
+
 	return scenesResult, nil
 }
 
@@ -254,16 +288,16 @@ func (p *provider) buildCatalogParameters(area *entities.AreaToIngest, aoi geos.
 
 	constellation := entities.GetConstellation(area.SceneType.Constellation)
 	if constellation != common.PHR && constellation != common.SPOT {
-		return nil, fmt.Errorf("constellation not supported: " + area.SceneType.Constellation)
+		return nil, fmt.Errorf("OneAtlas: constellation not supported: " + area.SceneType.Constellation)
 	}
 
-	productType, _ := area.SceneType.Parameters["productType"]
-	platform, _ := area.SceneType.Parameters["platform"]
-	processingLevel, _ := area.SceneType.Parameters["processingLevel"]
-	cloudCover, _ := area.SceneType.Parameters["cloudCover"]
-	incidenceAngle, _ := area.SceneType.Parameters["incidenceAngle"]
-	workspace, _ := area.SceneType.Parameters["workspace"]
-	relation, _ := area.SceneType.Parameters["relation"]
+	productType := area.SceneType.Parameters["productType"]
+	platform := area.SceneType.Parameters["platform"]
+	processingLevel := area.SceneType.Parameters["processingLevel"]
+	cloudCover := area.SceneType.Parameters["cloudCover"]
+	incidenceAngle := area.SceneType.Parameters["incidenceAngle"]
+	workspace := area.SceneType.Parameters["workspace"]
+	relation := area.SceneType.Parameters["relation"]
 
 	return &catalogRequestParameter{
 		Constellation:   constellation.String(),
@@ -307,6 +341,14 @@ func (p *provider) queryCatalog(_ context.Context, catalogRequestParameter *cata
 
 		//noinspection GoDeferInLoop
 		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+				return nil, fmt.Errorf(resp.Status)
+			}
+			return nil, service.MakeTemporary(fmt.Errorf(resp.Status))
+		}
+
 		bodyResponse, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return nil, err
