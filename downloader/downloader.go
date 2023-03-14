@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 )
 
-//ProcessScene processes a scene.
+// ProcessScene processes a scene.
 func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, storageService service.Storage, scene common.Scene, workdir string, opts []graph.Option) error {
 	// Working dir
 	workdir = filepath.Join(workdir, uuid.New().String())
@@ -95,7 +95,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, scene comm
 		for _, f := range outtilefiles {
 			switch f.Action {
 			case graph.ToCreate:
-				dst, err := storageService.SaveLayer(ctx, tiles[i], f.Layer, f.Extension, "")
+				dst, err := storageService.SaveLayer(ctx, tiles[i], f.Layer, f.Extension, workdir)
 				if err != nil {
 					return fmt.Errorf("ProcessTile[%s].%w", logtilename, err)
 				}
