@@ -63,6 +63,16 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 		return entities.Scenes{}, fmt.Errorf("ScenesInventory.%w", err)
 	}
 
+	if area.GCSAnnotationsBucket != "" {
+		for i, s := range scenes.Scenes {
+			if dl, ok := scenes.Scenes[i].Data.Metadata[common.DownloadLinkMetadata].(string); !ok || dl == "" {
+				if info, err := common.Info(s.SourceID); err == nil {
+					scenes.Scenes[i].Data.Metadata[common.DownloadLinkMetadata] = common.FormatBrackets(area.GCSAnnotationsBucket, info)
+				}
+			}
+		}
+	}
+
 	// Refine inventory
 	scenes.Scenes, err = refineInventory(area, scenes.Scenes, aoi)
 	if err != nil {

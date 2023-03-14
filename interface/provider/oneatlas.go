@@ -47,7 +47,7 @@ func (o *OneAtlasProvider) Download(ctx context.Context, scene common.Scene, loc
 		return fmt.Errorf("OneAtlasProvider: constellation not supported: %s", sceneName)
 	}
 
-	downloadLink, ok := scene.Data.Metadata["downloadLink"]
+	downloadLink, ok := scene.Data.Metadata[common.DownloadLinkMetadata]
 	if !ok || downloadLink == "" {
 		var err error
 		downloadLink, err = o.sendOrderRequest(scene)

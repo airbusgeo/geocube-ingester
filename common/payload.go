@@ -12,6 +12,10 @@ const (
 	ResultTypeScene = "scene"
 )
 
+const (
+	DownloadLinkMetadata = "downloadLink"
+)
+
 type TileMapping struct {
 	SwathID string `json:"swath_id"`
 	TileNr  int    `json:"tile_nr"`

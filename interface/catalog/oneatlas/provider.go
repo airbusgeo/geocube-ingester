@@ -123,7 +123,7 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		}
 
 		metadata := make(map[string]interface{})
-		metadata["downloadLink"] = downloadURL
+		metadata[common.DownloadLinkMetadata] = downloadURL
 		g, err := p.computeGeometryFromAOI(*intersectGeometry)
 		if err != nil {
 			return entities.Scenes{}, fmt.Errorf("failed to compute geometry from intersect geometry")
