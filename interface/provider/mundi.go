@@ -33,15 +33,15 @@ func NewMundiImageProvider(seeedToken string) *MundiImageProvider {
 func (ip *MundiImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	var url string
 	sceneName := scene.SourceID
-	sceneDate, err := getDate(sceneName)
+	sceneDate, err := common.GetDateFromProductId(sceneName)
 	if err != nil {
 		return fmt.Errorf("MundiImageProvider: %w", err)
 	}
-	switch getConstellation(sceneName) {
-	case Sentinel1:
+	switch common.GetConstellationFromProductId(sceneName) {
+	case common.Sentinel1:
 		url = fmt.Sprintf(MundiDownloadProductS1,
 			sceneName[12:13], strings.ToLower(sceneName[7:10]), sceneDate.Year(), (sceneDate.Month()+2)/3, sceneDate.Year(), sceneDate.Month(), sceneDate.Day(), sceneName[4:6], sceneName[14:16], sceneName)
-	case Sentinel2:
+	case common.Sentinel2:
 		url = fmt.Sprintf(MundiDownloadProductS2,
 			sceneName[7:10], sceneDate.Year(), (sceneDate.Month()+2)/3, sceneName[38:40], sceneName[40:41], sceneName[41:43], sceneDate.Year(), sceneDate.Month(), sceneDate.Day(), sceneName)
 	default:

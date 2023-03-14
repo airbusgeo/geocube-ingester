@@ -75,10 +75,10 @@ func NewCreoDiasImageProvider(user, pword string) *CreoDiasImageProvider {
 func (ip *CreoDiasImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	sceneName := scene.SourceID
 	var searchUrl string
-	switch getConstellation(sceneName) {
-	case Sentinel1:
+	switch common.GetConstellationFromProductId(sceneName) {
+	case common.Sentinel1:
 		searchUrl = fmt.Sprintf(CreodiasSearch, "Sentinel1", sceneName)
-	case Sentinel2:
+	case common.Sentinel2:
 		searchUrl = fmt.Sprintf(CreodiasSearch, "Sentinel2", sceneName)
 	default:
 		return fmt.Errorf("CreoDiasImageProvider: constellation not supported")

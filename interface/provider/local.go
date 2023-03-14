@@ -29,7 +29,7 @@ func NewLocalImageProvider(path string) *LocalImageProvider {
 func (ip *LocalImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	// Retrieve date of the scene from name
 	sceneName := scene.SourceID
-	date, err := getDate(sceneName)
+	date, err := common.GetDateFromProductId(sceneName)
 	if err != nil {
 		return fmt.Errorf("LocalImageProvider: %w", err)
 	}

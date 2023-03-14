@@ -31,8 +31,8 @@ func NewPEPSDiasImageProvider(user, pword string) *PEPSDiasImageProvider {
 // Download implements ImageProvider
 func (ip *PEPSDiasImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	sceneName := scene.SourceID
-	switch getConstellation(sceneName) {
-	case Sentinel1, Sentinel2:
+	switch common.GetConstellationFromProductId(sceneName) {
+	case common.Sentinel1, common.Sentinel2:
 	default:
 		return fmt.Errorf("PEPSDiasImageProvider: constellation not supported")
 	}

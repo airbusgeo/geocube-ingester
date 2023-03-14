@@ -253,7 +253,7 @@ func (p *provider) buildCatalogParameters(area *entities.AreaToIngest, aoi geos.
 	}
 
 	constellation := entities.GetConstellation(area.SceneType.Constellation)
-	if !strings.EqualFold(constellation, entities.Pleiades) && !strings.EqualFold(constellation, entities.Spot) {
+	if constellation != common.PHR && constellation != common.SPOT {
 		return nil, fmt.Errorf("constellation not supported: " + area.SceneType.Constellation)
 	}
 
@@ -266,7 +266,7 @@ func (p *provider) buildCatalogParameters(area *entities.AreaToIngest, aoi geos.
 	relation, _ := area.SceneType.Parameters["relation"]
 
 	return &catalogRequestParameter{
-		Constellation:   constellation,
+		Constellation:   constellation.String(),
 		ItemsPerPage:    200,
 		StartPage:       1,
 		ProcessingLevel: processingLevel,

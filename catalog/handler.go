@@ -84,7 +84,7 @@ func (c *Catalog) FindTiles(ctx context.Context, area catalog.AreaToIngest, scen
 	var rootLeafTiles []common.Tile
 	var err error
 	switch catalog.GetConstellation(area.SceneType.Constellation) {
-	case catalog.Sentinel1:
+	case common.Sentinel1:
 		if c.Workflow == nil {
 			return 0, fmt.Errorf("FindTiles: WorkflowServer is not defined")
 		}

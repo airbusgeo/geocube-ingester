@@ -55,12 +55,12 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 	// Default values
 	parametersMap := map[string]string{}
 	switch entities.GetConstellation(area.SceneType.Constellation) {
-	case entities.Sentinel1:
+	case common.Sentinel1:
 		parametersMap["platformname"] = "Sentinel-1"
 		parametersMap["producttype"] = "SLC"
 		parametersMap["polarisationmode"] = "VV VH"
 		parametersMap["sensoroperationalmode"] = "IW"
-	case entities.Sentinel2:
+	case common.Sentinel2:
 		parametersMap["platformname"] = "Sentinel-2"
 		parametersMap["producttype"] = "S2MSI1C"
 	default:
@@ -137,12 +137,12 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 
 		// Optional tags
 		switch entities.GetConstellation(area.SceneType.Constellation) {
-		case entities.Sentinel1:
+		case common.Sentinel1:
 			scenes[i].Tags[common.TagPolarisationMode] = rawscene["polarisationmode"]
 			scenes[i].Tags[common.TagSliceNumber] = rawscene["slicenumber"]
 			scenes[i].Tags[common.TagLastOrbit] = rawscene["lastorbitnumber"]
 			scenes[i].Tags[common.TagLastRelativeOrbit] = rawscene["lastrelativeorbitnumber"]
-		case entities.Sentinel2:
+		case common.Sentinel2:
 			scenes[i].Tags[common.TagCloudCoverPercentage] = rawscene["cloudcoverpercentage"]
 		}
 

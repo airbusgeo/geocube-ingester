@@ -41,7 +41,7 @@ func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
 	}
 
 	// Check constellation
-	if entities.GetConstellation(area.SceneType.Constellation) == entities.UndefinedConstellation {
+	if entities.GetConstellation(area.SceneType.Constellation) == common.Unknown {
 		return fmt.Errorf("validateArea: unrecognized constellation: %s", area.SceneType.Constellation)
 	}
 
@@ -94,7 +94,7 @@ func (c *Catalog) DoScenesInventory(ctx context.Context, area entities.AreaToIng
 // DoTilesInventory creates an inventory of all the tiles of the given scenes
 func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToIngest, scenes entities.Scenes, rootLeaf []common.Tile) (int, error) {
 	switch entities.GetConstellation(area.SceneType.Constellation) {
-	case entities.Sentinel1:
+	case common.Sentinel1:
 		if area.SceneGraphName == common.GraphCopyProductToStorage {
 			// No bursts inventory if we copy the product to the storage
 			for _, scene := range scenes.Scenes {
@@ -135,7 +135,7 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 			runtime.KeepAlive(aoi)
 		}
 
-	case entities.Sentinel2, entities.Spot, entities.Pleiades:
+	case common.Sentinel2, common.SPOT, common.PHR:
 		for _, scene := range scenes.Scenes {
 			scene.Tiles = append(scene.Tiles, &entities.Tile{
 				TileLite: entities.TileLite{

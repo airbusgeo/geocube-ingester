@@ -41,8 +41,8 @@ func (o *OneAtlasProvider) Name() string {
 func (o *OneAtlasProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	sceneName := scene.SourceID
 
-	switch getConstellation(sceneName) {
-	case Pleiades, Spot:
+	switch common.GetConstellationFromProductId(sceneName) {
+	case common.PHR, common.SPOT:
 	default:
 		return fmt.Errorf("OneAtlasProvider: constellation not supported: %s", sceneName)
 	}

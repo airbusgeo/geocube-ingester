@@ -30,8 +30,8 @@ func NewScihubImageProvider(user, pword string) *ScihubImageProvider {
 func (ip *ScihubImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	sceneName := scene.SourceID
 	sceneUUID := scene.Data.UUID
-	switch getConstellation(sceneName) {
-	case Sentinel1, Sentinel2:
+	switch common.GetConstellationFromProductId(sceneName) {
+	case common.Sentinel1, common.Sentinel2:
 	default:
 		return fmt.Errorf("ScihubImageProvider: constellation not supported")
 	}

@@ -5,12 +5,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
+	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/osio"
 	osioGcs "github.com/airbusgeo/osio/gcs"
 )
@@ -26,8 +25,11 @@ func (ap AnnotationsProvider) AnnotationsFiles(ctx context.Context, scene *entit
 		return nil, fmt.Errorf("annotationFiles.Compile[%s]: %w", scene.SourceID+".SAFE/annotation/*xml", err)
 	}
 
-	file := path.Join(ap.Bucket, scene.SourceID+".zip")
-	file = strings.ReplaceAll(file, "{PRODUCT_ID}", scene.SourceID)
+	info, err := common.Info(scene.SourceID)
+	if err != nil {
+		return nil, fmt.Errorf("AnnotationsFiles.Info: %w", err)
+	}
+	file := common.FormatBrackets(ap.Bucket, info)
 	annotationsFiles, err := extract(ctx, file, *reg)
 	if err != nil {
 		return nil, fmt.Errorf("annotationsFiles[%s].%w", file, err)

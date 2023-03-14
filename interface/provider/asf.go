@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/airbusgeo/geocube-ingester/common"
 )
@@ -31,13 +30,13 @@ func NewASFImageProvider(token string) *ASFImageProvider {
 // Download implements ImageProvider
 func (ip *ASFImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	sceneName := scene.SourceID
-	switch getConstellation(sceneName) {
-	case Sentinel1:
+	switch common.GetConstellationFromProductId(sceneName) {
+	case common.Sentinel1:
 	default:
 		return fmt.Errorf("ASFImageProvider: constellation not supported")
 	}
 
-	info, err := Info(sceneName)
+	info, err := common.Info(sceneName)
 	if err != nil {
 		return fmt.Errorf("ASFImageProvider.%w", err)
 	}
@@ -50,9 +49,7 @@ func (ip *ASFImageProvider) Download(ctx context.Context, scene common.Scene, lo
 	default:
 		return fmt.Errorf("ASFImageProvider: not supported product type: " + info["PRODUCT_TYPE"])
 	}
-	for k, v := range info {
-		url = strings.ReplaceAll(url, "{"+k+"}", v)
-	}
+	url = common.FormatBrackets(url, info)
 
 	token := "Bearer " + ip.token
 	if err = downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), nil, nil, "Authorization", &token, true); err != nil {

@@ -44,7 +44,7 @@ type Scene struct {
 }
 
 type SceneType struct {
-	Constellation string
+	Constellation string `json:"constellation"`
 	Parameters    map[string]string
 }
 
@@ -67,45 +67,30 @@ type AreaToIngest struct {
 	GCSAnnotationsBucket string            `json:"gcs_annotations_bucket"`
 }
 
-const (
-	Sentinel1              = "Sentinel1"
-	Sentinel2              = "Sentinel2"
-	Pleiades               = "PHR"
-	Spot                   = "SPOT"
-	UndefinedConstellation = "undefined"
-)
-
 // GetConstellation returns the constellation from the user input
-func GetConstellation(constellation string) string {
-	constellation = strings.ToLower(constellation)
-	switch constellation {
+func GetConstellation(constellation string) common.Constellation {
+	switch strings.ToLower(constellation) {
 	case "sentinel1", "sentinel-1":
-		return Sentinel1
+		return common.Sentinel1
 	case "sentinel2", "sentinel-2":
-		return Sentinel2
+		return common.Sentinel2
 	case "phr":
-		return Pleiades
+		return common.PHR
 	case "spot":
-		return Spot
+		return common.SPOT
 	}
-	if strings.HasPrefix(constellation, "s1") {
-		return Sentinel1
-	}
-	if strings.HasPrefix(constellation, "s2") {
-		return Sentinel2
-	}
-	return UndefinedConstellation
+	return common.GetConstellationFromProductId(constellation)
 }
 
 // AutoFill fills ProductName, Satellite, Constellation
 func (s *Scene) AutoFill() {
 	var constellation, satellite string
 	switch GetConstellation(s.SourceID) {
-	case Sentinel1:
+	case common.Sentinel1:
 		constellation = "SENTINEL1"
 		satellite = constellation + s.SourceID[2:3]
 		s.ProductName = s.SourceID[0:63]
-	case Sentinel2:
+	case common.Sentinel2:
 		constellation = "SENTINEL2"
 		satellite = constellation + s.SourceID[2:3]
 		s.ProductName = s.SourceID[0:44]

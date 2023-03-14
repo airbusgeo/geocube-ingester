@@ -45,8 +45,8 @@ func NewONDADiasImageProvider(user, pword string, orderable bool) *ONDADiasImage
 func (ip *ONDADiasImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	sceneName := scene.SourceID
 	sceneUUID := scene.Data.UUID
-	switch getConstellation(sceneName) {
-	case Sentinel1, Sentinel2:
+	switch common.GetConstellationFromProductId(sceneName) {
+	case common.Sentinel1, common.Sentinel2:
 	default:
 		return fmt.Errorf("ONDADiasImageProvider: constellation not supported")
 	}

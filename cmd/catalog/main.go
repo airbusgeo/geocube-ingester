@@ -50,7 +50,7 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.GeocubeServerApiKey, "geocube-apikey", "", "geocube server api key")
 	flag.StringVar(&config.ScihubUsername, "scihub-username", "", "username to connect to the scihub catalog service")
 	flag.StringVar(&config.ScihubPassword, "scihub-password", "", "password to connect to the scihub catalog service")
-	flag.StringVar(&config.GCSAnnotationsBucket, "gcs-annotations-bucket", "", "GCS bucket where scenes are stored (for annotations) (optional)")
+	flag.StringVar(&config.GCSAnnotationsBucket, "gcs-annotations-bucket", "", "GCS bucket containing S1-scenes (as zip) to read annotations without downloading the whole file (optional, contains identifiers between brackets that will be replaced by those of the scene. E.g: gs://bucket/{DATE}/{SCENE}.zip)")
 	flag.StringVar(&config.WorkflowServer, "workflow-server", "", "address of workflow server")
 	flag.StringVar(&config.WorkflowToken, "workflow-token", "", "address of workflow server")
 	flag.StringVar(&config.ProcessingDir, "workdir", "", "working directory to store intermediate results (could be empty or temporary)")

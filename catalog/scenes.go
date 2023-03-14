@@ -94,7 +94,7 @@ func (c *Catalog) IngestedScenesInventoryFromTiles(ctx context.Context, tiles []
 			Ingested: true,
 			Data:     tile.Data,
 		}
-		if entities.GetConstellation(scene.SourceID) == entities.Sentinel1 {
+		if entities.GetConstellation(scene.SourceID) == common.Sentinel1 {
 			tile.AnxTime, _ = strconv.Atoi(strings.Split(tile.SourceID, "_")[2])
 		}
 		scene.Tiles = append(scene.Tiles, tile)
@@ -177,7 +177,7 @@ func refineInventory(area *entities.AreaToIngest, scenes []*entities.Scene, aoi 
 	if scenes, err = handleEquatorCrossing(scenes); err != nil {
 		return nil, fmt.Errorf("refineInventory.%w", err)
 	}
-	if entities.GetConstellation(area.SceneType.Constellation) == entities.Sentinel1 {
+	if entities.GetConstellation(area.SceneType.Constellation) == common.Sentinel1 {
 		if err = handleNonContinuousSwath(scenes); err != nil {
 			return nil, fmt.Errorf("refineInventory.%w", err)
 		}
