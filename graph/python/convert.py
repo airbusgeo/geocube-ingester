@@ -2,7 +2,6 @@
 import argparse
 from osgeo import gdal
 import gdalconst
-import sys
 import numpy as np
 import uuid
 

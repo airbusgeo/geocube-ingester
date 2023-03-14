@@ -2,7 +2,6 @@
 from osgeo import gdal
 import os
 import argparse
-import datetime
 
 def search_file(directory = None, file = None):
     assert os.path.isdir(directory)

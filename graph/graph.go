@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -295,7 +296,7 @@ func (g *ProcessingGraph) Summary() string {
 }
 
 // getFile checks if file exists in local or try to download it if distant
-func getFile(ctx context.Context, workdir, file string) (string, error) {
+func getFile(ctx context.Context, workdir, file string, makeExecutable bool) (string, error) {
 	// Does the file exist locally ?
 	_, err := os.Stat(file)
 	if err == nil || !errors.Is(err, os.ErrNotExist) {
@@ -322,6 +323,15 @@ func getFile(ctx context.Context, workdir, file string) (string, error) {
 	if err = uri.DownloadToFile(ctx, localpath.Name()); err != nil {
 		return "", fmt.Errorf("getFile[%s].%w", localpath.Name(), err)
 	}
+	if makeExecutable {
+		if _, err := getInterpreter(localpath.Name()); err != nil {
+			log.Logger(ctx).Sugar().Debugf("No interpreter found for %s", localpath.Name())
+		} else {
+			if err = os.Chmod(localpath.Name(), 0700); err != nil {
+				return "", fmt.Errorf("getFile[%s].%w", localpath.Name(), err)
+			}
+		}
+	}
 
 	return localpath.Name(), nil
 }
@@ -335,7 +345,7 @@ func newProcessingGraph(ctx context.Context, steps []ProcessingStep, infiles [3]
 			snapRequired = true
 			fallthrough
 		case python, command:
-			cmd, err := getFile(ctx, graphPath, step.Command)
+			cmd, err := getFile(ctx, graphPath, step.Command, true)
 			if err != nil {
 				return nil, fmt.Errorf("newProcessingGraph: Command not found: %s (%w)", step.Command, err)
 			}
@@ -431,7 +441,7 @@ func LoadGraph(ctx context.Context, graphName string, opts ...Option) (*Processi
 // LoadGraphFromFile returns the graph from a filename
 func LoadGraphFromFile(ctx context.Context, graphFile string, opts ...Option) (*ProcessingGraph, GraphConfig, GraphEnvs, error) {
 	var err error
-	if graphFile, err = getFile(ctx, graphPath, graphFile); err != nil {
+	if graphFile, err = getFile(ctx, graphPath, graphFile, false); err != nil {
 		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile.%w", err)
 	}
 	jsonFile, err := os.Open(graphFile)
@@ -1008,7 +1018,12 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 			filter = &snapFilter
 
 		case python:
-			cmd = exec.Command(step.Command, args...)
+			if interpreter, err := getInterpreter(step.Command); err != nil || !strings.Contains(interpreter, "python") {
+				args = append([]string{step.Command}, args...)
+				cmd = exec.Command(python, args...)
+			} else {
+				cmd = exec.Command(step.Command, args...)
+			}
 			filter = &pythonFilter
 
 		case command:
@@ -1307,4 +1322,20 @@ func formatArgs(arg Arg, config GraphConfig, tiles []common.Tile) (string, error
 	}
 
 	return valstr, nil
+}
+
+func getInterpreter(fileName string) (string, error) {
+	f, err := os.Open(fileName)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	interpreter, err := bufio.NewReader(f).ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	if len(interpreter) < 2 || interpreter[:2] != "#!" {
+		return "", fmt.Errorf("no interpreter found")
+	}
+	return interpreter[2:], nil
 }
