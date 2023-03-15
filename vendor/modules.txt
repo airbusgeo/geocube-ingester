@@ -177,9 +177,16 @@ github.com/gorilla/handlers
 github.com/gorilla/mux
 # github.com/guregu/null v4.0.0+incompatible
 github.com/guregu/null
+# github.com/hashicorp/errwrap v1.0.0
+github.com/hashicorp/errwrap
+# github.com/hashicorp/go-multierror v1.1.1
+github.com/hashicorp/go-multierror
 # github.com/hashicorp/golang-lru v0.5.4
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
+# github.com/jlaffaye/ftp v0.1.0
+## explicit
+github.com/jlaffaye/ftp
 # github.com/jmoiron/sqlx v1.3.5
 github.com/jmoiron/sqlx
 github.com/jmoiron/sqlx/reflectx
@@ -538,7 +545,7 @@ gopkg.in/inf.v0
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
-# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+# gopkg.in/yaml.v3 v3.0.1
 gopkg.in/yaml.v3
 # gotest.tools/v3 v3.0.3
 ## explicit

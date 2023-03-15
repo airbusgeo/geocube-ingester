@@ -47,9 +47,9 @@ type DockerConfig struct {
 //
 // flag.Parse()
 //
-// if *dockerEnvsStr != "" {
-//		cfg.Envs = strings.Split(*dockerEnvsStr, ",")
-//	}
+//	if *dockerEnvsStr != "" {
+//			cfg.Envs = strings.Split(*dockerEnvsStr, ",")
+//		}
 func (cfg *DockerConfig) SetFlags() *string {
 	// Docker processing Images connection
 	flag.StringVar(&cfg.RegistryUserName, "docker-registry-username", "_json_key", "username to authentication on private registry")
@@ -274,7 +274,7 @@ func (d *dockerManager) runContainer(ctx context.Context, containerID string) er
 	return nil
 }
 
-//sendLines
+// sendLines
 func (d *dockerManager) logLines(ctx context.Context, sr io.Reader) {
 	r := bufio.NewReader(sr)
 	insideTooLongLine := false

@@ -152,6 +152,7 @@ func Info(sceneName string) (map[string]string, error) {
 
 /**
  * FormatBrackets replaces in <str> all {keys} of <info> by the corresponding value
+ * keys must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
  */
 func FormatBrackets(str string, info map[string]string) string {
 	for k, v := range info {

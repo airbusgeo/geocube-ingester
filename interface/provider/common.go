@@ -40,21 +40,56 @@ func fmtBytes(bytes int64) string {
 	}
 }
 
-func displayProgress(ctx context.Context, prefix string, resp *grab.Response, progressPeriod float64) {
+type Progress struct {
+	ctx         context.Context
+	prefix      string
+	total       int64
+	displayStep float64
+
+	complete     int64
+	lastComplete int64
+	nextDisplay  int64
+	timer        time.Time
+}
+
+func NewProgress(ctx context.Context, prefix string, total int64, displayStepPc float64) *Progress {
+	return &Progress{
+		ctx:         ctx,
+		prefix:      prefix,
+		total:       total,
+		timer:       time.Now(),
+		displayStep: displayStepPc / 100,
+	}
+}
+
+func (p *Progress) Update(bytesComplete int64) {
+	p.complete = bytesComplete
+	if bytesComplete > p.nextDisplay {
+		p.Display()
+		p.nextDisplay += int64(p.displayStep * float64(p.total))
+		p.lastComplete = bytesComplete
+		p.timer = time.Now()
+	}
+}
+
+func (p *Progress) UpdateDelta(bytesAdded int64) {
+	p.Update(p.complete + bytesAdded)
+}
+
+func (p *Progress) Display() {
+	log.Logger(p.ctx).Sugar().Debugf("%s: %.2f%% %s/%s (%s/s)", p.prefix, 100*float64(p.complete)/float64(p.total), fmtBytes(p.complete), fmtBytes(p.total),
+		fmtBytes(int64(float64(p.complete-p.lastComplete)/time.Since(p.timer).Seconds())))
+}
+
+func displayProgress(ctx context.Context, prefix string, resp *grab.Response, everyPc float64) {
 	t := time.NewTicker(time.Second)
 	defer t.Stop()
 
-	progress, lastBytes, seconds := 0.0, int64(0), int64(0)
+	progress := NewProgress(ctx, prefix, resp.Size, everyPc)
 	for {
 		select {
 		case <-t.C:
-			seconds++
-			if resp.Progress() > progress {
-				log.Logger(ctx).Sugar().Debugf("%s: %.2f%% %s/%s (%s/s)", prefix, 100*resp.Progress(), fmtBytes(resp.BytesComplete()), fmtBytes(resp.Size), fmtBytes((resp.BytesComplete()-lastBytes)/seconds))
-				seconds = 0
-				progress += progressPeriod
-				lastBytes = resp.BytesComplete()
-			}
+			progress.Update(resp.BytesComplete())
 
 		case <-resp.Done:
 			return
@@ -86,7 +121,7 @@ func downloadZipWithAuth(ctx context.Context, url, localDir, sceneName, provider
 
 	defer os.Remove(localZip)
 	if err := unarchive(localZip, localDir); err != nil {
-		return fmt.Errorf("downloadZipWithAuth.Unarchive: %w", err)
+		return service.MakeTemporary(fmt.Errorf("downloadZipWithAuth.Unarchive: %w", err))
 	}
 	return nil
 }
@@ -109,7 +144,7 @@ func download(ctx context.Context, req *grab.Request, displayPrefix string, copy
 	}
 	resp := client.Do(req)
 
-	displayProgress(ctx, displayPrefix, resp, 0.05)
+	displayProgress(ctx, displayPrefix, resp, 5)
 
 	if err := resp.Err(); err != nil {
 		err = fmt.Errorf("download[%s]: %w", req.URL(), err)
@@ -126,25 +161,27 @@ func download(ctx context.Context, req *grab.Request, displayPrefix string, copy
 	return nil
 }
 
-// unarchive file with basic check. All errors are temporary.
+// unarchive file with basic check.
 func unarchive(localZip, localDir string) error {
 	tmpdir, err := ioutil.TempDir(localDir, filepath.Base(localZip))
 	if err != nil {
-		return service.MakeTemporary(err)
+		return err
 	}
 	defer os.RemoveAll(tmpdir)
 	if err := archiver.Unarchive(localZip, tmpdir); err != nil {
-		return service.MakeTemporary(err)
+		return fmt.Errorf("Unarchive: %w", err)
 	}
 	files, err := ioutil.ReadDir(tmpdir)
 	if err != nil {
-		return service.MakeTemporary(err)
+		return fmt.Errorf("ReadDir: %w", err)
 	}
 	if len(files) == 0 {
-		return service.MakeTemporary(fmt.Errorf("empty zip"))
+		return fmt.Errorf("empty zip")
 	}
 	for _, f := range files {
-		os.Rename(filepath.Join(tmpdir, f.Name()), filepath.Join(localDir, f.Name()))
+		if err = os.Rename(filepath.Join(tmpdir, f.Name()), filepath.Join(localDir, f.Name())); err != nil {
+			return fmt.Errorf("Rename: %w", err)
+		}
 	}
 	return nil
 }

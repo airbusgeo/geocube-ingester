@@ -24,7 +24,7 @@ func (t errFatal) Fatal() bool    { return true }
 func (t *errFatal) Unwrap() error { return t.error }
 func MakeFatal(err error) error   { return &errFatal{err} }
 
-//Temporary inspects the error trace and returns whether the error is transient
+// Temporary inspects the error trace and returns whether the error is transient
 func Temporary(err error) bool {
 	var uerr *neturl.Error
 	if errors.As(err, &uerr) {

@@ -17,17 +17,17 @@ type execOption struct {
 	outf, errf Filter
 }
 
-//ExecOption is an option that can be passed to Exec()
+// ExecOption is an option that can be passed to Exec()
 type ExecOption func(eo *execOption)
 
-//StdoutLevel sets the level at which stdout should be logged
+// StdoutLevel sets the level at which stdout should be logged
 func StdoutLevel(l zapcore.Level) ExecOption {
 	return func(eo *execOption) {
 		eo.outl = l
 	}
 }
 
-//StderrLevel sets the level at which stderr should be logged
+// StderrLevel sets the level at which stderr should be logged
 func StderrLevel(l zapcore.Level) ExecOption {
 	return func(eo *execOption) {
 		eo.errl = l
@@ -40,26 +40,26 @@ type Filter interface {
 	Filter(msg string, defaultLevel zapcore.Level) (string, zapcore.Level, bool)
 }
 
-//StdoutFilter sets a function that modify a stdout message or change its level
+// StdoutFilter sets a function that modify a stdout message or change its level
 func StdoutFilter(f Filter) ExecOption {
 	return func(eo *execOption) {
 		eo.outf = f
 	}
 }
 
-//StderrFilter sets a function that modify a stderr message or change its level
+// StderrFilter sets a function that modify a stderr message or change its level
 func StderrFilter(f Filter) ExecOption {
 	return func(eo *execOption) {
 		eo.errf = f
 	}
 }
 
-//Exec wraps os/exec for logging its outputs.
-//If cmd.Stdout is not set, the commands stdout will
-//be sent to log.Logger(ctx) (at Info level by default).
-//If cmd.Stderr is not set, the commands
-//stderr will be sent to log.Logger(ctx) (at Warn level by default).
-//On ctx cancellation, the cmd is Killed
+// Exec wraps os/exec for logging its outputs.
+// If cmd.Stdout is not set, the commands stdout will
+// be sent to log.Logger(ctx) (at Info level by default).
+// If cmd.Stderr is not set, the commands
+// stderr will be sent to log.Logger(ctx) (at Warn level by default).
+// On ctx cancellation, the cmd is Killed
 func Exec(ctx context.Context, cmd *exec.Cmd, options ...ExecOption) error {
 
 	opts := execOption{
@@ -138,7 +138,7 @@ func Exec(ctx context.Context, cmd *exec.Cmd, options ...ExecOption) error {
 	}
 }
 
-//sendLines
+// sendLines
 func logLines(sr io.Reader, logger *levelledLogger) {
 	r := bufio.NewReader(sr)
 	insideTooLongLine := false

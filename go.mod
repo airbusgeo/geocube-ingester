@@ -19,6 +19,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
+	github.com/jlaffaye/ftp v0.1.0
 	github.com/lib/pq v1.10.6
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect

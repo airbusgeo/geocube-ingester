@@ -199,7 +199,7 @@ func (ip *GSImageProvider) downloadZip(ctx context.Context, uri string, dstDir s
 	}
 	defer os.Remove(localZip)
 	if err := unarchive(localZip, dstDir); err != nil {
-		return fmt.Errorf("downloadZip.Unarchive: %w", err)
+		return service.MakeTemporary(fmt.Errorf("downloadZip.Unarchive: %w", err))
 	}
 	return nil
 }

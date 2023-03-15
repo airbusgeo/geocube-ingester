@@ -30,25 +30,26 @@ type config struct {
 	EventQueue      string
 	PgqDbConnection string
 
-	LocalProviderPath              string
-	PepsUsername                   string
-	PepsPassword                   string
-	OndaUsername                   string
-	OndaPassword                   string
-	OndaAllowOrder                 bool
-	ASFToken                       string
-	ScihubUsername                 string
-	ScihubPassword                 string
-	CreodiasUsername               string
-	CreodiasPassword               string
-	OneAtlasUsername               string
-	OneAtlasDownloadEndpoint       string
-	OneAtlasOrderEndpoint          string
-	OneAtlasApikey                 string
-	OneAtlasAuthenticationEndpoint string
-	SoblooApiKey                   string
-	MundiSeeedToken                string
-	GSProviderBuckets              []string
+	LocalProviderPath                 string
+	PepsUsername                      string
+	PepsPassword                      string
+	OndaUsername                      string
+	OndaPassword                      string
+	OndaAllowOrder                    bool
+	ASFToken                          string
+	ScihubUsername                    string
+	ScihubPassword                    string
+	CreodiasUsername                  string
+	CreodiasPassword                  string
+	OneAtlasUsername                  string
+	OneAtlasDownloadEndpoint          string
+	OneAtlasOrderEndpoint             string
+	OneAtlasApikey                    string
+	OneAtlasAuthenticationEndpoint    string
+	SoblooApiKey                      string
+	MundiSeeedToken                   string
+	GSProviderBuckets                 []string
+	FTPPath, FTPUsername, FTPPassword string
 
 	WithDockerEngine bool
 	Docker           graph.DockerConfig
@@ -89,6 +90,12 @@ func newAppConfig() (*config, error) {
 	bucket can contain several {IDENTIFIER} than will be replaced according to the sceneName.
 	IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
 	 `)
+	flag.StringVar(&config.FTPPath, "ftp-path", "", `path pattern to a zip file product, including hote, port and folder tree with optional {IDENTIFIER}s. (optional)
+	i.e: ftp://ftp.example.org:21/Images/{SCENE}.zip  (See github.com/airbusgeo/geocube-ingester/common : FormatBrackets)
+	Use 990 port to connect with an implicite TLS connection.
+	`)
+	flag.StringVar(&config.FTPUsername, "ftp-username", "", "ftp username (optional).")
+	flag.StringVar(&config.FTPPassword, "ftp-password", "", "ftp password (optional)")
 
 	// Docker processing Images connection
 	flag.BoolVar(&config.WithDockerEngine, "with-docker-engine", false, "activate the support of graph.engine == 'docker' (require a running docker-daemon)")
@@ -184,6 +191,11 @@ func run(ctx context.Context) error {
 		imageProviders = append(imageProviders, provider.NewLocalImageProvider(config.LocalProviderPath))
 
 	}
+	if config.FTPPath != "" {
+		ftpp := provider.NewFTPImageProvider(config.FTPPath, config.FTPUsername, config.FTPPassword)
+		providerNames = append(providerNames, ftpp.Name()+" ("+config.FTPPath+")")
+		imageProviders = append(imageProviders, ftpp)
+	}
 	if len(config.GSProviderBuckets) != 0 {
 		gs := provider.NewGSImageProvider()
 		for _, gsbucket := range config.GSProviderBuckets {
@@ -195,7 +207,7 @@ func run(ctx context.Context) error {
 				return fmt.Errorf("malformed GSBuckets config. Must be constellation:bucket")
 			}
 		}
-		providerNames = append(providerNames, "GS ("+strings.Join(config.GSProviderBuckets, ", ")+")")
+		providerNames = append(providerNames, gs.Name()+" ("+strings.Join(config.GSProviderBuckets, ", ")+")")
 		imageProviders = append(imageProviders, gs)
 	}
 	if config.SoblooApiKey != "" {
@@ -227,7 +239,6 @@ func run(ctx context.Context) error {
 		imageProviders = append(imageProviders, provider.NewCreoDiasImageProvider(config.CreodiasUsername, config.CreodiasPassword))
 	}
 	if config.OneAtlasUsername != "" {
-		providerNames = append(providerNames, "OneAtlas")
 		oneatlasProvider, cncl := provider.NewOneAtlasProvider(ctx,
 			config.OneAtlasUsername,
 			config.OneAtlasApikey,
@@ -236,6 +247,7 @@ func run(ctx context.Context) error {
 			config.OneAtlasAuthenticationEndpoint,
 		)
 		defer cncl()
+		providerNames = append(providerNames, oneatlasProvider.Name()+" ("+config.OneAtlasUsername+")")
 		imageProviders = append(imageProviders, oneatlasProvider)
 	}
 
