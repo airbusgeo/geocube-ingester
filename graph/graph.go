@@ -1031,7 +1031,6 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 			filter = &cmdFilter
 
 		case docker:
-			stepCmd := strings.ToLower(step.Command)
 			var envs []string
 
 			// host envs
@@ -1040,7 +1039,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 			//graph envs
 			envs = append(envs, graphEnvs...)
 
-			if err = g.opts.dockerManager.Process(ctx, config["workdir"], stepCmd, args, envs); err != nil {
+			if err = g.opts.dockerManager.Process(ctx, config["workdir"], step.Command, args, envs); err != nil {
 				return nil, err
 			}
 		}
