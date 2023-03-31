@@ -1,6 +1,6 @@
 package common
 
-//go:generate enumer -json -sql -type Status -trimprefix Status
+//go:generate go run github.com/dmarkham/enumer -json -sql -type Status -trimprefix Status
 
 type Status int
 

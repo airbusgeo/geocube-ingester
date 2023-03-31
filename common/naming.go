@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-//go:generate enumer -json -type Constellation
+//go:generate go run github.com/dmarkham/enumer -json -type Constellation
 
 // Constellation defines the kind of satellites
 type Constellation int
