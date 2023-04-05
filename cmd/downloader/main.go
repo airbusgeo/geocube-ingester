@@ -86,7 +86,7 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.OneAtlasDownloadEndpoint, "oneatlas-download-endpoint", "https://access.foundation.api.oneatlas.airbus.com/api/v1/items", "oneatlas download endpoint to use")
 	flag.StringVar(&config.OneAtlasOrderEndpoint, "oneatlas-order-endpoint", "https://data.api.oneatlas.airbus.com", "oneatlas order endpoint to use")
 	flag.StringVar(&config.OneAtlasAuthenticationEndpoint, "oneatlas-auth-endpoint", "https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token", "oneatlas order endpoint to use")
-	gsProviderBuckets := flag.String("gs-provider-buckets", "", `Google Storage buckets. List of constellation:bucket comma-separated (optional). To configure GS as a potential image Provider.
+	gsProviderBuckets := flag.String("gs-provider-buckets", "", `Google Storage buckets. List of "constellation:bucket" comma-separated (optional). To configure GS as a potential image Provider.
 	bucket can contain several {IDENTIFIER} than will be replaced according to the sceneName.
 	IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
 	 `)
@@ -204,7 +204,7 @@ func run(ctx context.Context) error {
 				return fmt.Errorf("malformed GSBuckets config. Must be constellation:bucket")
 			}
 			if err := gs.AddBucket(bucket[0], bucket[1]); err != nil {
-				return fmt.Errorf("malformed GSBuckets config. Must be constellation:bucket")
+				return fmt.Errorf("malformed GSBuckets config: %s", err)
 			}
 		}
 		providerNames = append(providerNames, gs.Name()+" ("+strings.Join(config.GSProviderBuckets, ", ")+")")
@@ -295,7 +295,7 @@ func run(ctx context.Context) error {
 			scene := common.Scene{}
 			message := ""
 
-			if err := json.Unmarshal(msg.Data, &scene); err != nil {
+			if err = json.Unmarshal(msg.Data, &scene); err != nil {
 				return fmt.Errorf("invalid payload: %w", err)
 			} else if scene.ID == 0 || len(scene.Data.TileMappings) == 0 {
 				return fmt.Errorf("invalid payload : %d-%d", scene.ID, len(scene.Data.TileMappings))
@@ -329,7 +329,7 @@ func run(ctx context.Context) error {
 				return fmt.Errorf("too many retries")
 			}
 
-			if err := downloader.ProcessScene(ctx, imageProviders, storageService, scene, config.WorkingDir, graphOpts); err != nil {
+			if err = downloader.ProcessScene(ctx, imageProviders, storageService, scene, config.WorkingDir, graphOpts); err != nil {
 				if msg.TryCount >= maxTries {
 					return fmt.Errorf("too many retries: %w", err)
 				}

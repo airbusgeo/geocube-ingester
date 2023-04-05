@@ -108,7 +108,7 @@ func (o *OneAtlasProvider) download(ctx context.Context, downloadURL string, loc
 	}
 
 	defer os.Remove(localZip)
-	if err := unarchive(localZip, localDir); err != nil {
+	if err := unarchive(ctx, localZip, localDir); err != nil {
 		return service.MakeTemporary(fmt.Errorf("download.Unarchive: %w", err))
 	}
 

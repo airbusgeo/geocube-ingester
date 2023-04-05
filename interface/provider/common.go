@@ -120,7 +120,7 @@ func downloadZipWithAuth(ctx context.Context, url, localDir, sceneName, provider
 	}
 
 	defer os.Remove(localZip)
-	if err := unarchive(localZip, localDir); err != nil {
+	if err := unarchive(ctx, localZip, localDir); err != nil {
 		return service.MakeTemporary(fmt.Errorf("downloadZipWithAuth.Unarchive: %w", err))
 	}
 	return nil
@@ -162,25 +162,28 @@ func download(ctx context.Context, req *grab.Request, displayPrefix string, copy
 }
 
 // unarchive file with basic check.
-func unarchive(localZip, localDir string) error {
+func unarchive(ctx context.Context, localZip, localDir string) error {
 	tmpdir, err := ioutil.TempDir(localDir, filepath.Base(localZip))
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(tmpdir)
 	if err := archiver.Unarchive(localZip, tmpdir); err != nil {
-		return fmt.Errorf("Unarchive: %w", err)
+		return fmt.Errorf("during unarchiving: %w", err)
 	}
-	files, err := ioutil.ReadDir(tmpdir)
+	files, err := os.ReadDir(tmpdir)
 	if err != nil {
-		return fmt.Errorf("ReadDir: %w", err)
+		return err
 	}
 	if len(files) == 0 {
 		return fmt.Errorf("empty zip")
 	}
-	for _, f := range files {
+	for i, f := range files {
 		if err = os.Rename(filepath.Join(tmpdir, f.Name()), filepath.Join(localDir, f.Name())); err != nil {
-			return fmt.Errorf("Rename: %w", err)
+			for j := 0; j < i; j++ {
+				os.RemoveAll(filepath.Join(localDir, files[j].Name()))
+			}
+			return err
 		}
 	}
 	return nil

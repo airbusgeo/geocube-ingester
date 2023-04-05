@@ -42,6 +42,10 @@ func (ip *GSImageProvider) AddBucket(constellation, bucket string) error {
 		ip.buckets[common.Sentinel1] = append(ip.buckets[common.Sentinel1], bucket)
 	case "sentinel2", "sentinel-2":
 		ip.buckets[common.Sentinel2] = append(ip.buckets[common.Sentinel2], bucket)
+	case "spot":
+		ip.buckets[common.SPOT] = append(ip.buckets[common.SPOT], bucket)
+	case "phr":
+		ip.buckets[common.PHR] = append(ip.buckets[common.PHR], bucket)
 	default:
 		return fmt.Errorf("GSImageProvider: constellation not supported")
 	}
@@ -63,18 +67,24 @@ func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, loc
 
 	for _, bucket := range buckets {
 		url := common.FormatBrackets(bucket, format)
-
-		if filepath.Ext(url) == "."+string(service.ExtensionZIP) {
-			if err := ip.downloadZip(ctx, url, localDir); err != nil {
+		e := func() error {
+			if filepath.Ext(url) == "."+string(service.ExtensionZIP) {
+				if err := ip.downloadZip(ctx, url, localDir); err != nil {
+					return fmt.Errorf("GSImageProvider[%s].%w", url, err)
+				}
+			} else if files, err := ip.downloadDirectory(ctx, url, filepath.Join(localDir, filepath.Base(url))); err != nil {
 				return fmt.Errorf("GSImageProvider[%s].%w", url, err)
+			} else if len(files) == 0 {
+				return fmt.Errorf("GSImageProvider[%s]: not found", url)
 			}
-		} else if files, err := ip.downloadDirectory(ctx, url, filepath.Join(localDir, filepath.Base(url))); err != nil {
-			return fmt.Errorf("GSImageProvider[%s].%w", url, err)
-		} else if len(files) == 0 {
-			return fmt.Errorf("GSImageProvider[%s]: not found", url)
+			return nil
+		}()
+
+		if err = service.MergeErrors(false, err, e); err == nil {
+			break
 		}
 	}
-	return nil
+	return err
 }
 
 // downloadDirectory fetches all objects prefixed by uri to destination
@@ -198,7 +208,7 @@ func (ip *GSImageProvider) downloadZip(ctx context.Context, uri string, dstDir s
 		return fmt.Errorf("downloadZip.%w", err)
 	}
 	defer os.Remove(localZip)
-	if err := unarchive(localZip, dstDir); err != nil {
+	if err := unarchive(ctx, localZip, dstDir); err != nil {
 		return service.MakeTemporary(fmt.Errorf("downloadZip.Unarchive: %w", err))
 	}
 	return nil

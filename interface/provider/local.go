@@ -51,7 +51,7 @@ func (ip *LocalImageProvider) Download(ctx context.Context, scene common.Scene, 
 		return fmt.Errorf("LocalImageProvider.Download: %w", err)
 	}
 	defer os.Remove(localZip)*/
-	if err := unarchive(srcZip, localDir); err != nil {
+	if err := unarchive(ctx, srcZip, localDir); err != nil {
 		return fmt.Errorf("LocalImageProvider.Unarchive: %w", err)
 	}
 	return nil
