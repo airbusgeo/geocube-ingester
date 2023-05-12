@@ -28,27 +28,38 @@ func AOIFromFile(path string) (AOI, error) {
 	case ".json", ".geojson":
 		file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
 		var geoj struct {
-			Type     string             `json:"type"`
-			Features []*geojson.Feature `json:"features"`
-			Feature  *geojson.Feature   `json:"feature"`
-			Geometry *geojson.Geometry  `json:"geometry"`
+			Type string `json:"type"`
 		}
 		if err := json.Unmarshal(file, &geoj); err != nil {
-			return AOI{}, fmt.Errorf("unable to unmarshal geojson file %s: %s", path, err)
+			return AOI{}, fmt.Errorf("unable to unmarshal geojson type %s: %s", path, err)
 		}
 
+		var features []*geojson.Feature
 		switch strings.ToLower(geoj.Type) {
 		case "featurecollection":
+			fc, err := geojson.UnmarshalFeatureCollection(file)
+			if err != nil {
+				return AOI{}, fmt.Errorf("unable to unmarshal featureCollection %s: %s", path, err)
+			}
+			features = fc.Features
 		case "feature":
-			geoj.Features = append(geoj.Features, geoj.Feature)
+			f, err := geojson.UnmarshalFeature(file)
+			if err != nil {
+				return AOI{}, fmt.Errorf("unable to unmarshal feature %s: %s", path, err)
+			}
+			features = []*geojson.Feature{f}
 		case "geometry":
-			geoj.Features = append(geoj.Features, &geojson.Feature{Geometry: geoj.Geometry})
+			g, err := geojson.UnmarshalGeometry(file)
+			if err != nil {
+				return AOI{}, fmt.Errorf("unable to unmarshal geometry %s: %s", path, err)
+			}
+			features = []*geojson.Feature{{Geometry: g}}
 		default:
 			return AOI{}, fmt.Errorf("wrong type for geojson file %s: %s", path, geoj.Type)
 		}
 
 		var aoi AOI
-		for _, f := range geoj.Features {
+		for _, f := range features {
 			aoip, err := AOIFromGeometry(*f.Geometry)
 			if err != nil {
 				return AOI{}, fmt.Errorf("AOIFromGeojson.%w", err)

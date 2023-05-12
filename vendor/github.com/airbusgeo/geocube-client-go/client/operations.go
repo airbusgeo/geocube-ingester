@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -15,23 +16,23 @@ type Job pb.Job
 type ConsolidationParams pb.ConsolidationParams
 
 // IndexDataset indexes a dataset
-func (c Client) IndexDataset(uri string, managed bool, containerSubdir, recordID, instanceID string, bands []int64, dformat *pb.DataFormat, realMin, realMax, exponent float64) error {
+func (c Client) IndexDataset(ctx context.Context, uri string, managed bool, containerSubdir, recordID, instanceID string, bands []int64, dformat *DataFormat, realMin, realMax, exponent float64) error {
 	dataset := &pb.Dataset{
 		RecordId:        recordID,
 		InstanceId:      instanceID,
 		ContainerSubdir: containerSubdir,
 		Bands:           bands,
-		Dformat:         dformat,
+		Dformat:         (*pb.DataFormat)(dformat),
 		RealMinValue:    realMin,
 		RealMaxValue:    realMax,
 		Exponent:        exponent,
 	}
-	return c.IndexDatasets(uri, managed, []*pb.Dataset{dataset})
+	return c.IndexDatasets(ctx, uri, managed, []*pb.Dataset{dataset})
 }
 
 // IndexDatasets indexes a batch of datasets
-func (c Client) IndexDatasets(uri string, managed bool, datasets []*pb.Dataset) error {
-	_, err := c.gcc.IndexDatasets(c.ctx,
+func (c Client) IndexDatasets(ctx context.Context, uri string, managed bool, datasets []*pb.Dataset) error {
+	_, err := c.gcc.IndexDatasets(ctx,
 		&pb.IndexDatasetsRequest{Container: &pb.Container{
 			Uri:      uri,
 			Managed:  managed,
@@ -42,8 +43,8 @@ func (c Client) IndexDatasets(uri string, managed bool, datasets []*pb.Dataset) 
 
 // CleanJobs removes the terminated jobs
 // nameLike, state : [optional] filter by name or state (DONE/FAILED)
-func (c Client) CleanJobs(nameLike, state string) (int32, error) {
-	cresp, err := c.gcc.CleanJobs(c.ctx, &pb.CleanJobsRequest{
+func (c Client) CleanJobs(ctx context.Context, nameLike, state string) (int32, error) {
+	cresp, err := c.gcc.CleanJobs(ctx, &pb.CleanJobsRequest{
 		NameLike: nameLike,
 		State:    state,
 	})
@@ -54,24 +55,22 @@ func (c Client) CleanJobs(nameLike, state string) (int32, error) {
 }
 
 // ConfigConsolidation configures the parameters associated to this variable
-func (c Client) ConfigConsolidation(variableID string, dformat *pb.DataFormat, exponent float64, bandsInterleave bool, compression int, createOverviews bool, downsamplingAlg string, storageClass int) error {
-	_, err := c.gcc.ConfigConsolidation(c.ctx, &pb.ConfigConsolidationRequest{
+func (c Client) ConfigConsolidation(ctx context.Context, variableID string, dformat *DataFormat, exponent float64, compression int, resamplingAlg string, storageClass int) error {
+	_, err := c.gcc.ConfigConsolidation(ctx, &pb.ConfigConsolidationRequest{
 		VariableId: variableID,
 		ConsolidationParams: &pb.ConsolidationParams{
-			Dformat:         dformat,
-			Exponent:        exponent,
-			BandsInterleave: bandsInterleave,
-			Compression:     pb.ConsolidationParams_Compression(compression),
-			CreateOverviews: createOverviews,
-			DownsamplingAlg: toResampling(downsamplingAlg),
-			StorageClass:    pb.StorageClass(storageClass),
+			Dformat:       (*pb.DataFormat)(dformat),
+			Exponent:      exponent,
+			Compression:   pb.ConsolidationParams_Compression(compression),
+			ResamplingAlg: toResampling(resamplingAlg),
+			StorageClass:  pb.StorageClass(storageClass),
 		}})
 	return grpcError(err)
 }
 
 // GetConsolidationParams read the consolidation parameters associated to this variable
-func (c Client) GetConsolidationParams(variableID string) (*ConsolidationParams, error) {
-	resp, err := c.gcc.GetConsolidationParams(c.ctx, &pb.GetConsolidationParamsRequest{VariableId: variableID})
+func (c Client) GetConsolidationParams(ctx context.Context, variableID string) (*ConsolidationParams, error) {
+	resp, err := c.gcc.GetConsolidationParams(ctx, &pb.GetConsolidationParamsRequest{VariableId: variableID})
 	if Code(err) == codes.NotFound {
 		return nil, nil
 	}
@@ -79,13 +78,13 @@ func (c Client) GetConsolidationParams(variableID string) (*ConsolidationParams,
 }
 
 // ConsolidateDatasetsFromRecords starts a consolidation job of the datasets defined by the given parameters
-func (c Client) ConsolidateDatasetsFromRecords(name string, instanceID, layoutID string, recordsID []string) (string, error) {
-	resp, err := c.gcc.Consolidate(c.ctx,
+func (c Client) ConsolidateDatasetsFromRecords(ctx context.Context, name string, instanceID, layoutName string, recordsID []string) (string, error) {
+	resp, err := c.gcc.Consolidate(ctx,
 		&pb.ConsolidateRequest{
 			JobName:       name,
-			LayoutId:      layoutID,
+			LayoutName:    layoutName,
 			InstanceId:    instanceID,
-			RecordsLister: &pb.ConsolidateRequest_Records{Records: &pb.RecordList{Ids: recordsID}},
+			RecordsLister: &pb.ConsolidateRequest_Records{Records: &pb.RecordIdList{Ids: recordsID}},
 		})
 
 	if err != nil {
@@ -96,7 +95,7 @@ func (c Client) ConsolidateDatasetsFromRecords(name string, instanceID, layoutID
 }
 
 // ConsolidateDatasetsFromFilters starts a consolidation job of the datasets defined by the given parameters
-func (c Client) ConsolidateDatasetsFromFilters(name string, instanceID, layoutID string, tags map[string]string, fromTime, toTime time.Time) (string, error) {
+func (c Client) ConsolidateDatasetsFromFilters(ctx context.Context, name string, instanceID, layoutName string, tags map[string]string, fromTime, toTime time.Time) (string, error) {
 	fromTs := timestamppb.New(fromTime)
 	if err := fromTs.CheckValid(); err != nil {
 		return "", err
@@ -105,10 +104,10 @@ func (c Client) ConsolidateDatasetsFromFilters(name string, instanceID, layoutID
 	if err := toTs.CheckValid(); err != nil {
 		return "", err
 	}
-	resp, err := c.gcc.Consolidate(c.ctx,
+	resp, err := c.gcc.Consolidate(ctx,
 		&pb.ConsolidateRequest{
 			JobName:       name,
-			LayoutId:      layoutID,
+			LayoutName:    layoutName,
 			InstanceId:    instanceID,
 			RecordsLister: &pb.ConsolidateRequest_Filters{Filters: &pb.RecordFilters{Tags: tags, FromTime: fromTs, ToTime: toTs}},
 		})
@@ -130,14 +129,14 @@ func (j *Job) ToString() string {
 		"  Failed tasks:    %d\n"+
 		"  Creation:        %s\n"+
 		"  LastUpdate:      %s\n"+
-		"  Logs:            \n  %s",
+		"  Logs:            \n - %s",
 		j.Name, j.Id, j.Type, j.State, j.ActiveTasks, j.FailedTasks, j.CreationTime.AsTime().Format("2 Jan 2006 15:04:05"),
-		j.LastUpdateTime.AsTime().Format("2 Jan 2006 15:04:05"), strings.Join(j.Log, "\n  "))
+		j.LastUpdateTime.AsTime().Format("2 Jan 2006 15:04:05"), strings.Join(j.Logs, "\n - "))
 }
 
 // ListJobs returns the jobs with a name like name (or all if name="")
-func (c Client) ListJobs(nameLike string) ([]*Job, error) {
-	jresp, err := c.gcc.ListJobs(c.ctx, &pb.ListJobsRequest{NameLike: nameLike})
+func (c Client) ListJobs(ctx context.Context, nameLike string) ([]*Job, error) {
+	jresp, err := c.gcc.ListJobs(ctx, &pb.ListJobsRequest{NameLike: nameLike})
 	if err != nil {
 		return nil, grpcError(err)
 	}
@@ -149,8 +148,8 @@ func (c Client) ListJobs(nameLike string) ([]*Job, error) {
 }
 
 // GetJob returns the job with the given ID
-func (c Client) GetJob(jobID string) (*Job, error) {
-	jresp, err := c.gcc.GetJob(c.ctx, &pb.GetJobRequest{Id: jobID})
+func (c Client) GetJob(ctx context.Context, jobID string) (*Job, error) {
+	jresp, err := c.gcc.GetJob(ctx, &pb.GetJobRequest{Id: jobID})
 	if err != nil {
 		return nil, grpcError(err)
 	}
@@ -158,13 +157,13 @@ func (c Client) GetJob(jobID string) (*Job, error) {
 }
 
 // RetryJob retries the job with the given ID
-func (c Client) RetryJob(jobID string, forceAnyState bool) error {
-	_, err := c.gcc.RetryJob(c.ctx, &pb.RetryJobRequest{Id: jobID, ForceAnyState: forceAnyState})
+func (c Client) RetryJob(ctx context.Context, jobID string, forceAnyState bool) error {
+	_, err := c.gcc.RetryJob(ctx, &pb.RetryJobRequest{Id: jobID, ForceAnyState: forceAnyState})
 	return grpcError(err)
 }
 
 // CancelJob retries the job with the given ID
-func (c Client) CancelJob(jobID string) error {
-	_, err := c.gcc.CancelJob(c.ctx, &pb.CancelJobRequest{Id: jobID})
+func (c Client) CancelJob(ctx context.Context, jobID string) error {
+	_, err := c.gcc.CancelJob(ctx, &pb.CancelJobRequest{Id: jobID})
 	return grpcError(err)
 }

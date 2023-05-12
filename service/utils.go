@@ -24,7 +24,8 @@ func NewGeocubeClient(ctx context.Context, geocubeServer, apikey string, tlsConf
 	if tlsConfig != nil {
 		creds = credentials.NewTLS(tlsConfig)
 	}
-	gcclient, err := geocube.Dial(ctx, geocubeServer, creds, apikey)
+	connector := geocube.ClientConnector{Connector: geocube.Connector{Server: geocubeServer, Creds: creds, ApiKey: apikey}}
+	gcclient, err := connector.Dial()
 	if err != nil {
 		return nil, fmt.Errorf("NewGeocubeClient.Dial: %w", err)
 	}

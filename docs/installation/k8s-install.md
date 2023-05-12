@@ -28,7 +28,7 @@ For more information, see: https://kubernetes.io/docs/tasks/configure-pod-contai
 In case the images are stored on https://hub.docker.com, you can define them as follows in your kubernetes configuration files (postgresql example: `image: postgres:11`):
 
 ```kubernetes
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Deployment
 metadata:
   name: postgresql

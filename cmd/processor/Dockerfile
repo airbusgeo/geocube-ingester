@@ -4,7 +4,7 @@ ARG BASE_IMAGE=ubuntu:focal
 # If SNAP is used as a base image, UPDATE_SNAP=1 will update the modules
 ARG UPDATE_SNAP
 
-FROM golang:latest AS builder
+FROM golang:1.19 AS builder
 ENV GOFLAGS=-mod=vendor
 WORKDIR /build
 COPY go.mod .

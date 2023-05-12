@@ -1,4 +1,4 @@
-FROM golang AS builder
+FROM golang:1.19 AS builder
 
 RUN apt update && apt install -y --no-install-recommends libgeos++-dev \
     && rm -rf /var/lib/apt/lists/* \

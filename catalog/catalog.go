@@ -30,7 +30,7 @@ type Catalog struct {
 	WorkingDir                     string
 }
 
-func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
+func (c *Catalog) ValidateArea(ctx context.Context, area *entities.AreaToIngest) error {
 	// Check AOI ID
 	matched, err := regexp.MatchString("^[a-zA-Z0-9-:_]+([a-zA-Z0-9-:_]+)*$", area.AOIID)
 	if err != nil {
@@ -52,11 +52,11 @@ func (c *Catalog) ValidateArea(area *entities.AreaToIngest) error {
 	// Check that instances exist
 	for k, layer := range area.Layers {
 		if layer.InstanceID != "" {
-			if _, err := c.GeocubeClient.GetVariableFromInstanceID(layer.InstanceID); err != nil {
+			if _, err := c.GeocubeClient.GetVariableFromInstanceID(ctx, layer.InstanceID); err != nil {
 				return fmt.Errorf("validateArea: %w", err)
 			}
 		} else {
-			v, err := c.GeocubeClient.GetVariableFromName(layer.Variable)
+			v, err := c.GeocubeClient.GetVariableFromName(ctx, layer.Variable)
 			if err != nil {
 				return fmt.Errorf("validateArea: %w", err)
 			}
@@ -174,7 +174,7 @@ func (c *Catalog) DeletePendingRecords(ctx context.Context, scenes entities.Scen
 			ids = append(ids, s.Data.RecordID)
 		}
 	}
-	if _, e := c.GeocubeClient.DeleteRecords(ids); e != nil {
+	if _, e := c.GeocubeClient.DeleteRecords(ctx, ids); e != nil {
 		log.Logger(ctx).Sugar().Warnf("Catalog.IngestScenes : unable to delete unused records (%v): %v", ids, e)
 	}
 }
@@ -192,7 +192,7 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 		result         IngestAreaResult
 	)
 
-	if err := c.ValidateArea(&area); err != nil {
+	if err := c.ValidateArea(ctx, &area); err != nil {
 		return result, fmt.Errorf("IngestArea.%w", err)
 	}
 

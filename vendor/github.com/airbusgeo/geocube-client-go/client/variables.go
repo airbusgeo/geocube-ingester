@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +13,8 @@ import (
 )
 
 type ColorPoint pb.ColorPoint
+
+type DataFormat pb.DataFormat
 
 type Variable struct {
 	client *Client
@@ -41,8 +44,8 @@ func (v *Variable) Instance(name string) *VariableInstance {
 }
 
 // SetName sets the name of the variable
-func (v *Variable) SetName(name string) error {
-	if err := v.client.UpdateVariable(v.Id, &name, nil, nil, nil, nil); err != nil {
+func (v *Variable) SetName(ctx context.Context, name string) error {
+	if err := v.client.UpdateVariable(ctx, v.Id, &name, nil, nil, nil, nil); err != nil {
 		return grpcError(err)
 	}
 	v.Name = name
@@ -50,8 +53,8 @@ func (v *Variable) SetName(name string) error {
 }
 
 // SetUnit sets the unit of the variable
-func (v *Variable) SetUnit(unit string) error {
-	if err := v.client.UpdateVariable(v.Id, nil, &unit, nil, nil, nil); err != nil {
+func (v *Variable) SetUnit(ctx context.Context, unit string) error {
+	if err := v.client.UpdateVariable(ctx, v.Id, nil, &unit, nil, nil, nil); err != nil {
 		return grpcError(err)
 	}
 	v.Unit = unit
@@ -59,8 +62,8 @@ func (v *Variable) SetUnit(unit string) error {
 }
 
 // SetDescription sets the description of the variable
-func (v *Variable) SetDescription(description string) error {
-	if err := v.client.UpdateVariable(v.Id, nil, nil, &description, nil, nil); err != nil {
+func (v *Variable) SetDescription(ctx context.Context, description string) error {
+	if err := v.client.UpdateVariable(ctx, v.Id, nil, nil, &description, nil, nil); err != nil {
 		return grpcError(err)
 	}
 	v.Description = description
@@ -68,8 +71,8 @@ func (v *Variable) SetDescription(description string) error {
 }
 
 // SetPalette sets the name of the palette. Empty string removes the palette
-func (v *Variable) SetPalette(palette string) error {
-	if err := v.client.UpdateVariable(v.Id, nil, nil, nil, &palette, nil); err != nil {
+func (v *Variable) SetPalette(ctx context.Context, palette string) error {
+	if err := v.client.UpdateVariable(ctx, v.Id, nil, nil, nil, &palette, nil); err != nil {
 		return grpcError(err)
 	}
 	v.Palette = palette
@@ -77,8 +80,8 @@ func (v *Variable) SetPalette(palette string) error {
 }
 
 // SetResamplingAlg sets the algorithm used for resampling
-func (v *Variable) SetResamplingAlg(resamplingAlg string) error {
-	if err := v.client.UpdateVariable(v.Id, nil, nil, nil, nil, &resamplingAlg); err != nil {
+func (v *Variable) SetResamplingAlg(ctx context.Context, resamplingAlg string) error {
+	if err := v.client.UpdateVariable(ctx, v.Id, nil, nil, nil, nil, &resamplingAlg); err != nil {
 		return grpcError(err)
 	}
 	v.ResamplingAlg = toResampling(resamplingAlg)
@@ -149,11 +152,11 @@ func (v *Variable) instanceFromID(id string) *VariableInstance {
 	return nil
 }
 
-// ToPbDFormat returns a DataFormat from the user-defined string
+// ToDFormat returns a DataFormat from the user-defined string
 // Format is "datatype,nodata,min,max"
 // with datatype in {"byte, uint8, uint16, uint32, int8,int16, int32, float32, float64, complex64, auto, u1, u2, u4, i1, i2, i4, f4, f8, c8"}
 // with nodata, min and max as float value
-func ToPbDFormat(s string) (*pb.DataFormat, error) {
+func ToDFormat(s string) (*DataFormat, error) {
 	ss := strings.Split(s, ",")
 	if len(ss) != 4 {
 		return nil, errors.New("wrong format for dformat")
@@ -193,7 +196,7 @@ func ToPbDFormat(s string) (*pb.DataFormat, error) {
 		return nil, err
 	}
 
-	return &pb.DataFormat{
+	return &DataFormat{
 		Dtype:    dtype,
 		NoData:   nodata,
 		MinValue: minValue,
@@ -209,14 +212,14 @@ func toResampling(s string) pb.Resampling {
 }
 
 // CreateVariable creates a variable
-func (c Client) CreateVariable(name, unit, description string, dformat *pb.DataFormat, bandsName []string, palette, resamplingAlg string) (string, error) {
-	resp, err := c.gcc.CreateVariable(c.ctx,
+func (c Client) CreateVariable(ctx context.Context, name, unit, description string, dformat *DataFormat, bandsName []string, palette, resamplingAlg string) (string, error) {
+	resp, err := c.gcc.CreateVariable(ctx,
 		&pb.CreateVariableRequest{
 			Variable: &pb.Variable{
 				Name:          name,
 				Unit:          unit,
 				Description:   description,
-				Dformat:       dformat,
+				Dformat:       (*pb.DataFormat)(dformat),
 				Bands:         bandsName,
 				Palette:       palette,
 				ResamplingAlg: toResampling(resamplingAlg),
@@ -228,8 +231,8 @@ func (c Client) CreateVariable(name, unit, description string, dformat *pb.DataF
 }
 
 // InstantiateVariable instantiates a variable with name and metadata
-func (c Client) InstantiateVariable(variableID, name string, metadata map[string]string) (string, error) {
-	resp, err := c.gcc.InstantiateVariable(c.ctx,
+func (c Client) InstantiateVariable(ctx context.Context, variableID, name string, metadata map[string]string) (string, error) {
+	resp, err := c.gcc.InstantiateVariable(ctx,
 		&pb.InstantiateVariableRequest{
 			VariableId:       variableID,
 			InstanceName:     name,
@@ -242,8 +245,8 @@ func (c Client) InstantiateVariable(variableID, name string, metadata map[string
 }
 
 // GetVariable returns the variable that id
-func (c Client) GetVariable(id string) (*Variable, error) {
-	resp, err := c.gcc.GetVariable(c.ctx, &pb.GetVariableRequest{Identifier: &pb.GetVariableRequest_Id{Id: id}})
+func (c Client) GetVariable(ctx context.Context, id string) (*Variable, error) {
+	resp, err := c.gcc.GetVariable(ctx, &pb.GetVariableRequest{Identifier: &pb.GetVariableRequest_Id{Id: id}})
 	if err != nil {
 		return nil, grpcError(err)
 	}
@@ -251,8 +254,8 @@ func (c Client) GetVariable(id string) (*Variable, error) {
 }
 
 // GetVariableFromInstanceID returns the variable & instance with that instance id
-func (c Client) GetVariableFromInstanceID(id string) (*VariableInstance, error) {
-	resp, err := c.gcc.GetVariable(c.ctx, &pb.GetVariableRequest{Identifier: &pb.GetVariableRequest_InstanceId{InstanceId: id}})
+func (c Client) GetVariableFromInstanceID(ctx context.Context, id string) (*VariableInstance, error) {
+	resp, err := c.gcc.GetVariable(ctx, &pb.GetVariableRequest{Identifier: &pb.GetVariableRequest_InstanceId{InstanceId: id}})
 	if err != nil {
 		return nil, grpcError(err)
 	}
@@ -262,8 +265,8 @@ func (c Client) GetVariableFromInstanceID(id string) (*VariableInstance, error) 
 }
 
 // GetVariableFromName returns the variable with that name
-func (c Client) GetVariableFromName(name string) (*Variable, error) {
-	resp, err := c.gcc.GetVariable(c.ctx, &pb.GetVariableRequest{Identifier: &pb.GetVariableRequest_Name{Name: name}})
+func (c Client) GetVariableFromName(ctx context.Context, name string) (*Variable, error) {
+	resp, err := c.gcc.GetVariable(ctx, &pb.GetVariableRequest{Identifier: &pb.GetVariableRequest_Name{Name: name}})
 	if err != nil {
 		return nil, grpcError(err)
 	}
@@ -271,14 +274,14 @@ func (c Client) GetVariableFromName(name string) (*Variable, error) {
 }
 
 // streamListVariables returns a stream of variables that fit the search parameters
-func (c Client) streamListVariables(namelike string, limit, page int) (pb.Geocube_ListVariablesClient, error) {
-	res, err := c.gcc.ListVariables(c.ctx, &pb.ListVariablesRequest{Name: namelike, Limit: int32(limit), Page: int32(page)})
+func (c Client) streamListVariables(ctx context.Context, namelike string, limit, page int) (pb.Geocube_ListVariablesClient, error) {
+	res, err := c.gcc.ListVariables(ctx, &pb.ListVariablesRequest{Name: namelike, Limit: int32(limit), Page: int32(page)})
 	return res, grpcError(err)
 }
 
 // ListVariables returns a list of variables that fit the search parameters
-func (c Client) ListVariables(namelike string, limit, page int) ([]Variable, error) {
-	streamVariables, err := c.streamListVariables(namelike, limit, page)
+func (c Client) ListVariables(ctx context.Context, namelike string, limit, page int) ([]Variable, error) {
+	streamVariables, err := c.streamListVariables(ctx, namelike, limit, page)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +309,7 @@ func pbString(value *string) *wrappers.StringValue {
 }
 
 // UpdateVariable updates the non-nil fields of the variable
-func (c Client) UpdateVariable(id string, name, unit, description, palette, resamplingAlg *string) error {
+func (c Client) UpdateVariable(ctx context.Context, id string, name, unit, description, palette, resamplingAlg *string) error {
 	if name == nil && unit == nil && description == nil && palette == nil && resamplingAlg == nil {
 		return nil
 	}
@@ -314,7 +317,7 @@ func (c Client) UpdateVariable(id string, name, unit, description, palette, resa
 	if resamplingAlg != nil {
 		resampling = toResampling(*resamplingAlg)
 	}
-	_, err := c.gcc.UpdateVariable(c.ctx, &pb.UpdateVariableRequest{
+	_, err := c.gcc.UpdateVariable(ctx, &pb.UpdateVariableRequest{
 		Id:            id,
 		Name:          pbString(name),
 		Unit:          pbString(unit),
@@ -326,11 +329,11 @@ func (c Client) UpdateVariable(id string, name, unit, description, palette, resa
 }
 
 // UpdateInstance updates the non-nil/non-empty fields of the instance
-func (c Client) UpdateInstance(instanceID string, name *string, addMetadata map[string]string, delMetadataKeys []string) error {
+func (c Client) UpdateInstance(ctx context.Context, instanceID string, name *string, addMetadata map[string]string, delMetadataKeys []string) error {
 	if name == nil && len(addMetadata) == 0 && len(delMetadataKeys) == 0 {
 		return nil
 	}
-	_, err := c.gcc.UpdateInstance(c.ctx, &pb.UpdateInstanceRequest{
+	_, err := c.gcc.UpdateInstance(ctx, &pb.UpdateInstanceRequest{
 		Id:              instanceID,
 		Name:            pbString(name),
 		AddMetadata:     addMetadata,
@@ -340,26 +343,26 @@ func (c Client) UpdateInstance(instanceID string, name *string, addMetadata map[
 }
 
 // DeleteVariable deletes the Variable and all its instances if and only if all instances are pending
-func (c Client) DeleteVariable(variableID string) error {
-	_, err := c.gcc.DeleteVariable(c.ctx, &pb.DeleteVariableRequest{Id: variableID})
+func (c Client) DeleteVariable(ctx context.Context, variableID string) error {
+	_, err := c.gcc.DeleteVariable(ctx, &pb.DeleteVariableRequest{Id: variableID})
 	return grpcError(err)
 }
 
 // DeleteInstance deletes the Instance if and only if it's a pending instance (with no datasets)
 // DeleteInstance does not delete the Variable
-func (c Client) DeleteInstance(instanceID string) error {
-	_, err := c.gcc.DeleteInstance(c.ctx, &pb.DeleteInstanceRequest{Id: instanceID})
+func (c Client) DeleteInstance(ctx context.Context, instanceID string) error {
+	_, err := c.gcc.DeleteInstance(ctx, &pb.DeleteInstanceRequest{Id: instanceID})
 	return grpcError(err)
 }
 
 // CreatePalette defines (or redefines) a palette as a ramp of colors
-func (c Client) CreatePalette(name string, colors []ColorPoint, replace bool) error {
+func (c Client) CreatePalette(ctx context.Context, name string, colors []ColorPoint, replace bool) error {
 	pbcolors := make([]*pb.ColorPoint, len(colors))
 	for i := range colors {
 		pbcolors[i] = (*pb.ColorPoint)(&colors[i])
 	}
 
-	_, err := c.gcc.CreatePalette(c.ctx, &pb.CreatePaletteRequest{
+	_, err := c.gcc.CreatePalette(ctx, &pb.CreatePaletteRequest{
 		Palette: &pb.Palette{
 			Name:   name,
 			Colors: pbcolors,

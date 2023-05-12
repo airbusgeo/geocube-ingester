@@ -5,7 +5,7 @@ ARG BASE_IMAGE=ubuntu:focal
 ARG UPDATE_SNAP
 
 
-FROM golang:latest AS builder
+FROM golang:1.19 AS builder
 
 ENV GOFLAGS=-mod=vendor
 WORKDIR /build

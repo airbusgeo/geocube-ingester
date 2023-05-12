@@ -118,7 +118,7 @@ func (c *Catalog) IngestedScenesInventoryFromTiles(ctx context.Context, tiles []
 func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest, scenes entities.Scenes) ([]common.SceneToIngest, error) {
 	var scenesToIngest []common.SceneToIngest
 
-	if err := c.ValidateArea(&area); err != nil {
+	if err := c.ValidateArea(ctx, &area); err != nil {
 		return nil, fmt.Errorf("scenesToIngest.%w", err)
 	}
 	instances := area.InstancesID()
@@ -323,7 +323,7 @@ func (c *Catalog) createRecord(ctx context.Context, scene entities.Scene) (strin
 	}
 
 	// If record already exists, return
-	if r, err := c.GeocubeClient.ListRecords(scene.SourceID, scene.Tags, geocube.AOI{}, time.Time{}, time.Time{}, 1, 0, false); err != nil {
+	if r, err := c.GeocubeClient.ListRecords(ctx, scene.SourceID, scene.Tags, geocube.AOI{}, time.Time{}, time.Time{}, 1, 0, false); err != nil {
 		return "", false, fmt.Errorf("CreateRecord.%w", err)
 	} else if len(r) > 0 {
 		return r[0].ID, false, nil
@@ -336,13 +336,13 @@ func (c *Catalog) createRecord(ctx context.Context, scene entities.Scene) (strin
 		if err != nil {
 			return "", false, fmt.Errorf("CreateRecord.%w", err)
 		}
-		if aoiID, err = c.GeocubeClient.CreateAOI(aoi); err != nil && geocube.Code(err) != codes.AlreadyExists {
+		if aoiID, err = c.GeocubeClient.CreateAOI(ctx, aoi); err != nil && geocube.Code(err) != codes.AlreadyExists {
 			return "", false, fmt.Errorf("CreateRecord.%w", err)
 		}
 	}
 
 	// CreateRecord
-	r, err := c.GeocubeClient.CreateRecords(scene.SourceID, aoiID, []time.Time{scene.Data.Date}, scene.Tags)
+	r, err := c.GeocubeClient.CreateRecord(ctx, scene.SourceID, aoiID, scene.Data.Date, scene.Tags)
 	if err != nil {
 		return "", false, fmt.Errorf("CreateRecord.%w", err)
 	}

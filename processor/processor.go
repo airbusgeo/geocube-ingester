@@ -117,7 +117,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 
 	if indexed {
 		// Update record processing date (errors are not fatal)
-		if _, err := gcclient.AddRecordsTags([]string{tile.Scene.Data.RecordID}, map[string]string{common.TagProcessingDate: time.Now().Format("2006-01-02 15:04:05")}); err != nil {
+		if _, err := gcclient.AddRecordsTags(ctx, []string{tile.Scene.Data.RecordID}, map[string]string{common.TagProcessingDate: time.Now().Format("2006-01-02 15:04:05")}); err != nil {
 			log.Logger(ctx).Sugar().Warnf("UpdateRecordTag[%s] fails: %v", tile.Scene.Data.RecordID, err)
 		}
 	}
@@ -128,7 +128,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 // indexTile indexes the tile in the Geocube
 func indexTile(ctx context.Context, gcclient *geocube.Client, tile common.Tile, instancesID map[string]string, recordID string, file graph.OutFile, uri string) error {
 	// Get dataset information
-	dformat := geocubepb.DataFormat{
+	dformat := geocube.DataFormat{
 		NoData:   file.NoData,
 		MinValue: file.Min,
 		MaxValue: file.Max,
@@ -167,7 +167,7 @@ func indexTile(ctx context.Context, gcclient *geocube.Client, tile common.Tile, 
 	}
 
 	// Index
-	if err := gcclient.IndexDataset(uri, true, "", recordID, instanceID, bands, &dformat, file.ExtMin, file.ExtMax, file.Exponent); err != nil {
+	if err := gcclient.IndexDataset(ctx, uri, true, "", recordID, instanceID, bands, &dformat, file.ExtMin, file.ExtMax, file.Exponent); err != nil {
 		return err
 	}
 	return nil
