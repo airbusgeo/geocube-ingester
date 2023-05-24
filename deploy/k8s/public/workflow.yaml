@@ -91,8 +91,6 @@ spec:
               value: [Enter value]
             - name: SCIHUB_PASSWORD
               value: [Enter value]
-            - name: SOBLOO_APIKEY
-              value: [Enter value]
             - name: MUNDI_SEEED_TOKEN
               value: [Enter value]
             - name: GCS_PROVIDER_BUCKETS
@@ -110,7 +108,6 @@ spec:
             - "--scihub-password=$(SCIHUB_PASSWORD)"
             - "--creodias-username=$(CREODIAS_USERNAME)"
             - "--creodias-password=$(CREODIAS_PASSWORD)"
-            - "--sobloo-apikey=$(SOBLOO_APIKEY)"
             - "--gs-provider-buckets=$(GCS_PROVIDER_BUCKETS)"
             - "--mundi-seeed-token=$(MUNDI_SEEED_TOKEN)"
           image: {{DOWNLOADER_IMAGE}}

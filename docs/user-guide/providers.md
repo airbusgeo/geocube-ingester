@@ -10,7 +10,6 @@ Providers are implemented in order to download scenes. They are called one by on
 - [Onda](providers.md#onda): sentinel1 & 2 scenes
 - [OneAtlas](providers.md#oneatlas): PHR & SPOT scenes
 - [Peps](providers.md#peps): sentinel1 & 2 scenes
-- [Sobloo](providers.md#sobloo): sentinel1 & 2 scenes
 - [ASF](providers.md#asf): sentinel1 & 2 scenes
 
 The scenes to be downloaded are sent to the Downloader Service, then the tiles to be processed are sent to the Processor Service.
@@ -97,17 +96,6 @@ Peps uses `https://peps.cnes.fr/resto/api/collections/search.json?` endpoint.
 
 For more information see: [Peps Documentation](https://peps.cnes.fr/rocket/#/home)
 
-## Sobloo
-
-Sobloo account credentials are needed.
-
-`sobloo-apikey` downloader argument must be defined.
-
-Sobloo uses `https://sobloo.eu/api/v1/services/search` search endpoint and `https://sobloo.eu/api/v1/services/download/%s` download endpoint.
-
-For more information see: [Sobloo Documentation](https://sobloo.eu/data/satellites)
-
-sobloo-apikey
 
 ## ASF
 

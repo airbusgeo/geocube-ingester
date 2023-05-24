@@ -64,7 +64,6 @@ To download images from data-storages, the ingester has the current interface:
 
 The Downloader service is currently able to download Sentinel 1 & 2 products from:
 
-- Sobloo
 - Peps
 - Scihub
 - Onda

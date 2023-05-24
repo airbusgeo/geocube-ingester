@@ -46,7 +46,6 @@ type config struct {
 	OneAtlasOrderEndpoint             string
 	OneAtlasApikey                    string
 	OneAtlasAuthenticationEndpoint    string
-	SoblooApiKey                      string
 	MundiSeeedToken                   string
 	GSProviderBuckets                 []string
 	FTPPath, FTPUsername, FTPPassword string
@@ -79,7 +78,6 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.ScihubPassword, "scihub-password", "", "scihub account password (optional)")
 	flag.StringVar(&config.CreodiasUsername, "creodias-username", "", "creodias account username (optional). To configure Creodias as a potential image Provider.")
 	flag.StringVar(&config.CreodiasPassword, "creodias-password", "", "creodias account password (optional)")
-	flag.StringVar(&config.SoblooApiKey, "sobloo-apikey", "", "sobloo api-key (optional). To configure Sobloo as a potential image Provider.")
 	flag.StringVar(&config.MundiSeeedToken, "mundi-seeed-token", "", "mundi seeed-token (optional). To configure Mundi as a potential image Provider.")
 	flag.StringVar(&config.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
 	flag.StringVar(&config.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas apikey to use")
@@ -209,10 +207,6 @@ func run(ctx context.Context) error {
 		}
 		providerNames = append(providerNames, gs.Name()+" ("+strings.Join(config.GSProviderBuckets, ", ")+")")
 		imageProviders = append(imageProviders, gs)
-	}
-	if config.SoblooApiKey != "" {
-		providerNames = append(providerNames, "Sobloo")
-		imageProviders = append(imageProviders, provider.NewSoblooImageProvider(config.SoblooApiKey))
 	}
 	if config.PepsUsername != "" {
 		providerNames = append(providerNames, "PEPS ("+config.PepsUsername+")")

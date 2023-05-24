@@ -17,7 +17,6 @@ import (
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/scihub"
-	"github.com/airbusgeo/geocube-ingester/interface/catalog/sobloo"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/go-spatial/geom"
@@ -46,7 +45,6 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 		defer oneAtlasProviderCncl()
 	}
 
-	sceneProviders = append(sceneProviders, &sobloo.Provider{})
 	if len(sceneProviders) == 0 {
 		return entities.Scenes{}, fmt.Errorf("no catalog is configured")
 	}

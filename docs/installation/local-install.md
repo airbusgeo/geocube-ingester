@@ -147,8 +147,6 @@ Usage of ./downloader:
     	scihub account password (optional)
   -scihub-username string
     	scihub account username (optional). To configure Scihub as a potential image Provider.
-  -sobloo-apikey string
-    	sobloo api-key (optional). To configure Sobloo as a potential image Provider.
   -storage-uri string
     	storage uri (currently supported: local, gs). To store outputs of the scene preprocessing graph.
   -with-docker-engine
