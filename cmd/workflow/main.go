@@ -43,6 +43,7 @@ type catalogConfig struct {
 	OneAtlasEndpoint               string
 	OneAtlasOrderEndpoint          string
 	OneAtlasAuthenticationEndpoint string
+	CreodiasCatalog                bool
 }
 
 type config struct {
@@ -96,6 +97,7 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.CatalogConfig.OneAtlasEndpoint, "oneatlas-endpoint", "https://search.foundation.api.oneatlas.airbus.com/api/v2/opensearch", "oneatlas endpoint to search products from the catalogue")
 	flag.StringVar(&config.CatalogConfig.OneAtlasOrderEndpoint, "oneatlas-order-endpoint", "https://data.api.oneatlas.airbus.com", "oneatlas order endpoint to estimate processing price")
 	flag.StringVar(&config.CatalogConfig.OneAtlasAuthenticationEndpoint, "oneatlas-auth-endpoint", "https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token", "oneatlas order endpoint to use")
+	flag.BoolVar(&config.CatalogConfig.CreodiasCatalog, "creodias-catalog", false, "Use the creodias catalog service (search data)")
 
 	flag.Parse()
 
@@ -238,6 +240,9 @@ func run(ctx context.Context) error {
 		catalog.ScihubPword = config.CatalogConfig.ScihubPassword
 		// GCStorage
 		catalog.GCSAnnotationsBucket = config.CatalogConfig.GCStorage
+
+		// Creodias Catalogue
+		catalog.CreodiasCatalog = config.CatalogConfig.CreodiasCatalog
 
 		// OneAtlas
 		catalog.OneAtlasCatalogUser = config.CatalogConfig.OneAtlasUsername

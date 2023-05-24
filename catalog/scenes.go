@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/airbusgeo/geocube-ingester/interface/catalog/creodias"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/oneatlas"
 
 	geocube "github.com/airbusgeo/geocube-client-go/client"
@@ -30,6 +31,9 @@ import (
 func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
 	// Search
 	var sceneProviders []catalog.ScenesProvider
+	if c.CreodiasCatalog && entities.GetConstellation(area.SceneType.Constellation) == common.Sentinel2 {
+		sceneProviders = append(sceneProviders, &creodias.Provider{}) // Prefered provider for Sentinel2
+	}
 	if c.ScihubUser != "" {
 		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword, Name: "ApiHub", URL: scihub.ApiHubQueryURL})
 		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword, Name: "DHUS", URL: scihub.DHUSQueryURL})
@@ -44,7 +48,9 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 		sceneProviders = append(sceneProviders, oneAtlasProvider)
 		defer oneAtlasProviderCncl()
 	}
-
+	if c.CreodiasCatalog && entities.GetConstellation(area.SceneType.Constellation) != common.Sentinel2 {
+		sceneProviders = append(sceneProviders, &creodias.Provider{})
+	}
 	if len(sceneProviders) == 0 {
 		return entities.Scenes{}, fmt.Errorf("no catalog is configured")
 	}

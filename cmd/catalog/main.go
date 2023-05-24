@@ -38,6 +38,7 @@ type config struct {
 	OneAtlasUsername      string
 	OneAtlasApikey        string
 	OneAtlasEndpoint      string
+	CreodiasCatalog       bool
 }
 
 func newAppConfig() (*config, error) {
@@ -57,6 +58,7 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
 	flag.StringVar(&config.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas account password (optional)")
 	flag.StringVar(&config.OneAtlasEndpoint, "oneatlas-endpoint", "", "oneatlas endpoint to search products from the catalogue")
+	flag.BoolVar(&config.CreodiasCatalog, "creodias-catalog", false, "Use the creodias catalog service (search data)")
 	flag.Parse()
 
 	return &config, nil
@@ -110,6 +112,9 @@ func run(ctx context.Context) error {
 		c.OneAtlasCatalogUser = config.OneAtlasUsername
 		c.OneAtlasApikey = config.OneAtlasApikey
 		c.OneAtlasCatalogEndpoint = config.OneAtlasEndpoint
+
+		// Creodias catalogue
+		c.CreodiasCatalog = config.CreodiasCatalog
 	}
 
 	if config.Area != "" {

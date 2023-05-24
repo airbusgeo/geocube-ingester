@@ -21,6 +21,7 @@ type Catalog struct {
 	Workflow                       WorkflowManager
 	ScihubUser                     string
 	ScihubPword                    string
+	CreodiasCatalog                bool
 	OneAtlasCatalogUser            string
 	OneAtlasApikey                 string
 	OneAtlasCatalogEndpoint        string
