@@ -48,13 +48,16 @@ func newDefaultTokenManager(ctx context.Context, client *http.Client, authentica
 	ctx, cncl := context.WithCancel(ctx)
 
 	go func() {
+		exponentialRefresh := 30 * time.Second
 		for {
 			var nextRefresh time.Duration
 			token, expiration, err := tokenManager.authenticate(ctx)
 			if err != nil {
 				log.Logger(ctx).Sugar().Error("failed to authenticate", zap.Any("err", err))
-				nextRefresh = 30 * time.Second
+				nextRefresh = exponentialRefresh
+				exponentialRefresh *= 2
 			} else {
+				exponentialRefresh = 30 * time.Second
 				tokenManager.token.Store(token)
 				nextRefresh = 9 * expiration / 10
 			}
