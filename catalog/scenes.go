@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/creodias"
+	"github.com/airbusgeo/geocube-ingester/interface/catalog/onda"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/oneatlas"
 
 	geocube "github.com/airbusgeo/geocube-client-go/client"
@@ -33,6 +34,9 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 	var sceneProviders []catalog.ScenesProvider
 	if c.CreodiasCatalog && entities.GetConstellation(area.SceneType.Constellation) == common.Sentinel2 {
 		sceneProviders = append(sceneProviders, &creodias.Provider{}) // Prefered provider for Sentinel2
+	}
+	if c.OndaCatalog {
+		sceneProviders = append(sceneProviders, &onda.Provider{})
 	}
 	if c.ScihubUser != "" {
 		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword, Name: "ApiHub", URL: scihub.ApiHubQueryURL})

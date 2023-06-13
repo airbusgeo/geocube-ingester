@@ -22,6 +22,7 @@ type Catalog struct {
 	ScihubUser                     string
 	ScihubPword                    string
 	CreodiasCatalog                bool
+	OndaCatalog                    bool
 	OneAtlasCatalogUser            string
 	OneAtlasApikey                 string
 	OneAtlasCatalogEndpoint        string

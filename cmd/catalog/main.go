@@ -39,6 +39,7 @@ type config struct {
 	OneAtlasApikey        string
 	OneAtlasEndpoint      string
 	CreodiasCatalog       bool
+	OndaCatalog           bool
 }
 
 func newAppConfig() (*config, error) {
@@ -59,6 +60,7 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas account password (optional)")
 	flag.StringVar(&config.OneAtlasEndpoint, "oneatlas-endpoint", "", "oneatlas endpoint to search products from the catalogue")
 	flag.BoolVar(&config.CreodiasCatalog, "creodias-catalog", false, "Use the creodias catalog service (search data)")
+	flag.BoolVar(&config.OndaCatalog, "onda-catalog", false, "Use the onda catalog service (search data)")
 	flag.Parse()
 
 	return &config, nil
@@ -115,6 +117,9 @@ func run(ctx context.Context) error {
 
 		// Creodias catalogue
 		c.CreodiasCatalog = config.CreodiasCatalog
+
+		// Onda catalogue
+		c.OndaCatalog = config.OndaCatalog
 	}
 
 	if config.Area != "" {
