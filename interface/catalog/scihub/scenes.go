@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	neturl "net/url"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
+	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -178,16 +178,8 @@ func (s *Provider) queryScihub(ctx context.Context, baseurl, query string) ([]ma
 			}
 			req = req.WithContext(ctx)
 			req.SetBasicAuth(s.Username, s.Password)
-
-			client := &http.Client{}
-			resp, err := client.Do(req)
-			if err != nil {
-				return nil, fmt.Errorf("queryScihub.Req: %w", err)
-			}
-			defer resp.Body.Close()
-
-			if xmlResults, err = ioutil.ReadAll(resp.Body); err != nil {
-				return nil, fmt.Errorf("queryScihub.ReadAll: %w", err)
+			if xmlResults, err = service.GetBodyRetryReq(req, 3); err != nil {
+				return nil, fmt.Errorf("queryScihub: %w", err)
 			}
 		}
 

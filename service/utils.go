@@ -69,13 +69,23 @@ func (ss StringSet) Exists(s string) bool {
 
 // GetBodyRetry: simple GET with N retry in case of temporary errors
 func GetBodyRetry(url string, nbTries int) ([]byte, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("NewRequest: %w", err)
+	}
+	return GetBodyRetryReq(req, nbTries)
+}
+
+// GetBodyRetry: simple GET with N retry in case of temporary errors
+func GetBodyRetryReq(req *http.Request, nbTries int) ([]byte, error) {
 	var e *neturl.Error
 	var body []byte
 	var err error
 	var resp *http.Response
 
+	client := &http.Client{}
 	for ; nbTries > 0; nbTries-- {
-		resp, err = http.Get(url)
+		resp, err = client.Do(req)
 		if err != nil {
 			if !errors.As(err, &e) || !e.Temporary() {
 				return nil, err
@@ -84,9 +94,10 @@ func GetBodyRetry(url string, nbTries int) ([]byte, error) {
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
+			body, _ = ioutil.ReadAll(resp.Body)
+			err = fmt.Errorf(resp.Status + ":" + string(body))
 			if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-				body, _ = ioutil.ReadAll(resp.Body)
-				return nil, fmt.Errorf(resp.Status + ":" + string(body))
+				return nil, err
 			}
 			continue
 		}
