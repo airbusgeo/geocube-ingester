@@ -131,7 +131,7 @@ func (wf *Workflow) ListSceneTilesHandler(w http.ResponseWriter, req *http.Reque
 		w.WriteHeader(400)
 		return
 	}
-	ims, err := wf.Tiles(ctx, "", scene, "", false)
+	ims, err := wf.Tiles(ctx, "", scene, "", false, 0, -1)
 	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
@@ -150,7 +150,17 @@ func (wf *Workflow) ListAOITilesHandler(w http.ResponseWriter, req *http.Request
 	ctx := req.Context()
 	aoi := mux.Vars(req)["aoi"]
 	status := mux.Vars(req)["status"]
-	ims, err := wf.Tiles(ctx, aoi, 0, status, false)
+	page := 0
+	paramPage := req.FormValue("page")
+	if p, err := strconv.Atoi(paramPage); err == nil {
+		page = p
+	}
+	limit := -1
+	paramLimit := req.FormValue("limit")
+	if l, err := strconv.Atoi(paramLimit); err == nil {
+		limit = l
+	}
+	ims, err := wf.Tiles(ctx, aoi, 0, status, false, page, limit)
 	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
@@ -475,7 +485,17 @@ func (wf *Workflow) CreateSceneHandler(w http.ResponseWriter, req *http.Request)
 // If status is provided, filter only the scenes with the given status
 func (wf *Workflow) ListScenesHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	ss, err := wf.Scenes(ctx, mux.Vars(req)["aoi"])
+	page := 0
+	paramPage := req.FormValue("page")
+	if p, err := strconv.Atoi(paramPage); err == nil {
+		page = p
+	}
+	limit := -1
+	paramLimit := req.FormValue("limit")
+	if l, err := strconv.Atoi(paramLimit); err == nil {
+		limit = l
+	}
+	ss, err := wf.Scenes(ctx, mux.Vars(req)["aoi"], page, limit)
 
 	status := mux.Vars(req)["status"]
 	if status != "" {
@@ -543,7 +563,7 @@ func (wf *Workflow) ListLeafTilesHandler(w http.ResponseWriter, req *http.Reques
 func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	aoiID := mux.Vars(req)["aoi"]
-	ss, err := wf.Scenes(ctx, aoiID)
+	ss, err := wf.Scenes(ctx, aoiID, 0, -1)
 	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
@@ -577,7 +597,7 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 		// Scan all tiles... It can be very long...
 		for _, scene := range ss {
 			if scene.Status == common.StatusDONE {
-				tiles, err := wf.Tiles(ctx, "", scene.ID, "", false)
+				tiles, err := wf.Tiles(ctx, "", scene.ID, "", false, 0, -1)
 				if err != nil {
 					errs = service.MergeErrors(true, errs, err)
 					continue
@@ -596,7 +616,7 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 		}
 	} else {
 		// Only load the tiles with the "RETRY" status
-		tiles, err := wf.Tiles(ctx, aoiID, 0, common.StatusRETRY.String(), false)
+		tiles, err := wf.Tiles(ctx, aoiID, 0, common.StatusRETRY.String(), false, 0, -1)
 		if err != nil {
 			errs = service.MergeErrors(true, errs, err)
 		} else {

@@ -87,7 +87,7 @@ type WorkflowBackend interface {
 	// If a scenesCache is provided, try first to get the scene from the map. Otherwise, the map is updated
 	Scene(ctx context.Context, id int, scenesCache *map[int]Scene) (Scene, error)
 	// List scenes of the given AOI
-	Scenes(ctx context.Context, aoi string) ([]Scene, error)
+	Scenes(ctx context.Context, aoi string, page, limit int) ([]Scene, error)
 	// Update scene status & message (if != nil)
 	UpdateScene(ctx context.Context, id int, status common.Status, message *string) error
 	// Update scene data
@@ -108,7 +108,7 @@ type WorkflowBackend interface {
 	// sceneID [optional=0] sceneID
 	// status [optional=""] status of the tile
 	// loadScene also loads the scenes
-	Tiles(ctx context.Context, aoi string, sceneID int, status string, loadScene bool) ([]Tile, error)
+	Tiles(ctx context.Context, aoi string, sceneID int, status string, loadScene bool, page, limit int) ([]Tile, error)
 	// Get root tiles (no prev and no ref tiles) and their scene.
 	RootTiles(ctx context.Context, aoi string) ([]common.Tile, error)
 	// Get leaf tiles (no next tiles) and their scene.

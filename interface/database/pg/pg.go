@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -194,9 +195,16 @@ func (b Backend) Scene(ctx context.Context, id int, scenesCache *map[int]db.Scen
 }
 
 // Scenes implements WorkflowBackend
-func (b Backend) Scenes(ctx context.Context, aoi string) ([]db.Scene, error) {
+func (b Backend) Scenes(ctx context.Context, aoi string, page, limit int) ([]db.Scene, error) {
 	scenes := make([]db.Scene, 0)
-	rows, err := b.QueryContext(ctx, "select id,source_id,status,message,data from scene where aoi_id=$1", aoi)
+	query := "select id,source_id,status,message,data from scene where aoi_id=$1"
+	if limit > 0 {
+		query += " LIMIT " + strconv.Itoa(limit)
+	}
+	if page > 0 {
+		query += "  OFFSET " + strconv.Itoa(page*limit)
+	}
+	rows, err := b.QueryContext(ctx, query, aoi)
 	if err != nil {
 		return nil, fmt.Errorf("scenes.QueryContext: %w", err)
 	}
@@ -317,7 +325,7 @@ func (b Backend) Tile(ctx context.Context, tile int, loadScene bool) (db.Tile, c
 }
 
 // Tiles implements WorkflowBackend
-func (b Backend) Tiles(ctx context.Context, aoi string, sceneID int, status string, loadScene bool) ([]db.Tile, error) {
+func (b Backend) Tiles(ctx context.Context, aoi string, sceneID int, status string, loadScene bool, page, limit int) ([]db.Tile, error) {
 	// Construct the query
 	query := "select t.id, t.source_id, t.scene_id, t.prev, t.ref, t.status, t.message, t.data"
 
@@ -347,6 +355,13 @@ func (b Backend) Tiles(ctx context.Context, aoi string, sceneID int, status stri
 
 	// Append the whereClause to the query
 	query += " WHERE" + strings.Join(whereClause, " AND")
+
+	if limit > 0 {
+		query += " LIMIT " + strconv.Itoa(limit)
+	}
+	if page > 0 {
+		query += "  OFFSET " + strconv.Itoa(page*limit)
+	}
 
 	tiles := []db.Tile{}
 	{

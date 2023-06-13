@@ -266,7 +266,7 @@ func (wf *Workflow) UpdateTileStatus(ctx context.Context, id int, status common.
 func (wf *Workflow) Dot(ctx context.Context, aoi string, out io.Writer) error {
 	fmt.Fprintf(out, "digraph %s {\n", aoi)
 	defer fmt.Fprintf(out, "}\n")
-	scenes, err := wf.Scenes(ctx, aoi)
+	scenes, err := wf.Scenes(ctx, aoi, 0, 1000)
 	if err != nil {
 		return err
 	}
@@ -275,7 +275,7 @@ func (wf *Workflow) Dot(ctx context.Context, aoi string, out io.Writer) error {
 		fmt.Fprintf(out, "s%d [label=\"%s\\n(id=%d)\" shape=box color=%s];\n", sc.ID, sc.SourceID, sc.ID, sc.Status.Color())
 	}
 	for _, sc := range scenes {
-		tiles, err := wf.Tiles(ctx, "", sc.ID, "", false)
+		tiles, err := wf.Tiles(ctx, "", sc.ID, "", false, 0, -1)
 		if err != nil {
 			return err
 		}
@@ -285,7 +285,7 @@ func (wf *Workflow) Dot(ctx context.Context, aoi string, out io.Writer) error {
 		}
 	}
 	for _, sc := range scenes {
-		tiles, err := wf.Tiles(ctx, "", sc.ID, "", false)
+		tiles, err := wf.Tiles(ctx, "", sc.ID, "", false, 0, -1)
 		if err != nil {
 			return err
 		}
@@ -379,7 +379,7 @@ func (wf *Workflow) RetryScene(ctx context.Context, scene db.Scene) error {
 }
 
 func (wf *Workflow) FailScene(ctx context.Context, scene db.Scene) error {
-	tiles, err := wf.Tiles(ctx, "", scene.ID, "", false)
+	tiles, err := wf.Tiles(ctx, "", scene.ID, "", false, 0, -1)
 	if err != nil {
 		return fmt.Errorf("get tiles: %w", err)
 	}

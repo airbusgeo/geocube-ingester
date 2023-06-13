@@ -131,7 +131,7 @@ var _ = Describe("Workflow", func() {
 		Expect(err).NotTo(HaveOccurred())
 		ids2, err := wf.IngestScene(ctx, aoi, leaf2SceneToIngest)
 		Expect(err).NotTo(HaveOccurred())
-		tiles, err := wf.Tiles(ctx, "", ids2, "", false)
+		tiles, err := wf.Tiles(ctx, "", ids2, "", false, 0, -1)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tiles)).To(Equal(2))
 		Expect(tiles[0].PreviousID).NotTo(Equal(nil))
@@ -252,7 +252,7 @@ var _ = Describe("Workflow", func() {
 					Expect(count).To(Equal(1))
 				})
 				It("should create tiles", func() {
-					tiles, err := wf.Tiles(ctx, "", id, "", false)
+					tiles, err := wf.Tiles(ctx, "", id, "", false, 0, -1)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(len(tiles)).To(Equal(len(rootSceneToIngest.Tiles)))
 					for _, t := range tiles {
@@ -403,7 +403,7 @@ var _ = Describe("Workflow", func() {
 					Expect(scene.Status).To(Equal(common.StatusDONE))
 				})
 				It("should update the status of its tiles", func() {
-					tiles, err := wf.Tiles(ctx, "", id0, "", false)
+					tiles, err := wf.Tiles(ctx, "", id0, "", false, 0, -1)
 					Expect(err).NotTo(HaveOccurred())
 					for _, t := range tiles {
 						Expect(t.Status).To(Equal(common.StatusPENDING))
@@ -434,7 +434,7 @@ var _ = Describe("Workflow", func() {
 					Expect(scene.Message).To(Equal("error"))
 				})
 				It("should not update the status of its tiles", func() {
-					tiles, err := wf.Tiles(ctx, "", id0, "", false)
+					tiles, err := wf.Tiles(ctx, "", id0, "", false, 0, -1)
 					Expect(err).NotTo(HaveOccurred())
 					for _, t := range tiles {
 						Expect(t.Status).To(Equal(common.StatusNEW))
@@ -456,7 +456,7 @@ var _ = Describe("Workflow", func() {
 					})
 				})
 				It("should not update the status of its tiles", func() {
-					tiles, err := wf.Tiles(ctx, "", id1, "", false)
+					tiles, err := wf.Tiles(ctx, "", id1, "", false, 0, -1)
 					Expect(err).NotTo(HaveOccurred())
 					for _, t := range tiles {
 						Expect(t.Status).To(Equal(common.StatusNEW))
@@ -470,7 +470,7 @@ var _ = Describe("Workflow", func() {
 						ID:     id0,
 						Status: common.StatusDONE,
 					})
-					tiles, err := wf.Tiles(ctx, "", id0, "", false)
+					tiles, err := wf.Tiles(ctx, "", id0, "", false, 0, -1)
 					Expect(err).NotTo(HaveOccurred())
 					wf.ResultHandler(ctx, common.Result{
 						Type:   common.ResultTypeTile,
@@ -485,7 +485,7 @@ var _ = Describe("Workflow", func() {
 					})
 				})
 				It("should update the status of its tiles", func() {
-					tiles, err := wf.Tiles(ctx, "", id1, "", false)
+					tiles, err := wf.Tiles(ctx, "", id1, "", false, 0, -1)
 					Expect(err).NotTo(HaveOccurred())
 					nbNew := 0
 					nbPending := 0
