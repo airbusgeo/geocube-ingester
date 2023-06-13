@@ -37,7 +37,7 @@ type catalogConfig struct {
 	GeocubeServerApiKey            string
 	ScihubUsername                 string
 	ScihubPassword                 string
-	GCStorage                      string
+	GCSAnnotationsBucket           string
 	OneAtlasUsername               string
 	OneAtlasApikey                 string
 	OneAtlasEndpoint               string
@@ -92,7 +92,7 @@ func newAppConfig() (*config, error) {
 	// Providers
 	flag.StringVar(&config.CatalogConfig.ScihubUsername, "scihub-username", "", "username to connect to the Scihub catalog service")
 	flag.StringVar(&config.CatalogConfig.ScihubPassword, "scihub-password", "", "password to connect to the Scihub catalog service")
-	flag.StringVar(&config.CatalogConfig.GCStorage, "gcstorage", "", "GCS url where scenes are stored (for annotations) (optional)")
+	flag.StringVar(&config.CatalogConfig.GCSAnnotationsBucket, "gcs-annotations-bucket", "", "GCS bucket containing S1-scenes (as zip) to read annotations without downloading the whole file (optional, contains identifiers between brackets that will be replaced by those of the scene. E.g: gs://bucket/{DATE}/{SCENE}.zip)")
 	flag.StringVar(&config.CatalogConfig.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
 	flag.StringVar(&config.CatalogConfig.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas account apikey (to generate an api key for your account: https://account.foundation.oneatlas.airbus.com/api-keys)")
 	flag.StringVar(&config.CatalogConfig.OneAtlasEndpoint, "oneatlas-endpoint", "https://search.foundation.api.oneatlas.airbus.com/api/v2/opensearch", "oneatlas endpoint to search products from the catalogue")
@@ -240,8 +240,9 @@ func run(ctx context.Context) error {
 		// Scihub connection
 		catalog.ScihubUser = config.CatalogConfig.ScihubUsername
 		catalog.ScihubPword = config.CatalogConfig.ScihubPassword
+
 		// GCStorage
-		catalog.GCSAnnotationsBucket = config.CatalogConfig.GCStorage
+		catalog.GCSAnnotationsBucket = config.CatalogConfig.GCSAnnotationsBucket
 
 		// Creodias Catalogue
 		catalog.CreodiasCatalog = config.CatalogConfig.CreodiasCatalog

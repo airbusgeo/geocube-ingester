@@ -58,7 +58,7 @@ Creodias offers a service to get annotation files without downloading the whole 
 
 GCS or AWS can be used to retrieve burst annotations from archives (.SAFE.zip) stored in a user bucket.
 
-User account must have the appropriate rights to access the bucket, defined by `-gcstorage` (AWS to be added).
+User account must have the appropriate rights to access the bucket (`-gcs-annotations-bucket`) (AWS to be added).
 
 ## Workflow steps
 
