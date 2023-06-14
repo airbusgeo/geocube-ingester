@@ -1,11 +1,13 @@
 package graph_test
 
 import (
+	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 
+	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/graph"
 	"github.com/airbusgeo/geocube-ingester/service"
 	. "github.com/onsi/ginkgo"
@@ -255,7 +257,7 @@ var _ = Describe("LoadGraph", func() {
 			var jsonFile *os.File
 			jsonFile, err = os.Open(path.Join(wd, jsonPath))
 			Expect(err).NotTo(HaveOccurred())
-			byteValue, _ := ioutil.ReadAll(jsonFile)
+			byteValue, _ := io.ReadAll(jsonFile)
 			err = json.Unmarshal(byteValue, &final_graph)
 		})
 
@@ -285,6 +287,55 @@ var _ = Describe("LoadGraph", func() {
 				jsonPath = "library/Pass.json"
 			})
 			itShouldNotRaiseError()
+		})
+	})
+})
+
+var _ = Describe("ExecuteGraph", func() {
+
+	Describe("Executing graph", func() {
+		var ctx = context.Background()
+		var processing_graph graph.ProcessingGraphJSON
+		var returned_err error
+
+		var itRaiseAFatalError = func() {
+			It("should raise a fatal error", func() {
+				Expect(returned_err).NotTo(BeNil())
+				Expect(service.Fatal(returned_err)).To(BeTrue())
+			})
+		}
+
+		JustBeforeEach(func() {
+			p_graph, err := graph.NewProcessingGraph(ctx, processing_graph.Steps, processing_graph.InFiles, processing_graph.OutFiles)
+			Expect(err).NotTo(HaveOccurred())
+			_, returned_err = p_graph.Process(ctx, graph.GraphConfig{}, graph.GraphEnvs{}, []common.Tile{})
+		})
+
+		Context("", func() {
+			BeforeEach(func() {
+				processing_graph = graph.ProcessingGraphJSON{
+					Steps: []graph.ProcessingStep{
+						{
+							Engine:    "python",
+							Command:   "python/fatal_error.py",
+							Condition: graph.ConditionPass,
+
+							Args: map[string]graph.Arg{},
+						},
+					},
+					InFiles: [3][]graph.InFile{
+						{},
+						{},
+						{},
+					},
+					OutFiles: [][]graph.OutFile{
+						{},
+						{},
+						{},
+					},
+				}
+			})
+			itRaiseAFatalError()
 		})
 	})
 })

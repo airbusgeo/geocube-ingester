@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -255,7 +255,7 @@ func (of *OutFile) setDFormatOut(config GraphConfig) error {
 // GraphConfig is a configuration map for a processing graph
 type GraphConfig map[string]string
 
-// GraphEnvs is a configuration map for a processing graph
+// GraphEnvs is a list of environment variables that are passed to the docker
 type GraphEnvs []string
 
 // ProcessingGraph is a set of steps
@@ -315,7 +315,7 @@ func getFile(ctx context.Context, workdir, file string, makeExecutable bool) (st
 		return "", service.MergeErrors(true, err, e)
 	}
 
-	localpath, err := ioutil.TempFile(workdir, path.Base(file))
+	localpath, err := os.CreateTemp(workdir, path.Base(file))
 	if err != nil {
 		return "", fmt.Errorf("getFile[%s]: %w", path.Join(workdir, path.Base(file)), err)
 	}
@@ -336,7 +336,7 @@ func getFile(ctx context.Context, workdir, file string, makeExecutable bool) (st
 	return localpath.Name(), nil
 }
 
-func newProcessingGraph(ctx context.Context, steps []ProcessingStep, infiles [3][]InFile, outfiles [][]OutFile, opts ...Option) (*ProcessingGraph, error) {
+func NewProcessingGraph(ctx context.Context, steps []ProcessingStep, infiles [3][]InFile, outfiles [][]OutFile, opts ...Option) (*ProcessingGraph, error) {
 	// Check commands
 	snapRequired, dockerRequired := false, false
 	for i, step := range steps {
@@ -347,7 +347,7 @@ func newProcessingGraph(ctx context.Context, steps []ProcessingStep, infiles [3]
 		case python, command:
 			cmd, err := getFile(ctx, graphPath, step.Command, true)
 			if err != nil {
-				return nil, fmt.Errorf("newProcessingGraph: Command not found: %s (%w)", step.Command, err)
+				return nil, fmt.Errorf("NewProcessingGraph: Command not found: %s (%w)", step.Command, err)
 			}
 			steps[i].Command = cmd
 		case docker:
@@ -366,7 +366,7 @@ func newProcessingGraph(ctx context.Context, steps []ProcessingStep, infiles [3]
 
 	if snapRequired {
 		if _, err := os.Stat(g.opts.snapPath); err != nil {
-			return nil, fmt.Errorf("newProcessingGraph: SNAP not found: %s", g.opts.snapPath)
+			return nil, fmt.Errorf("NewProcessingGraph: SNAP not found: %s", g.opts.snapPath)
 		}
 	}
 	if dockerRequired {
@@ -450,7 +450,7 @@ func LoadGraphFromFile(ctx context.Context, graphFile string, opts ...Option) (*
 	}
 	defer jsonFile.Close()
 
-	byteValue, err := ioutil.ReadAll(jsonFile)
+	byteValue, err := io.ReadAll(jsonFile)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
@@ -460,7 +460,7 @@ func LoadGraphFromFile(ctx context.Context, graphFile string, opts ...Option) (*
 		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
 	opts = append(opts, WithSnap())
-	graph, err := newProcessingGraph(ctx, graphJSON.Steps, graphJSON.InFiles, graphJSON.OutFiles, opts...)
+	graph, err := NewProcessingGraph(ctx, graphJSON.Steps, graphJSON.InFiles, graphJSON.OutFiles, opts...)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("LoadGraphFromFile[%s]: %w", graphFile, err)
 	}
@@ -550,7 +550,7 @@ func newS1PreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(ctx, steps, infiles, outfiles, WithSnap())
+	return NewProcessingGraph(ctx, steps, infiles, outfiles, WithSnap())
 }
 
 // newS1BsCohGraph creates a new processing graph to compute Backscatter and Coherence of S1 images
@@ -787,7 +787,7 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(ctx, steps, infiles, outfiles, WithSnap())
+	return NewProcessingGraph(ctx, steps, infiles, outfiles, WithSnap())
 }
 
 // newS1CoregExtractGraph creates a new processing graph to compute Coherence of S1 images
@@ -844,7 +844,7 @@ func newS1CoregExtractGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(ctx, steps, infiles, outfiles, WithSnap())
+	return NewProcessingGraph(ctx, steps, infiles, outfiles, WithSnap())
 }
 
 // newS1CleanGraph creates a new graph to clean temporary images
@@ -862,7 +862,7 @@ func newS1CleanGraph(ctx context.Context) (*ProcessingGraph, error) {
 		{},
 	}
 
-	return newProcessingGraph(ctx, []ProcessingStep{}, infiles, outfiles)
+	return NewProcessingGraph(ctx, []ProcessingStep{}, infiles, outfiles)
 }
 
 func newPhrPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
@@ -896,7 +896,7 @@ func newPhrPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(ctx, steps, infiles, outfiles)
+	return NewProcessingGraph(ctx, steps, infiles, outfiles)
 }
 
 func newSpotPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
@@ -930,7 +930,7 @@ func newSpotPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 	}
 
-	return newProcessingGraph(ctx, steps, infiles, outfiles)
+	return NewProcessingGraph(ctx, steps, infiles, outfiles)
 }
 
 func newPhrProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
@@ -957,7 +957,7 @@ func newPhrProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 		{},
 	}
 
-	return newProcessingGraph(ctx, steps, infiles, outfiles)
+	return NewProcessingGraph(ctx, steps, infiles, outfiles)
 }
 
 func newSpotProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
@@ -981,7 +981,7 @@ func newSpotProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 		{},
 	}
 
-	return newProcessingGraph(ctx, steps, infiles, outfiles)
+	return NewProcessingGraph(ctx, steps, infiles, outfiles)
 }
 
 func cmdToString(cmd *exec.Cmd) string {
@@ -1108,10 +1108,11 @@ func (f *PythonLogFilter) WrapError(err error) error {
 	if f.lastError != "" {
 		err = service.MergeErrors(true, err, fmt.Errorf(f.lastError))
 		if err != nil {
-			strerr := strings.ToLower(err.Error())
+			strerr := err.Error()
 			if strings.Contains(strerr, "FATAL ERROR:") {
 				err = service.MakeFatal(err)
 			} else {
+				strerr = strings.ToLower(strerr)
 				for _, tmpErr := range temporaryErrs {
 					if strings.Contains(strerr, tmpErr) {
 						return service.MakeTemporary(err)
