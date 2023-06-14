@@ -78,7 +78,7 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 			}
 			if dl, ok := scenes.Scenes[i].Data.Metadata[common.DownloadLinkMetadata].(string); !ok || dl == "" {
 				if info, err := common.Info(s.SourceID); err == nil {
-					scenes.Scenes[i].Data.Metadata[common.DownloadLinkMetadata] = common.FormatBrackets(area.GCSAnnotationsBucket, info)
+					scenes.Scenes[i].Data.Metadata[common.DownloadLinkMetadata] = "gs://" + common.FormatBrackets(area.GCSAnnotationsBucket, info)
 				}
 			}
 		}
