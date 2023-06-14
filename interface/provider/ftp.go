@@ -114,7 +114,7 @@ func (ip *FTPImageProvider) Download(ctx context.Context, scene common.Scene, lo
 
 	// Unarchive
 	if err := unarchive(ctx, localZip, localDir); err != nil {
-		return service.MakeTemporary(fmt.Errorf("URLImageProvider.Unarchive: %w", err))
+		return service.MakeTemporary(fmt.Errorf("FTPImageProvider.Unarchive: %w", err))
 	}
 	return nil
 }
