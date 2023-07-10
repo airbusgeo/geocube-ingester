@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	"github.com/airbusgeo/geocube-ingester/common"
 	db "github.com/airbusgeo/geocube-ingester/interface/database"
@@ -78,7 +78,7 @@ func (rwm RemoteWorkflowManager) IngestScene(ctx context.Context, aoi string, sc
 	if resp.StatusCode == 409 {
 		return -1, db.ErrAlreadyExists{}
 	}
-	bodyResponse, err := ioutil.ReadAll(resp.Body)
+	bodyResponse, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return -1, fmt.Errorf("IngestScene.ReadAll(%s): %w", string(bodyResponse), err)
 	}

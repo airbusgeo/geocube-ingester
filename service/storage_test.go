@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -12,23 +11,23 @@ import (
 )
 
 func initLocalDirs() (string, string, string, error) {
-	localdir, err := ioutil.TempDir("", "local")
+	localdir, err := os.MkdirTemp("", "local")
 	if err != nil {
 		return "", "", "", err
 	}
-	distdir, err := ioutil.TempDir("", "dist")
+	distdir, err := os.MkdirTemp("", "dist")
 	if err != nil {
 		return "", "", "", err
 	}
-	localdir2, err := ioutil.TempDir("", "local2")
+	localdir2, err := os.MkdirTemp("", "local2")
 	return localdir, distdir, localdir2, err
 }
 
 func createFiles(dir, name string) {
-	ioutil.WriteFile(path.Join(dir, name+"dim"), []byte("test"), 0644)
+	os.WriteFile(path.Join(dir, name+"dim"), []byte("test"), 0644)
 	os.Mkdir(path.Join(dir, name+"data"), 0755)
-	ioutil.WriteFile(path.Join(dir, name+"data", "data"), []byte("test"), 0644)
-	ioutil.WriteFile(path.Join(dir, name+"tif"), []byte("test"), 0644)
+	os.WriteFile(path.Join(dir, name+"data", "data"), []byte("test"), 0644)
+	os.WriteFile(path.Join(dir, name+"tif"), []byte("test"), 0644)
 }
 
 func TestLocalStorage(t *testing.T) {

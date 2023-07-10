@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -18,7 +17,7 @@ func HTTPGetWithAuth(ctx context.Context, url, authName, authPswd, authToken str
 		return nil, fmt.Errorf("HTTPGet: %w", err)
 	}
 	defer resp.Body.Close()
-	return ioutil.ReadAll(resp.Body)
+	return io.ReadAll(resp.Body)
 }
 
 func HTTPPostWithAuth(ctx context.Context, url string, body io.Reader, authName, authPswd, authToken string) (*http.Response, error) {

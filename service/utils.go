@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	neturl "net/url"
 
@@ -94,14 +94,14 @@ func GetBodyRetryReq(req *http.Request, nbTries int) ([]byte, error) {
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
-			body, _ = ioutil.ReadAll(resp.Body)
+			body, _ = io.ReadAll(resp.Body)
 			err = fmt.Errorf(resp.Status + ":" + string(body))
 			if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 				return nil, err
 			}
 			continue
 		}
-		if body, err = ioutil.ReadAll(resp.Body); err == nil {
+		if body, err = io.ReadAll(resp.Body); err == nil {
 			return body, nil
 		}
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -119,7 +119,7 @@ func (ip *ONDADiasImageProvider) order(sceneUUID string) (string, error) {
 
 	switch resp.StatusCode {
 	case 200:
-		bodyResponse, err := ioutil.ReadAll(resp.Body)
+		bodyResponse, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return "", fmt.Errorf("order.ReadAll: %w", err)
 		}

@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -89,7 +89,7 @@ func (m *orderManagerImpl) GetStatus(orderRequest OrderRequest) (map[string]Orde
 			return nil, fmt.Errorf("failed to execute http request: %w", err)
 		}
 
-		b, err := ioutil.ReadAll(resp.Body)
+		b, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read body response")
 		}
@@ -162,7 +162,7 @@ func (m *orderManagerImpl) GetPrice(orderRequest OrderRequest) (OrderPrice, erro
 		return OrderPrice{}, fmt.Errorf("failed to check order price %s", resp.Status)
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return OrderPrice{}, fmt.Errorf("failed to read body response")
 	}
@@ -196,7 +196,7 @@ func (m *orderManagerImpl) GetAccountInformation() (AccountInformation, error) {
 		return AccountInformation{}, fmt.Errorf("failed to check account information")
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return AccountInformation{}, fmt.Errorf("failed to read body response")
 	}

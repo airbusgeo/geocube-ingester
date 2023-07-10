@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -43,7 +43,7 @@ func (ip *CreoDiasImageProvider) LoadCreoDiasToken() error {
 	if err != nil {
 		return fmt.Errorf("CreoDiasToken.PostForm: %w", err)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("CreoDiasToken.ReadAll: %w", err)
 	}

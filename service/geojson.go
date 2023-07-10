@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/go-spatial/geom"
@@ -54,7 +54,7 @@ func ToJSON(v interface{}, workingdir, filename string) error {
 		if err != nil {
 			return fmt.Errorf("toJSON.Marshal: %w", err)
 		}
-		if err := ioutil.WriteFile(filepath.Join(workingdir, filename), vb, 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(workingdir, filename), vb, 0644); err != nil {
 			return fmt.Errorf("toJSON.WriteFile: %w", err)
 		}
 	}

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -156,7 +156,7 @@ func ingestArea(ctx context.Context, jsonPath string) error {
 		return err
 	}
 	defer jsonFile.Close()
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	byteValue, _ := io.ReadAll(jsonFile)
 	if err = json.Unmarshal(byteValue, &area); err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func sendScenes(ctx context.Context, areaJsonPath, scenesJsonPath string) error 
 		return err
 	}
 	defer jsonFile.Close()
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	byteValue, _ := io.ReadAll(jsonFile)
 	json.Unmarshal(byteValue, &area)
 
 	scenesToIngest := struct {
@@ -202,7 +202,7 @@ func sendScenes(ctx context.Context, areaJsonPath, scenesJsonPath string) error 
 		return err
 	}
 	defer jsonFile2.Close()
-	byteValue, _ = ioutil.ReadAll(jsonFile2)
+	byteValue, _ = io.ReadAll(jsonFile2)
 	json.Unmarshal(byteValue, &scenesToIngest)
 	_, err = c.PostScenes(ctx, area, scenesToIngest.Scenes)
 	return err
@@ -213,7 +213,7 @@ func scenesFromJSON(workingdir, filename string) ([]*Scene, error) {
 	scenes := struct {
 		Scenes []*Scene
 	}{}
-	file, err := ioutil.ReadFile(workingdir + "/" + filename)
+	file, err := io.ReadFile(workingdir + "/" + filename)
 	if err != nil {
 		return nil, fmt.Errorf("scenesFromJSON.ReadFile: %w", err)
 	}

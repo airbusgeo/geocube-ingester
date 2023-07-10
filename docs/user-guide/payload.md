@@ -10,7 +10,7 @@ The payload is a GeoJSON (all fields are mandatory unless otherwise stated):
 - **scene_type**: describing the type of the products to be downloaded
     - **constellation**: Name of the Satellite Constellation (currently supported : sentinel1, sentinel2)
     - **parameters**: (optional) specific parameters to filter the results (see [Catalogue API guide](#catalogue-apis))
-- **scene_graph_name**: name of the graph that will be used just after downloading the scene (or "CopyToStorage") (see [Processing Graphs](graph.md))
+- **scene_graph_name**: name of the graph that will be used just after downloading the scene (or "CopyProductToStorage") (see [Processing Graphs](graph.md))
 - **tile_graph_name**: name of the graph that will be used to process each tiles (or "Pass") (see [Processing Graphs](graph.md))
 - **graph_config**: (optional): specific configuration of the graphs
 - **layers**: mapping between layers to be indexed in the Geocube and the corresponding variable.instance from the Geocube (see Geocube Documentation).  

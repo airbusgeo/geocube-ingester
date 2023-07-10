@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -349,7 +349,7 @@ func (p *provider) queryCatalog(_ context.Context, catalogRequestParameter *cata
 			return nil, service.MakeTemporary(fmt.Errorf(resp.Status))
 		}
 
-		bodyResponse, err := ioutil.ReadAll(resp.Body)
+		bodyResponse, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return nil, err
 		}

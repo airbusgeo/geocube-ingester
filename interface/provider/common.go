@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -163,7 +163,7 @@ func download(ctx context.Context, req *grab.Request, displayPrefix string, copy
 
 // unarchive file with basic check.
 func unarchive(ctx context.Context, localZip, localDir string) error {
-	tmpdir, err := ioutil.TempDir(localDir, filepath.Base(localZip))
+	tmpdir, err := os.MkdirTemp(localDir, filepath.Base(localZip))
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func getDownloadURL(searchURL string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("getDownloadURL.Get: %w", err)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("getDownloadURL.ReadAll: %w", err)
 	}

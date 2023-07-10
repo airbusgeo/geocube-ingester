@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -110,9 +109,9 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 	}
 	prefix = strings.TrimRight(prefix, "/")
 	if dstDir == "" {
-		dstDir, err = ioutil.TempDir("", "gcs")
+		dstDir, err = os.MkdirTemp("", "gcs")
 		if err != nil {
-			return nil, fmt.Errorf("ioutil.tempdir: %w", err)
+			return nil, fmt.Errorf("os.MkdirTemp: %w", err)
 		}
 	}
 	type gsUriToDownload struct {

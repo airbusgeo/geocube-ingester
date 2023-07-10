@@ -59,13 +59,13 @@ func (ip *LocalImageProvider) Download(ctx context.Context, scene common.Scene, 
 
 // fileCopy copies a single file from src to dst
 /*func fileCopy(src, dst string) error {
-	input, err := ioutil.ReadFile(src)
+	input, err := io.ReadFile(src)
 	if err != nil {
 		return fmt.Errorf("fileCopy.ReadFile: %w", err)
 	}
 
 	_ = os.MkdirAll(path.Dir(dst), 0700)
-	if err = ioutil.WriteFile(dst, input, 0644); err != nil {
+	if err = io.WriteFile(dst, input, 0644); err != nil {
 		return fmt.Errorf("fileCopy.WriteFile: %w", err)
 	}
 	return nil
