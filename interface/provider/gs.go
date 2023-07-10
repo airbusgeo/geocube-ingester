@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -51,6 +52,43 @@ func (ip *GSImageProvider) AddBucket(constellation, bucket string) error {
 	return nil
 }
 
+func findBlob(ctx context.Context, url string) (string, error) {
+	// Find the first blob that matches the url pattern
+	bucket, blob, err := gcs.Parse(url)
+	if err != nil {
+		return "", err
+	}
+	gsClient, err := storage.NewClient(ctx)
+	if err != nil {
+		return "", err
+	}
+	// Create a regexp from blob, replacing "*" by ".*" and "?" by "."
+	blobRe := strings.ReplaceAll(strings.ReplaceAll(regexp.QuoteMeta(blob), "\\*", ".*"), "\\?", ".")
+	re, err := regexp.Compile(blobRe)
+	if err != nil {
+		return "", fmt.Errorf("compile[%s]: %w", blobRe, err)
+	}
+	// Extract the prefix
+	if i := strings.Index(blob, "*"); i != -1 {
+		blob = blob[:i]
+	}
+	// Find all the blobs that match the prefix
+	it := gsClient.Bucket(bucket).Objects(ctx, &storage.Query{Prefix: blob})
+	for {
+		attrs, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return "", fmt.Errorf("list[%s/%s*]: %w", bucket, blob, err)
+		}
+		if idx := re.FindIndex([]byte(attrs.Name)); idx != nil && idx[0] == 0 {
+			return "gs://" + bucket + "/" + attrs.Name[:idx[1]], nil
+		}
+	}
+	return url, ErrProductNotFound{url}
+}
+
 // Download implements ImageProvider
 func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	sceneName := scene.SourceID
@@ -66,6 +104,11 @@ func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, loc
 
 	for _, bucket := range buckets {
 		url := common.FormatBrackets(bucket, format)
+		if strings.Contains(url, "*") {
+			if url, err = findBlob(ctx, url); err != nil {
+				return fmt.Errorf("GSImageProvider: %w", err)
+			}
+		}
 		e := func() error {
 			if filepath.Ext(url) == "."+string(service.ExtensionZIP) {
 				if err := ip.downloadZip(ctx, url, localDir); err != nil {
