@@ -64,13 +64,14 @@
      "layer": "coregextract",
      "extension": "dim",
      "action": "to_create",
-     "condition": "different_T0_T1"
+     "condition": "file_exists"
    },
    {
     "layer": "preprocessed",
     "extension": "dim",
     "action": "to_delete",
-    "condition": "different_T0_T1"
+    "condition": "different_T0_T1",
+    "error_condition": "on_fatal_failure"
    }
   ],
   [
@@ -78,7 +79,8 @@
       "layer": "coregextract",
       "extension": "dim",
       "action": "to_delete",
-      "condition": "different_T1_T2"
+      "condition": "different_T1_T2",
+      "error_condition": "on_fatal_failure"
      }
   ],
   []

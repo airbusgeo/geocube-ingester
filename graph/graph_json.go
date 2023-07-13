@@ -21,7 +21,7 @@ func (of *OutFile) UnmarshalJSON(data []byte) error {
 		DFormatOut ArgJSON `json:"dformat_out"`
 	}
 	alias := &outFileJSON{outFileAlias: outFileAlias{
-		Condition: pass,
+		Condition: Condition(pass),
 		Exponent:  1,
 		Nbands:    1,
 	}}
@@ -37,7 +37,7 @@ func (of *OutFile) UnmarshalJSON(data []byte) error {
 
 func (i *InFile) UnmarshalJSON(data []byte) error {
 	type inFileAlias InFile
-	alias := &inFileAlias{Condition: pass}
+	alias := &inFileAlias{Condition: Condition(pass)}
 
 	if err := json.Unmarshal(data, alias); err != nil {
 		return err
@@ -60,6 +60,23 @@ func (t *TileCondition) UnmarshalJSON(data []byte) error {
 	*t, ok = tileConditionJSON[res]
 	if !ok {
 		return fmt.Errorf("UnmarshalJSON: unknown condition: %s (must be one of %v)", res, reflect.ValueOf(tileConditionJSON).MapKeys())
+	}
+	return nil
+}
+
+func (t *Condition) UnmarshalJSON(data []byte) error {
+	var res string
+	if err := json.Unmarshal(data, &res); err != nil {
+		return err
+	}
+	if res == "" {
+		res = pass.Name
+	}
+
+	var ok bool
+	*t, ok = conditionJSON[res]
+	if !ok {
+		return fmt.Errorf("UnmarshalJSON: unknown condition: %s (must be one of %v)", res, reflect.ValueOf(conditionJSON).MapKeys())
 	}
 	return nil
 }

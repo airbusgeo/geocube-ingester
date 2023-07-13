@@ -50,57 +50,82 @@ var _ = Describe("LoadGraph", func() {
 		Expect(final_step.Condition.Name).To(Equal(expected_step.Condition.Name))
 	}
 	var inFilesShouldBeEqual = func(final_infile, expected_infile graph.InFile) {
-		final_infile.Condition.Pass = nil
-		expected_infile.Condition.Pass = nil
+		final_infile.Condition.PassFn = nil
+		expected_infile.Condition.PassFn = nil
 		Expect(final_infile).To(Equal(expected_infile))
 	}
 	var outFilesShouldBeEqual = func(final_outfile, expected_outfile graph.OutFile) {
-		final_outfile.Condition.Pass = nil
-		expected_outfile.Condition.Pass = nil
+		final_outfile.Condition.PassFn = nil
+		expected_outfile.Condition.PassFn = nil
+		final_outfile.ErrorCondition.PassFn = nil
+		expected_outfile.ErrorCondition.PassFn = nil
 		Expect(final_outfile).To(Equal(expected_outfile))
 	}
 
 	Describe("Loading tile condition", func() {
 		var final_condition, expected_condition graph.TileCondition
+		var unmarshalErr error
 		var itShouldBeEqual = func() {
 			It("should be equal", func() {
 				Expect(final_condition.Name).To(Equal(expected_condition.Name))
 			})
 		}
 
+		var itShouldNotRaiseError = func() {
+			It("should raise error", func() {
+				Expect(unmarshalErr).To(BeNil())
+			})
+		}
+
+		var itShouldRaiseError = func() {
+			It("should raise error", func() {
+				Expect(unmarshalErr).NotTo(BeNil())
+			})
+		}
+
 		JustBeforeEach(func() {
 			stepb, err := json.Marshal(&expected_condition)
 			Expect(err).NotTo(HaveOccurred())
-			err = json.Unmarshal(stepb, &final_condition)
-			Expect(err).NotTo(HaveOccurred())
+			unmarshalErr = json.Unmarshal(stepb, &final_condition)
 		})
 
 		Context("Pass", func() {
 			BeforeEach(func() {
-				expected_condition = graph.TileCondition(graph.ConditionPass)
+				expected_condition = graph.ConditionPass
 			})
+			itShouldNotRaiseError()
 			itShouldBeEqual()
 		})
 
 		Context("T0T1", func() {
 			BeforeEach(func() {
-				expected_condition = graph.TileCondition(graph.ConditionDiffT0T1)
+				expected_condition = graph.ConditionDiffT0T1
 			})
+			itShouldNotRaiseError()
 			itShouldBeEqual()
 		})
 
 		Context("T1T2", func() {
 			BeforeEach(func() {
-				expected_condition = graph.TileCondition(graph.ConditionDiffT1T2)
+				expected_condition = graph.ConditionDiffT1T2
 			})
+			itShouldNotRaiseError()
 			itShouldBeEqual()
 		})
 
 		Context("T0T2", func() {
 			BeforeEach(func() {
-				expected_condition = graph.TileCondition(graph.ConditionDiffT0T2)
+				expected_condition = graph.ConditionDiffT0T2
 			})
+			itShouldNotRaiseError()
 			itShouldBeEqual()
+		})
+
+		Context("FatalError", func() {
+			BeforeEach(func() {
+				expected_condition = graph.TileCondition(graph.ConditionOnFatalFailure)
+			})
+			itShouldRaiseError()
 		})
 	})
 
@@ -220,17 +245,17 @@ var _ = Describe("LoadGraph", func() {
 				expected_graph = graph.ProcessingGraphJSON{
 					Steps: []graph.ProcessingStep{snapStep, pythonStep},
 					InFiles: [3][]graph.InFile{
-						{{graph.File{service.LayerPreprocessed, service.ExtensionDIMAP}, graph.ConditionPass}},
+						{{graph.File{service.LayerPreprocessed, service.ExtensionDIMAP}, graph.Condition(graph.ConditionPass)}},
 						{},
-						{{graph.File{service.LayerPreprocessed, service.ExtensionDIMAP}, graph.ConditionDiffT0T2}},
+						{{graph.File{service.LayerPreprocessed, service.ExtensionDIMAP}, graph.Condition(graph.ConditionDiffT0T2)}},
 					},
 					OutFiles: [][]graph.OutFile{
 						{
-							{File: graph.File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: graph.ToCreate, Condition: graph.ConditionDiffT0T1},
-							{File: graph.File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: graph.ToDelete, Condition: graph.ConditionDiffT1T2},
+							{File: graph.File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: graph.ToCreate, Condition: graph.Condition(graph.ConditionDiffT0T1), ErrorCondition: graph.Condition(graph.ConditionPass)},
+							{File: graph.File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: graph.ToDelete, Condition: graph.Condition(graph.ConditionDiffT1T2), ErrorCondition: graph.Condition(graph.ConditionPass)},
 						},
 						{
-							{File: graph.File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: graph.ToDelete, Condition: graph.ConditionDiffT0T1},
+							{File: graph.File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: graph.ToDelete, Condition: graph.Condition(graph.ConditionDiffT0T1), ErrorCondition: graph.Condition(graph.ConditionPass)},
 						},
 						{},
 					},
@@ -297,7 +322,13 @@ var _ = Describe("ExecuteGraph", func() {
 		var ctx = context.Background()
 		var processing_graph graph.ProcessingGraphJSON
 		var returned_err error
+		var outFiles [][]graph.OutFile
 
+		var itPassWithoutError = func() {
+			It("should pass without error", func() {
+				Expect(returned_err).To(BeNil())
+			})
+		}
 		var itRaiseAFatalError = func() {
 			It("should raise a fatal error", func() {
 				Expect(returned_err).NotTo(BeNil())
@@ -305,13 +336,49 @@ var _ = Describe("ExecuteGraph", func() {
 			})
 		}
 
+		var itAsksToDeleteFiles = func(to_delete []bool) {
+			It("should asks to delete some files", func() {
+				for i, to_delete := range to_delete {
+					if to_delete {
+						Expect(len(outFiles[i])).To(Equal(1))
+						Expect(outFiles[i][0].Action).To(Equal(graph.ToDelete))
+					} else {
+						Expect(len(outFiles[i])).To(Equal(0))
+					}
+				}
+			})
+		}
+
 		JustBeforeEach(func() {
 			p_graph, err := graph.NewProcessingGraph(ctx, processing_graph.Steps, processing_graph.InFiles, processing_graph.OutFiles)
 			Expect(err).NotTo(HaveOccurred())
-			_, returned_err = p_graph.Process(ctx, graph.GraphConfig{}, graph.GraphEnvs{}, []common.Tile{})
+			outFiles, returned_err = p_graph.Process(ctx, graph.GraphConfig{}, graph.GraphEnvs{}, []common.Tile{
+				{Scene: common.Scene{SourceID: "1"}},
+				{Scene: common.Scene{SourceID: "1"}},
+				{Scene: common.Scene{SourceID: "2"}}})
 		})
 
-		Context("", func() {
+		Context("Pass", func() {
+			BeforeEach(func() {
+				processing_graph = graph.ProcessingGraphJSON{
+					Steps: []graph.ProcessingStep{},
+					InFiles: [3][]graph.InFile{
+						{},
+						{},
+						{},
+					},
+					OutFiles: [][]graph.OutFile{
+						{{Action: graph.ToDelete, Condition: graph.ConditionOnFatalFailure}},
+						{},
+						{},
+					},
+				}
+			})
+			itPassWithoutError()
+			itAsksToDeleteFiles([]bool{false})
+		})
+
+		Context("Raise a Fatal Error", func() {
 			BeforeEach(func() {
 				processing_graph = graph.ProcessingGraphJSON{
 					Steps: []graph.ProcessingStep{
@@ -329,13 +396,14 @@ var _ = Describe("ExecuteGraph", func() {
 						{},
 					},
 					OutFiles: [][]graph.OutFile{
-						{},
-						{},
-						{},
+						{{Action: graph.ToDelete, Condition: graph.ConditionOnFatalFailure}},
+						{{Action: graph.ToDelete, Condition: graph.Condition(graph.ConditionDiffT0T1), ErrorCondition: graph.ConditionOnFatalFailure}},
+						{{Action: graph.ToDelete, Condition: graph.Condition(graph.ConditionDiffT0T2), ErrorCondition: graph.ConditionOnFatalFailure}},
 					},
 				}
 			})
 			itRaiseAFatalError()
+			itAsksToDeleteFiles([]bool{true, false, true})
 		})
 	})
 })

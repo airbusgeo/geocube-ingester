@@ -9,13 +9,18 @@ var ConditionPass = pass
 var ConditionDiffT0T1 = condDiffT0T1
 var ConditionDiffT1T2 = condDiffT1T2
 var ConditionDiffT0T2 = condDiffT0T2
+var ConditionOnFatalFailure = condOnFatalFailure
 
 var NewS1PreProcessingGraph = newS1PreProcessingGraph
 
 var NewOutFile = newOutFile
 
-func (t TileCondition) MarshalJSON() ([]byte, error) {
-	return json.Marshal(t.Name)
+func (tc TileCondition) MarshalJSON() ([]byte, error) {
+	return json.Marshal(tc.Name)
+}
+
+func (fc Condition) MarshalJSON() ([]byte, error) {
+	return json.Marshal(fc.Name)
 }
 
 type argJSON struct {

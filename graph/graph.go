@@ -70,45 +70,6 @@ func (so dockerOpt) setOpt(opts *graphOpts) {
 	opts.dockerManager = so.dockerManager
 }
 
-// TileCondition is a condition on tiles to do an action (execute a step, create a file...)
-type TileCondition struct {
-	Name string
-	Pass func([]common.Tile, *File) bool
-}
-
-// condPass is a tileCondition always true
-var pass = TileCondition{"pass", func(tiles []common.Tile, f *File) bool { return true }}
-
-// condDiffTile returns true if tile1 != tile2
-var condDiffT0T1 = TileCondition{"different_T0_T1", func(tiles []common.Tile, f *File) bool { return tiles[0].Scene.SourceID != tiles[1].Scene.SourceID }}
-var condDiffT0T2 = TileCondition{"different_T0_T2", func(tiles []common.Tile, f *File) bool { return tiles[0].Scene.SourceID != tiles[2].Scene.SourceID }}
-var condDiffT1T2 = TileCondition{"different_T1_T2", func(tiles []common.Tile, f *File) bool { return tiles[1].Scene.SourceID != tiles[2].Scene.SourceID }}
-
-// condEqualTile returns true if tile1 == tile2
-var condEqualT0T1 = TileCondition{"equal_T0_T1", func(tiles []common.Tile, f *File) bool { return tiles[0].Scene.SourceID == tiles[1].Scene.SourceID }}
-var condEqualT0T2 = TileCondition{"equal_T0_T2", func(tiles []common.Tile, f *File) bool { return tiles[0].Scene.SourceID == tiles[2].Scene.SourceID }}
-var condEqualT1T2 = TileCondition{"equal_T1_T2", func(tiles []common.Tile, f *File) bool { return tiles[1].Scene.SourceID == tiles[2].Scene.SourceID }}
-
-// condIfExists return true if file exists
-var condFileExists = TileCondition{"file_exists", func(t []common.Tile, f *File) bool {
-	if f != nil {
-		_, err := os.Stat(service.LayerFileName(t[0], f.Layer, f.Extension))
-		return err == nil
-	}
-	return false
-}}
-
-var tileConditionJSON = map[string]TileCondition{
-	pass.Name:           pass,
-	condDiffT0T1.Name:   condDiffT0T1,
-	condDiffT0T2.Name:   condDiffT0T2,
-	condDiffT1T2.Name:   condDiffT1T2,
-	condEqualT0T1.Name:  condEqualT0T1,
-	condEqualT0T2.Name:  condEqualT0T2,
-	condEqualT1T2.Name:  condEqualT1T2,
-	condFileExists.Name: condFileExists,
-}
-
 type Arg interface{}
 
 type ArgIn struct { // input of the graph
@@ -190,38 +151,40 @@ type File struct {
 // InFile describes an input file of the processing
 type InFile struct {
 	File
-	Condition TileCondition `json:"condition"`
+	Condition Condition `json:"condition"`
 }
 
 // OutFile describes an output file of the processing
 type OutFile struct {
 	File
-	dformatOut Arg           // argFixed or argConfig
-	DType      DType         `json:"datatype"`
-	NoData     float64       `json:"nodata"`
-	Min        float64       `json:"min_value"`
-	Max        float64       `json:"max_value"`
-	ExtMin     float64       `json:"ext_min_value"`
-	ExtMax     float64       `json:"ext_max_value"`
-	Exponent   float64       `json:"exponent"` // JSON default: 1
-	Nbands     int           `json:"nbands"`   // JSON default: 1
-	Action     OutFileAction `json:"action"`
-	Condition  TileCondition `json:"condition"` // JSON default: pass
+	dformatOut     Arg           // argFixed or argConfig
+	DType          DType         `json:"datatype"`
+	NoData         float64       `json:"nodata"`
+	Min            float64       `json:"min_value"`
+	Max            float64       `json:"max_value"`
+	ExtMin         float64       `json:"ext_min_value"`
+	ExtMax         float64       `json:"ext_max_value"`
+	Exponent       float64       `json:"exponent"` // JSON default: 1
+	Nbands         int           `json:"nbands"`   // JSON default: 1
+	Action         OutFileAction `json:"action"`
+	Condition      Condition     `json:"condition"`       // JSON default: pass
+	ErrorCondition Condition     `json:"error_condition"` // JSON default: pass
 }
 
-func newOutFile(layer service.Layer, ext service.Extension, dformatOut Arg, realmin, realmax, exponent float64, nbands int, status OutFileAction, condition TileCondition) OutFile {
+func newOutFile(layer service.Layer, ext service.Extension, dformatOut Arg, realmin, realmax, exponent float64, nbands int, status OutFileAction, condition Condition) OutFile {
 	return OutFile{
 		File: File{
 			Layer:     layer,
 			Extension: ext,
 		},
-		dformatOut: dformatOut,
-		ExtMin:     realmin,
-		ExtMax:     realmax,
-		Exponent:   exponent,
-		Action:     status,
-		Condition:  condition,
-		Nbands:     nbands,
+		dformatOut:     dformatOut,
+		ExtMin:         realmin,
+		ExtMax:         realmax,
+		Exponent:       exponent,
+		Action:         status,
+		Condition:      condition,
+		ErrorCondition: Condition(pass),
+		Nbands:         nbands,
 	}
 }
 
@@ -527,7 +490,7 @@ func newS1PreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 
 	// Define outputs
 	outfiles := [][]OutFile{
-		{newOutFile(service.LayerPreprocessed, service.ExtensionDIMAP, ArgFixed("float32,0,0,1"), 0, 1, 1, 1, ToCreate, pass)},
+		{newOutFile(service.LayerPreprocessed, service.ExtensionDIMAP, ArgFixed("float32,0,0,1"), 0, 1, 1, 1, ToCreate, Condition(pass))},
 		{},
 		{},
 	}
@@ -557,23 +520,23 @@ func newS1PreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define inputs
 	infiles := [3][]InFile{
-		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, pass}},
-		{{File{service.LayerCoregExtract, service.ExtensionDIMAP}, condDiffT1T2}},
-		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, condDiffT0T2}},
+		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, Condition(pass)}},
+		{{File{service.LayerCoregExtract, service.ExtensionDIMAP}, Condition(condDiffT1T2)}},
+		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, Condition(condDiffT0T2)}},
 	}
 
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			newOutFile(service.LayerBackscatterVV, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, pass),
-			newOutFile(service.LayerBackscatterVH, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, pass),
-			newOutFile(service.LayerCoherenceVV, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, condDiffT0T1),
-			newOutFile(service.LayerCoherenceVH, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, condDiffT0T1),
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate, Condition: condDiffT0T1},
-			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: condDiffT0T1},
+			newOutFile(service.LayerBackscatterVV, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, Condition(pass)),
+			newOutFile(service.LayerBackscatterVH, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, Condition(pass)),
+			newOutFile(service.LayerCoherenceVV, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, Condition(condDiffT0T1)),
+			newOutFile(service.LayerCoherenceVH, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, Condition(condDiffT0T1)),
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate, Condition: Condition(condDiffT0T1)},
+			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: Condition(condDiffT0T1)},
 		},
 		{
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: condDiffT1T2},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: Condition(condDiffT1T2)},
 		},
 		{},
 	}
@@ -794,19 +757,19 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 func newS1CoregExtractGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define inputs
 	infiles := [3][]InFile{
-		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, pass}},
+		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, Condition(pass)}},
 		{},
-		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, condDiffT0T2}},
+		{{File{service.LayerPreprocessed, service.ExtensionDIMAP}, Condition(condDiffT0T2)}},
 	}
 
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate, Condition: condDiffT0T1},
-			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: condDiffT0T1},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToCreate, Condition: Condition(condDiffT0T1)},
+			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: Condition(condDiffT0T1)},
 		},
 		{
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: condDiffT1T2},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: Condition(condDiffT1T2)},
 		},
 		{},
 	}
@@ -855,8 +818,8 @@ func newS1CleanGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: pass},
-			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: pass},
+			{File: File{Layer: service.LayerPreprocessed, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: Condition(pass)},
+			{File: File{Layer: service.LayerCoregExtract, Extension: service.ExtensionDIMAP}, Action: ToDelete, Condition: Condition(pass)},
 		},
 		{},
 		{},
@@ -891,8 +854,8 @@ func newPhrPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			{File: File{Layer: service.LayerMultiSpectral, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: pass},
-			{File: File{Layer: service.LayerPanchromatic, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: pass},
+			{File: File{Layer: service.LayerMultiSpectral, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: Condition(pass)},
+			{File: File{Layer: service.LayerPanchromatic, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: Condition(pass)},
 		},
 	}
 
@@ -925,8 +888,8 @@ func newSpotPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			{File: File{Layer: service.LayerMultiSpectral, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: pass},
-			{File: File{Layer: service.LayerPanchromatic, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: pass},
+			{File: File{Layer: service.LayerMultiSpectral, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: Condition(pass)},
+			{File: File{Layer: service.LayerPanchromatic, Extension: service.ExtensionGTiff}, Action: ToCreate, Condition: Condition(pass)},
 		},
 	}
 
@@ -937,8 +900,8 @@ func newPhrProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define inputs
 	infiles := [3][]InFile{
 		{
-			{File{service.LayerMultiSpectral, service.ExtensionGTiff}, pass},
-			{File{service.LayerPanchromatic, service.ExtensionGTiff}, pass},
+			{File{service.LayerMultiSpectral, service.ExtensionGTiff}, Condition(pass)},
+			{File{service.LayerPanchromatic, service.ExtensionGTiff}, Condition(pass)},
 		},
 		{},
 		{},
@@ -950,8 +913,8 @@ func newPhrProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			newOutFile(service.LayerMultiSpectral, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 4, ToIndex, pass),
-			newOutFile(service.LayerPanchromatic, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, pass),
+			newOutFile(service.LayerMultiSpectral, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 4, ToIndex, Condition(pass)),
+			newOutFile(service.LayerPanchromatic, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, Condition(pass)),
 		},
 		{},
 		{},
@@ -963,8 +926,8 @@ func newPhrProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 func newSpotProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define inputs
 	infiles := [3][]InFile{
-		{{File{service.LayerMultiSpectral, service.ExtensionGTiff}, pass}},
-		{{File{service.LayerPanchromatic, service.ExtensionGTiff}, pass}},
+		{{File{service.LayerMultiSpectral, service.ExtensionGTiff}, Condition(pass)}},
+		{{File{service.LayerPanchromatic, service.ExtensionGTiff}, Condition(pass)}},
 		{},
 	}
 
@@ -974,8 +937,8 @@ func newSpotProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 	// Define outputs
 	outfiles := [][]OutFile{
 		{
-			newOutFile(service.LayerMultiSpectral, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 4, ToIndex, pass),
-			newOutFile(service.LayerPanchromatic, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, pass),
+			newOutFile(service.LayerMultiSpectral, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 4, ToIndex, Condition(pass)),
+			newOutFile(service.LayerPanchromatic, service.ExtensionGTiff, ArgConfig("dformat_out"), 0, 1, 1, 1, ToIndex, Condition(pass)),
 		},
 		{},
 		{},
@@ -992,22 +955,55 @@ func cmdToString(cmd *exec.Cmd) string {
 	return s
 }
 
+func (g *ProcessingGraph) onFailureGetOutFiles(err error, config GraphConfig, tiles []common.Tile) [][]OutFile {
+	outfiles := make([][]OutFile, len(tiles))
+	for i, outfs := range g.outFiles {
+		for _, f := range outfs {
+			// If ErrorCondition is an error condition but not pass => continue
+			fn, conditionError := f.ErrorCondition.PassFn.(ErrorConditionFn)
+			if conditionError && !fn(err) {
+				continue
+			}
+			// If Condition is ErrorCondition but not pass => continue
+			// Else, pass only if conditionError and Condition Pass
+			switch fn := f.Condition.PassFn.(type) {
+			case ErrorConditionFn:
+				if !fn(err) {
+					continue
+				}
+			case FileConditionFn:
+				if !conditionError || !fn(tiles[0], &f.File) {
+					continue
+				}
+			case TileConditionFn:
+				if !conditionError || !fn(tiles) {
+					continue
+				}
+			default:
+				continue
+			}
+			outfiles[i] = append(outfiles[i], f)
+		}
+	}
+	return outfiles
+}
+
 // Process runs the graph
-// Returns the files to create or to delete
+// Returns the files to create or to delete. In case of error, only return the files to delete
 func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graphEnvs GraphEnvs, tiles []common.Tile) ([][]OutFile, error) {
 	var filter LogFilter
 	pythonFilter := PythonLogFilter{}
 	snapFilter := SNAPLogFilter{}
 	cmdFilter := CmdLogFilter{}
 	for _, step := range g.steps {
-		if !step.Condition.Pass(tiles, nil) {
+		if !step.Condition.Pass(tiles) {
 			continue
 		}
 
 		// Get args list
 		args, err := step.formatArgs(config, tiles)
 		if err != nil {
-			return nil, fmt.Errorf("process.%w", err)
+			return g.onFailureGetOutFiles(err, config, tiles), fmt.Errorf("process.%w", err)
 		}
 
 		// Create command
@@ -1040,7 +1036,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 			envs = append(envs, graphEnvs...)
 
 			if err = g.opts.dockerManager.Process(ctx, config["workdir"], step.Command, args, envs); err != nil {
-				return nil, err
+				return g.onFailureGetOutFiles(err, config, tiles), err
 			}
 		}
 
@@ -1052,7 +1048,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 				if filter != nil {
 					err = filter.WrapError(err)
 				}
-				return nil, fmt.Errorf("process[%s]: %w", cmdToString(cmd), err)
+				return g.onFailureGetOutFiles(err, config, tiles), fmt.Errorf("process[%s]: %w", cmdToString(cmd), err)
 			}
 		}
 	}
@@ -1061,12 +1057,26 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 	outfiles := make([][]OutFile, len(tiles))
 	for i, outfs := range g.outFiles {
 		for _, f := range outfs {
-			if f.Condition.Pass(tiles, &f.File) {
-				if err := f.setDFormatOut(config); err != nil {
-					return nil, fmt.Errorf("process.%w", err)
+			switch fn := f.Condition.PassFn.(type) {
+			case FileConditionFn:
+				if !fn(tiles[0], &f.File) {
+					continue
 				}
-				outfiles[i] = append(outfiles[i], f)
+			case TileConditionFn:
+				if !fn(tiles) {
+					continue
+				}
+			case ErrorConditionFn:
+				if !fn(nil) {
+					continue
+				}
+			default:
+				continue
 			}
+			if err := f.setDFormatOut(config); err != nil {
+				return g.onFailureGetOutFiles(err, config, tiles), fmt.Errorf("process.%w", err)
+			}
+			outfiles[i] = append(outfiles[i], f)
 		}
 	}
 	return outfiles, nil

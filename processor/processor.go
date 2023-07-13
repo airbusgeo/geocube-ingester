@@ -66,7 +66,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 		for _, infile := range infiles {
 			// Do not import twice
 			filename := service.LayerFileName(tiles[i], infile.Layer, infile.Extension)
-			if !imported.Exists(filename) && infile.Condition.Pass(tiles, nil) {
+			if fn, ok := infile.Condition.PassFn.(graph.TileConditionFn); ok && !imported.Exists(filename) && fn(tiles) {
 				log.Logger(ctx).Sugar().Debugf("import layer '%s'", infile.Layer)
 				imported.Push(filename)
 				if err := storageService.ImportLayer(ctx, tiles[i], infile.Layer, infile.Extension, workdir); err != nil {
@@ -78,51 +78,59 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 
 	// Process graph
 	log.Logger(ctx).Sugar().Infof("process with graph '%s'", tile.Data.GraphName)
-	outfiles, err := g.Process(ctx, config, envs, tiles)
-	if err != nil {
-		return fmt.Errorf("ProcessTile[%s].%w", tag, err)
-	}
+	outfiles, processErr := g.Process(ctx, config, envs, tiles)
 
-	indexed := false
-	for i, outtilefile := range outfiles {
-		for _, f := range outtilefile {
-			switch f.Action {
-			case graph.ToCreate, graph.ToIndex:
-				// Export output layers to storage
-				log.Logger(ctx).Sugar().Infof("save layer '%s'", f.Layer)
-				uri, err := storageService.SaveLayer(ctx, tiles[i], f.Layer, f.Extension, workdir)
-				if err != nil {
-					return fmt.Errorf("ProcessTile[%s].%w", tag, err)
-				}
-				// Index tile
-				if f.Action == graph.ToIndex {
-					log.Logger(ctx).Sugar().Infof("index layer %s", f.Layer)
-					if err := indexTile(ctx, gcclient, tiles[i], tiles[i].Scene.Data.InstancesID, tiles[i].Scene.Data.RecordID, f, uri); err != nil {
-						if geocube.Code(err) == codes.AlreadyExists {
-							log.Logger(ctx).Sugar().Warnf("layer already exists")
-						} else {
-							return fmt.Errorf("ProcessTile[%s].%w", tag, err)
-						}
+	// Handle outFiles
+	outFileErr := func() error {
+		indexed := false
+		for i, outtilefile := range outfiles {
+			for _, f := range outtilefile {
+				switch f.Action {
+				case graph.ToCreate, graph.ToIndex:
+					// Export output layers to storage
+					log.Logger(ctx).Sugar().Infof("save layer '%s'", f.Layer)
+					uri, err := storageService.SaveLayer(ctx, tiles[i], f.Layer, f.Extension, workdir)
+					if err != nil {
+						return fmt.Errorf("ProcessTile[%s].%w", tag, err)
 					}
-					indexed = true
-				}
-			case graph.ToDelete:
-				log.Logger(ctx).Sugar().Infof("delete layer '%s'", f.Layer)
-				if err := storageService.DeleteLayer(ctx, tiles[i], f.Layer, f.Extension); err != nil && !errors.As(err, &service.ErrFileNotFound{}) {
-					return fmt.Errorf("ProcessTile[%s].%w", tag, err)
+					// Index tile
+					if f.Action == graph.ToIndex {
+						log.Logger(ctx).Sugar().Infof("index layer %s", f.Layer)
+						if err := indexTile(ctx, gcclient, tiles[i], tiles[i].Scene.Data.InstancesID, tiles[i].Scene.Data.RecordID, f, uri); err != nil {
+							if geocube.Code(err) == codes.AlreadyExists {
+								log.Logger(ctx).Sugar().Warnf("layer already exists")
+							} else {
+								return fmt.Errorf("ProcessTile[%s].%w", tag, err)
+							}
+						}
+						indexed = true
+					}
+				case graph.ToDelete:
+					log.Logger(ctx).Sugar().Infof("delete layer '%s'", f.Layer)
+					if err := storageService.DeleteLayer(ctx, tiles[i], f.Layer, f.Extension); err != nil && !errors.As(err, &service.ErrFileNotFound{}) {
+						return fmt.Errorf("ProcessTile[%s].%w", tag, err)
+					}
 				}
 			}
 		}
-	}
 
-	if indexed {
-		// Update record processing date (errors are not fatal)
-		if _, err := gcclient.AddRecordsTags(ctx, []string{tile.Scene.Data.RecordID}, map[string]string{common.TagProcessingDate: time.Now().Format("2006-01-02 15:04:05")}); err != nil {
-			log.Logger(ctx).Sugar().Warnf("UpdateRecordTag[%s] fails: %v", tile.Scene.Data.RecordID, err)
+		if indexed {
+			// Update record processing date (errors are not fatal)
+			if _, err := gcclient.AddRecordsTags(ctx, []string{tile.Scene.Data.RecordID}, map[string]string{common.TagProcessingDate: time.Now().Format("2006-01-02 15:04:05")}); err != nil {
+				log.Logger(ctx).Sugar().Warnf("UpdateRecordTag[%s] fails: %v", tile.Scene.Data.RecordID, err)
+			}
 		}
+		return nil
+	}()
+
+	if processErr != nil {
+		if outFileErr != nil {
+			return fmt.Errorf("%w (during cleaning, an other error occured: %v)", processErr, outFileErr)
+		}
+		return processErr
 	}
 
-	return nil
+	return outFileErr
 }
 
 // indexTile indexes the tile in the Geocube
