@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/catalog"
@@ -37,7 +38,7 @@ type catalogConfig struct {
 	GeocubeServerApiKey            string
 	ScihubUsername                 string
 	ScihubPassword                 string
-	GCSAnnotationsBucket           string
+	AnnotationsURLs                []string
 	OneAtlasUsername               string
 	OneAtlasApikey                 string
 	OneAtlasEndpoint               string
@@ -62,6 +63,7 @@ type config struct {
 }
 
 func newAppConfig() (*config, error) {
+	var annotationsURLs string
 	config := config{}
 	flag.StringVar(&config.AppPort, "port", "8080", "workflow port ot use")
 	flag.BoolVar(&config.TLS, "tls", false, "enable TLS protocol (certificate and key must be /tls/tls.crt and /tls/tls.key)")
@@ -92,7 +94,7 @@ func newAppConfig() (*config, error) {
 	// Providers
 	flag.StringVar(&config.CatalogConfig.ScihubUsername, "scihub-username", "", "username to connect to the Scihub catalog service")
 	flag.StringVar(&config.CatalogConfig.ScihubPassword, "scihub-password", "", "password to connect to the Scihub catalog service")
-	flag.StringVar(&config.CatalogConfig.GCSAnnotationsBucket, "gcs-annotations-bucket", "", "GCS bucket containing S1-scenes (as zip) to read annotations without downloading the whole file (optional, contains identifiers between brackets that will be replaced by those of the scene. E.g: gs://bucket/{DATE}/{SCENE}.zip)")
+	flag.StringVar(&annotationsURLs, "annotations-urls", "", "URL (local/gs/aws) containing S1-scenes (as zip) to read annotations without downloading the whole file (optional, contains identifiers between brackets that will be replaced by those of the scene. E.g: gs://bucket/{DATE}/{SCENE}.zip), several urls are coma separated")
 	flag.StringVar(&config.CatalogConfig.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
 	flag.StringVar(&config.CatalogConfig.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas account apikey (to generate an api key for your account: https://account.foundation.oneatlas.airbus.com/api-keys)")
 	flag.StringVar(&config.CatalogConfig.OneAtlasEndpoint, "oneatlas-endpoint", "https://search.foundation.api.oneatlas.airbus.com/api/v2/opensearch", "oneatlas endpoint to search products from the catalogue")
@@ -108,6 +110,9 @@ func newAppConfig() (*config, error) {
 	}
 	if config.DbConnection == "" {
 		return nil, fmt.Errorf("missing dbConnection config flag")
+	}
+	if len(annotationsURLs) > 0 {
+		config.CatalogConfig.AnnotationsURLs = strings.Split(annotationsURLs, ",")
 	}
 	return &config, nil
 }
@@ -242,7 +247,7 @@ func run(ctx context.Context) error {
 		catalog.ScihubPword = config.CatalogConfig.ScihubPassword
 
 		// GCStorage
-		catalog.GCSAnnotationsBucket = config.CatalogConfig.GCSAnnotationsBucket
+		catalog.AnnotationsURLs = config.CatalogConfig.AnnotationsURLs
 
 		// Creodias Catalogue
 		catalog.CreodiasCatalog = config.CatalogConfig.CreodiasCatalog

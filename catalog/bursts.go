@@ -12,8 +12,7 @@ import (
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog"
-	"github.com/airbusgeo/geocube-ingester/interface/catalog/creodias"
-	"github.com/airbusgeo/geocube-ingester/interface/catalog/gcs"
+	"github.com/airbusgeo/geocube-ingester/interface/catalog/url"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/paulsmith/gogeos/geos"
@@ -86,13 +85,15 @@ func (c *Catalog) BurstsInventory(ctx context.Context, area entities.AreaToInges
 	jobChan := make(chan *entities.Scene, len(scenes))
 
 	var annotationsProviders []catalog.AnnotationsProvider
-	if c.GCSAnnotationsBucket != "" {
-		annotationsProviders = append(annotationsProviders, gcs.AnnotationsProvider{Bucket: c.GCSAnnotationsBucket})
+	for _, annotationsUrl := range c.AnnotationsURLs {
+		annotationsProviders = append(annotationsProviders, url.AnnotationsProvider{URLPattern: annotationsUrl})
 	}
-	if area.GCSAnnotationsBucket != "" {
-		annotationsProviders = append(annotationsProviders, gcs.AnnotationsProvider{Bucket: area.GCSAnnotationsBucket})
+	for _, annotationsUrl := range area.AnnotationsURLs {
+		annotationsProviders = append(annotationsProviders, url.AnnotationsProvider{URLPattern: annotationsUrl})
 	}
-	annotationsProviders = append(annotationsProviders, creodias.AnnotationsProvider{})
+	if len(annotationsProviders) == 0 {
+		return nil, 0, fmt.Errorf("burstsInventory: no annotationProvider defined")
+	}
 
 	// Start 10 workers
 	for i := 0; i < 10 && i < len(scenes); i++ {

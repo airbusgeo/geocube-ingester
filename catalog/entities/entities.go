@@ -63,8 +63,8 @@ type AreaToIngest struct {
 		Instance   string `json:"instance"`
 		InstanceID string `json:"instance_id"`
 	} `json:"layers"`
-	RecordTags           map[string]string `json:"record_tags"`
-	GCSAnnotationsBucket string            `json:"gcs_annotations_bucket"`
+	RecordTags      map[string]string `json:"record_tags"`
+	AnnotationsURLs []string          `json:"annotations_urls"`
 }
 
 // GetConstellation returns the constellation from the user input

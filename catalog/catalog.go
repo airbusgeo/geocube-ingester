@@ -28,7 +28,7 @@ type Catalog struct {
 	OneAtlasCatalogEndpoint        string
 	OneAtlasOrderEndpoint          string
 	OneAtlasAuthenticationEndpoint string
-	GCSAnnotationsBucket           string
+	AnnotationsURLs                []string
 	WorkingDir                     string
 }
 

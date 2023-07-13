@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/catalog"
@@ -31,7 +32,7 @@ type config struct {
 	GeocubeServerApiKey   string
 	ScihubUsername        string
 	ScihubPassword        string
-	GCSAnnotationsBucket  string
+	AnnotationsURLs       []string
 	WorkflowServer        string
 	WorkflowToken         string
 	ProcessingDir         string
@@ -43,6 +44,7 @@ type config struct {
 }
 
 func newAppConfig() (*config, error) {
+	var annotationsURLs string
 	config := config{}
 	flag.StringVar(&config.Area, "area", "", "Json of the area to process")
 	flag.StringVar(&config.Scenes, "scenes", "", "Json of the scenes to send to the workflow server (shortcut to reuse intermediate results)")
@@ -52,7 +54,7 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.GeocubeServerApiKey, "geocube-apikey", "", "geocube server api key")
 	flag.StringVar(&config.ScihubUsername, "scihub-username", "", "username to connect to the scihub catalog service")
 	flag.StringVar(&config.ScihubPassword, "scihub-password", "", "password to connect to the scihub catalog service")
-	flag.StringVar(&config.GCSAnnotationsBucket, "gcs-annotations-bucket", "", "GCS bucket containing S1-scenes (as zip) to read annotations without downloading the whole file (optional, contains identifiers between brackets that will be replaced by those of the scene. E.g: gs://bucket/{DATE}/{SCENE}.zip)")
+	flag.StringVar(&annotationsURLs, "annotations-urls", "", "URL (local/gs/aws) containing S1-scenes (as zip) to read annotations without downloading the whole file (optional, contains identifiers between brackets that will be replaced by those of the scene. E.g: gs://bucket/{DATE}/{SCENE}.zip), several urls are coma separated")
 	flag.StringVar(&config.WorkflowServer, "workflow-server", "", "address of workflow server")
 	flag.StringVar(&config.WorkflowToken, "workflow-token", "", "address of workflow server")
 	flag.StringVar(&config.ProcessingDir, "workdir", "", "working directory to store intermediate results (could be empty or temporary)")
@@ -62,6 +64,10 @@ func newAppConfig() (*config, error) {
 	flag.BoolVar(&config.CreodiasCatalog, "creodias-catalog", false, "Use the creodias catalog service (search data)")
 	flag.BoolVar(&config.OndaCatalog, "onda-catalog", false, "Use the onda catalog service (search data)")
 	flag.Parse()
+
+	if len(annotationsURLs) > 0 {
+		config.AnnotationsURLs = strings.Split(annotationsURLs, ",")
+	}
 
 	return &config, nil
 }
@@ -100,7 +106,7 @@ func run(ctx context.Context) error {
 		c.ScihubUser = config.ScihubUsername
 		c.ScihubPword = config.ScihubPassword
 		// GCS Storage
-		c.GCSAnnotationsBucket = config.GCSAnnotationsBucket
+		c.AnnotationsURLs = config.AnnotationsURLs
 
 		// Workflow Server
 		if config.WorkflowServer != "" {

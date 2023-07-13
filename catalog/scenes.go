@@ -71,14 +71,14 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 		return entities.Scenes{}, fmt.Errorf("ScenesInventory.%w", err)
 	}
 
-	if area.GCSAnnotationsBucket != "" {
+	if len(area.AnnotationsURLs) == 1 {
 		for i, s := range scenes.Scenes {
 			if scenes.Scenes[i].Data.Metadata == nil {
 				scenes.Scenes[i].Data.Metadata = map[string]interface{}{}
 			}
 			if dl, ok := scenes.Scenes[i].Data.Metadata[common.DownloadLinkMetadata].(string); !ok || dl == "" {
 				if info, err := common.Info(s.SourceID); err == nil {
-					scenes.Scenes[i].Data.Metadata[common.DownloadLinkMetadata] = "gs://" + common.FormatBrackets(area.GCSAnnotationsBucket, info)
+					scenes.Scenes[i].Data.Metadata[common.DownloadLinkMetadata] = common.FormatBrackets(area.AnnotationsURLs[0], info)
 				}
 			}
 		}
