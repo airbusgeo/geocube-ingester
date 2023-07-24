@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
+	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/paulsmith/gogeos/geos"
 )
 
 type AnnotationsProvider interface {
-	AnnotationsFiles(ctx context.Context, scene *entities.Scene) (map[string][]byte, error)
+	AnnotationsFiles(ctx context.Context, scene *common.Scene) (map[string][]byte, error)
 }
 
 type ScenesProvider interface {

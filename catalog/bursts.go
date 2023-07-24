@@ -2,9 +2,7 @@ package catalog
 
 import (
 	"context"
-	"encoding/xml"
 	"fmt"
-	"math"
 	"runtime"
 	"sort"
 	"time"
@@ -12,6 +10,7 @@ import (
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog"
+	"github.com/airbusgeo/geocube-ingester/interface/catalog/annotations"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/url"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
@@ -172,7 +171,7 @@ func burstsFromAnnotations(ctx context.Context, scene *entities.Scene, annotatio
 	var err, e error
 	var annotationsFiles map[string][]byte
 	for _, annotationsProvider := range annotationsProviders {
-		annotationsFiles, e = annotationsProvider.AnnotationsFiles(ctx, scene)
+		annotationsFiles, e = annotationsProvider.AnnotationsFiles(ctx, &scene.Scene)
 		if err = service.MergeErrors(false, err, e); err == nil {
 			break
 		}
@@ -184,7 +183,7 @@ func burstsFromAnnotations(ctx context.Context, scene *entities.Scene, annotatio
 	var burstsInventory []*entities.Tile
 	anxTimes := map[int]struct{}{}
 	for url, file := range annotationsFiles {
-		bursts, err := burstsFromAnnotation(file, url)
+		bursts, err := annotations.BurstsFromAnnotation(file, url)
 		if err != nil {
 			return nil, fmt.Errorf("burstsFromAnnotations.%w", err)
 		}
@@ -193,87 +192,22 @@ func burstsFromAnnotations(ctx context.Context, scene *entities.Scene, annotatio
 				anxTimes[anxTime] = struct{}{}
 
 				// Add info from scene
-				burst.Date = scene.Scene.Data.Date
-				burst.SceneID = scene.SourceID
-				burst.SourceID = fmt.Sprintf("%s%s_%s_%d", scene.Tags[common.TagOrbitDirection][0:1], scene.Tags[common.TagRelativeOrbit], burst.Data.SwathID, burst.AnxTime)
-				burstsInventory = append(burstsInventory, burst)
+				burstsInventory = append(burstsInventory, &entities.Tile{
+					TileLite: entities.TileLite{
+						Date:     scene.Data.Date,
+						SceneID:  scene.SourceID,
+						SourceID: fmt.Sprintf("%s%s_%s_%d", scene.Tags[common.TagOrbitDirection][0:1], scene.Tags[common.TagRelativeOrbit], burst.SwathID, burst.AnxTime),
+					},
+					Data: common.TileAttrs{
+						SwathID: burst.SwathID,
+						TileNr:  burst.TileNr,
+					},
+					AnxTime:     burst.AnxTime,
+					GeometryWKT: burst.GeometryWKT,
+				})
 			}
 		}
 	}
 
 	return burstsInventory, nil
-}
-
-func burstsFromAnnotation(annotationFile []byte, annotationURL string) (map[int]*entities.Tile, error) {
-	// XML GridPoint structure
-	type GridPoint struct {
-		Pixel     int     `xml:"pixel"`
-		Line      int     `xml:"line"`
-		Latitude  float64 `xml:"latitude"`
-		Longitude float64 `xml:"longitude"`
-	}
-
-	// Read annotations file
-	annotation := struct {
-		XMLName         xml.Name  `xml:"product"`
-		Swath           string    `xml:"adsHeader>swath"`
-		LinesPerBurst   int       `xml:"swathTiming>linesPerBurst"`
-		SamplesPerBurst int       `xml:"swathTiming>samplesPerBurst"`
-		AzimuthAnxTime  []float64 `xml:"swathTiming>burstList>burst>azimuthAnxTime"`
-
-		GridPoint []GridPoint `xml:"geolocationGrid>geolocationGridPointList>geolocationGridPoint"`
-	}{}
-	if err := xml.Unmarshal(annotationFile, &annotation); err != nil {
-		return nil, fmt.Errorf("readAnnotation.Unmarshal[%s] : %w", annotationFile, err)
-	}
-
-	// Position of firsts and last points
-	first := map[int]GridPoint{}
-	last := map[int]GridPoint{}
-	for _, point := range annotation.GridPoint {
-		if point.Pixel == 0 {
-			first[point.Line] = point
-		} else if point.Pixel == annotation.SamplesPerBurst-1 {
-			last[point.Line] = point
-		}
-	}
-
-	// Burst
-	bursts := map[int]*entities.Tile{}
-	for i, anxTime := range annotation.AzimuthAnxTime {
-		// First/Last lines of the burst
-		firstline := i * annotation.LinesPerBurst
-		lastline := (i + 1) * annotation.LinesPerBurst
-		if _, ok := first[firstline]; !ok {
-			firstline-- // -1 because first and lastline sometimes shifts by 1 for some reason?
-			if _, ok := first[firstline]; !ok {
-				return nil, fmt.Errorf("readAnnotation: First line not found in annotation file %s", annotationURL)
-			}
-		}
-		if _, ok := last[lastline]; !ok {
-			lastline-- // -1 because first and lastline sometimes shifts by 1 for some reason?
-			if _, ok := last[lastline]; !ok {
-				return nil, fmt.Errorf("readAnnotation: Last line not found in annotation file %s", annotationURL)
-			}
-		}
-
-		// Set bursts
-		intAnxTime := int(math.Round(math.Mod(anxTime, float64(12*24*60*60/175)) * 10))
-		bursts[intAnxTime] = &entities.Tile{
-			Data: common.TileAttrs{
-				SwathID: annotation.Swath,
-				TileNr:  i + 1,
-			},
-			AnxTime: intAnxTime,
-			GeometryWKT: fmt.Sprintf("POLYGON((%f %f, %f %f, %f %f, %f %f, %f %f))",
-				first[firstline].Longitude, first[firstline].Latitude,
-				first[lastline].Longitude, first[lastline].Latitude,
-				last[lastline].Longitude, last[lastline].Latitude,
-				last[firstline].Longitude, last[firstline].Latitude,
-				first[firstline].Longitude, first[firstline].Latitude,
-			),
-		}
-	}
-
-	return bursts, nil
 }

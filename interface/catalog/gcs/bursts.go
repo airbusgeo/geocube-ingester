@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/osio"
 	osioGcs "github.com/airbusgeo/osio/gcs"
@@ -19,7 +18,7 @@ type AnnotationsProvider struct {
 }
 
 // AnnotationFiles retrieves them from an archive in GCS
-func (ap AnnotationsProvider) AnnotationsFiles(ctx context.Context, scene *entities.Scene) (map[string][]byte, error) {
+func (ap AnnotationsProvider) AnnotationsFiles(ctx context.Context, scene *common.Scene) (map[string][]byte, error) {
 	reg, err := regexp.Compile(scene.SourceID + ".SAFE/annotation/s1[^/]*xml")
 	if err != nil {
 		return nil, fmt.Errorf("annotationFiles.Compile[%s]: %w", scene.SourceID+".SAFE/annotation/*xml", err)
