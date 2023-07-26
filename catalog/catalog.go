@@ -222,7 +222,7 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 	}()
 
 	// Create scenes to ingest
-	log.Logger(ctx).Debug("Create scenes to ingest")
+	log.Logger(ctx).Sugar().Debugf("Create %d scenes to ingest", len(scenes.Scenes))
 	scenesToIngest, err = c.ScenesToIngest(ctx, area, scenes)
 	if err != nil {
 		return result, fmt.Errorf("ingestArea.%w", err)
@@ -230,7 +230,7 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 	service.ToJSON(struct{ Scenes []common.SceneToIngest }{Scenes: scenesToIngest}, outputDir, "scenesToIngest.json")
 
 	// Post scenes
-	log.Logger(ctx).Debug("Post scenes to ingest")
+	log.Logger(ctx).Sugar().Debugf("Post %d scenes to ingest", len(scenesToIngest))
 	if result.ScenesID, err = c.PostScenes(ctx, area, scenesToIngest); err != nil {
 		return result, fmt.Errorf("ingestArea.%w", err)
 	}

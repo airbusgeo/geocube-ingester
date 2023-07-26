@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"runtime"
 	"sort"
 	"strconv"
@@ -128,10 +129,23 @@ func (c *Catalog) IngestedScenesInventoryFromTiles(ctx context.Context, tiles []
 func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest, scenes entities.Scenes) ([]common.SceneToIngest, error) {
 	var scenesToIngest []common.SceneToIngest
 
+	if c.GeocubeClient == nil {
+		return nil, fmt.Errorf("createRecord: no connection to the geocube")
+	}
+
 	if err := c.ValidateArea(ctx, &area); err != nil {
 		return nil, fmt.Errorf("scenesToIngest.%w", err)
 	}
 	instances := area.InstancesID()
+
+	recordsList, err := c.GeocubeClient.ListRecords(ctx, "", area.RecordTags, geocube.AOI{}, area.StartTime, area.EndTime.AddDate(0, 0, 1), 0, 0, false)
+	if err != nil {
+		return nil, fmt.Errorf("scenesToIngest.ListRecords: %w", err)
+	}
+	records := map[string][]*geocube.Record{}
+	for _, r := range recordsList {
+		records[r.Name] = append(records[r.Name], r)
+	}
 
 	for _, scene := range scenes.Scenes {
 		if len(scene.Tiles) == 0 || scene.Ingested {
@@ -174,10 +188,23 @@ func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest
 		}
 		scene.Tags[common.TagPrevScenes] = string(prevScenesb)
 
-		// Create records. If record already exists, reuse the records
-		if scene.Data.RecordID, scene.OwnRecord, err = c.createRecord(ctx, *scene); err != nil {
-			return nil, fmt.Errorf("scenesToIngest.%w", err)
+		// Find if the record already exists
+		if recordsList, ok := records[scene.SourceID]; ok {
+			for _, r := range recordsList {
+				if r.Time == scene.Data.Date && reflect.DeepEqual(r.Tags, scene.Tags) {
+					scene.Data.RecordID = r.ID
+					break
+				}
+			}
 		}
+		if scene.Data.RecordID == "" {
+			// Create record
+			if scene.Data.RecordID, err = c.createRecord(ctx, *scene); err != nil {
+				return nil, fmt.Errorf("scenesToIngest.%w", err)
+			}
+			scene.OwnRecord = true
+		}
+
 		sceneToIngest.Scene.Data.RecordID = scene.Data.RecordID
 		sceneToIngest.Scene.Data.InstancesID = instances
 		scenesToIngest = append(scenesToIngest, sceneToIngest)
@@ -325,18 +352,10 @@ func handleNonContinuousSwath(scenes []*entities.Scene) error {
 	return nil
 }
 
-// createRecord for the scene, or return the id of the corresponding record
-// return true if the record has been created
-func (c *Catalog) createRecord(ctx context.Context, scene entities.Scene) (string, bool, error) {
+// createRecord for the scene
+func (c *Catalog) createRecord(ctx context.Context, scene entities.Scene) (string, error) {
 	if c.GeocubeClient == nil {
-		return "", false, fmt.Errorf("createRecord: no connection to the geocube")
-	}
-
-	// If record already exists, return
-	if r, err := c.GeocubeClient.ListRecords(ctx, scene.SourceID, scene.Tags, geocube.AOI{}, time.Time{}, time.Time{}, 1, 0, false); err != nil {
-		return "", false, fmt.Errorf("CreateRecord.%w", err)
-	} else if len(r) > 0 {
-		return r[0].ID, false, nil
+		return "", fmt.Errorf("createRecord: no connection to the geocube")
 	}
 
 	// CreateAOI
@@ -344,23 +363,23 @@ func (c *Catalog) createRecord(ctx context.Context, scene entities.Scene) (strin
 	{
 		aoi, err := wktToGeocubeAOI(scene.GeometryWKT)
 		if err != nil {
-			return "", false, fmt.Errorf("CreateRecord.%w", err)
+			return "", fmt.Errorf("CreateRecord.%w", err)
 		}
 		if aoiID, err = c.GeocubeClient.CreateAOI(ctx, aoi); err != nil && geocube.Code(err) != codes.AlreadyExists {
-			return "", false, fmt.Errorf("CreateRecord.%w", err)
+			return "", fmt.Errorf("CreateRecord.%w", err)
 		}
 	}
 
 	// CreateRecord
 	r, err := c.GeocubeClient.CreateRecord(ctx, scene.SourceID, aoiID, scene.Data.Date, scene.Tags)
 	if err != nil {
-		return "", false, fmt.Errorf("CreateRecord.%w", err)
+		return "", fmt.Errorf("CreateRecord.%w", err)
 	}
 	if len(r) == 0 {
-		return "", false, fmt.Errorf("CreateRecord: No record created")
+		return "", fmt.Errorf("CreateRecord: No record created")
 	}
 
-	return r[0], true, nil
+	return r[0], nil
 }
 
 func wktToGeocubeAOI(wktAOI string) (geocube.AOI, error) {
