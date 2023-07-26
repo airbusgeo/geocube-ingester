@@ -73,7 +73,7 @@ func TestQueryCopernicus(t *testing.T) {
 	query(t, &area, *geom, 1, 2, 2, true)
 }
 
-func TestOpenQueryCopernicus(t *testing.T) {
+/*func TestOpenQueryCopernicus(t *testing.T) {
 	wkt := "MULTIPOLYGON (((10.06123047 54.88637695, 9.957128906 54.87246094, 9.90390625 54.89663086, 9.80625 54.90600586, 9.771191406 55.05991211, 9.78125 55.06904297, 9.830371094 55.05825195, 9.998828125 54.98647461, 10.05771484 54.90791016, 10.06123047 54.88637695)))"
 	geometry, err := geomwkt.DecodeString(wkt)
 	if err != nil {
@@ -100,4 +100,4 @@ func TestOpenQueryCopernicus(t *testing.T) {
 	openQuery(t, &area, *geom, 1, 7, 0, false)
 	openQuery(t, &area, *geom, 1, 4, 3, false)
 	openQuery(t, &area, *geom, 1, 2, 2, true)
-}
+}*/

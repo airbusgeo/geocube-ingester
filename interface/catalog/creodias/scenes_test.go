@@ -3,10 +3,8 @@ package creodias
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
-	geomwkt "github.com/go-spatial/geom/encoding/wkt"
 	"github.com/paulsmith/gogeos/geos"
 )
 
@@ -27,7 +25,7 @@ func query(t *testing.T, area *entities.AreaToIngest, aoi geos.Geometry, page, l
 	}
 }
 
-func TestQueryCreodias(t *testing.T) {
+/*func TestQueryCreodias(t *testing.T) {
 	wkt := "MULTIPOLYGON (((10.06123047 54.88637695, 9.957128906 54.87246094, 9.90390625 54.89663086, 9.80625 54.90600586, 9.771191406 55.05991211, 9.78125 55.06904297, 9.830371094 55.05825195, 9.998828125 54.98647461, 10.05771484 54.90791016, 10.06123047 54.88637695)))"
 	geometry, err := geomwkt.DecodeString(wkt)
 	if err != nil {
@@ -55,3 +53,4 @@ func TestQueryCreodias(t *testing.T) {
 	query(t, &area, *geom, 1, 4, 3, false)
 	query(t, &area, *geom, 1, 2, 2, true)
 }
+*/

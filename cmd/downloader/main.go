@@ -43,6 +43,8 @@ type config struct {
 	CopernicusPassword                string
 	CreodiasUsername                  string
 	CreodiasPassword                  string
+	CreodiasTOTPSecret                string
+	CreodiasCacheURI                  string
 	OneAtlasUsername                  string
 	OneAtlasDownloadEndpoint          string
 	OneAtlasOrderEndpoint             string
@@ -82,6 +84,8 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.CopernicusPassword, "copernicus-password", "", "copernicus account password (optional)")
 	flag.StringVar(&config.CreodiasUsername, "creodias-username", "", "creodias account username (optional). To configure Creodias as a potential image Provider.")
 	flag.StringVar(&config.CreodiasPassword, "creodias-password", "", "creodias account password (optional)")
+	flag.StringVar(&config.CreodiasTOTPSecret, "creodias-totp-secret", "", "creodias TOTP secret (32-char base32) for 2FA (optional). Required if Creodias account has 2FA enabled.")
+	flag.StringVar(&config.CreodiasCacheURI, "creodias-cache-uri", "", "creodias cache URI for token caching (optional). e.g., /tmp/creodias_cache or gs://bucket/cache")
 	flag.StringVar(&config.OneAtlasUsername, "oneatlas-username", "APIKEY", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
 	flag.StringVar(&config.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas apikey to use")
 	flag.StringVar(&config.OneAtlasDownloadEndpoint, "oneatlas-download-endpoint", "https://access.foundation.api.oneatlas.airbus.com/api/v1/items", "oneatlas download endpoint to use")
@@ -233,7 +237,7 @@ func run(ctx context.Context) error {
 	}
 	if config.CreodiasUsername != "" {
 		providerNames = append(providerNames, "Creodias ("+config.CreodiasUsername+")")
-		imageProviders = append(imageProviders, provider.NewCreoDiasImageProvider(config.CreodiasUsername, config.CreodiasPassword))
+		imageProviders = append(imageProviders, provider.NewCreoDiasImageProvider(config.CreodiasUsername, config.CreodiasPassword, config.CreodiasTOTPSecret, config.CreodiasCacheURI))
 	}
 	if config.OneAtlasUsername != "" && config.OneAtlasApikey != "" {
 		oneatlasProvider, cncl := provider.NewOneAtlasProvider(ctx,

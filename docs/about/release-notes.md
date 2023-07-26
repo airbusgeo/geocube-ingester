@@ -19,6 +19,7 @@ To fix incoherences or potential limitation in JSON graphs :
 - Add Documentation "how to add a new sensor"
 - Add Landsat AWS Provider (Catalogue&Download)
 - Add USGS M2M Provider for Landsat scenes (Download only)
+- Add Creodias TOTP 2FA authentication + token caching via `creodias-cache-uri` parameter to avoid re-authenticating on every download request
 - Add Page/Limit to endpoint catalog/scenes
 - Ingester processor: add credentials from KSA to connect to docker
 

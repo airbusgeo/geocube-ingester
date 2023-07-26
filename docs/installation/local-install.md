@@ -91,8 +91,12 @@ $ ./downloader --help
 Usage of ./downloader:
   -asf-token string
     	ASF token (optional). To configure Alaska Satellite Facility as a potential image Provider.
+  -creodias-cache-uri string
+    	creodias cache URI for authentication token (optional). e.g., /tmp/creodias_cache or gs://bucket/cache
   -creodias-password string
     	creodias account password (optional)
+  -creodias-totp-secret string
+    	creodias TOTP secret (32-char base32) for 2FA (optional). Required if Creodias account has 2FA enabled.
   -creodias-username string
     	creodias account username (optional). To configure Creodias as a potential image Provider.
   -docker-envs string

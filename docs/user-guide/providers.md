@@ -21,13 +21,30 @@ If an autoscaler is configured, the downloading and the processing are done in p
 
 Creodias account credentials are needed.
 
-`creodias-username` and `creodias-password` workflow and downloader arguments must be defined.
+`creodias-username`, `creodias-password`, and `creodias-totp-secret` workflow and downloader arguments must be defined.
+
+> **Note**: Since Creodias now requires 2FA (Two-Factor Authentication), you must provide a TOTP secret (32-character base32 string). See [How to get your TOTP secret](#how-to-get-your-totp-secret).
+
+An optional `creodias-cache-uri` argument can be specified to cache the authentication token (e.g., `/tmp/creodias_cache` or `gs://bucket/cache`). This is useful to avoid re-authenticating on every download request. The token is automatically cached in a file named `creodias_token.cache` in the specified URI.
 
 `https://finder.creodias.eu/resto/api/collections/<constellation>/search.json` endpoint is use to request Creodias.
 
-and `https://auth.creodias.eu/auth/realms/DIAS/protocol/openid-connect/token` in order to get JWT Token.
+and `https://identity.cloudferro.com/auth/realms/Creodias-new/protocol/openid-connect/token` in order to get JWT Token.
 
 For more information see: [Creodias Documentation](https://creodias.eu/sentinel-hub-documentation)
+
+### How to get your TOTP secret
+
+1. During account setup at https://horizon.cloudferro.com/, when prompted for 2FA setup:
+   - Click **"Unable to scan?"** to reveal the secret in plain text
+   - Copy and save this 32-character code securely
+   - Complete the 2FA setup
+
+2. If you already have an account with 2FA enabled:
+   - Use KeePassXC or similar to extract the secret from your TOTP app
+   - Or reset your TOTP secret via the Creodias account settings
+
+3. For more details, see: [Creodias 2FA Documentation](https://creodias.docs.cloudferro.com/en/latest/eodata/Use-Bash-to-automate-generating-API-tokens-for-accessing-and-downloading-EODATA-when-2FA-is-enabled-on-Creodias.html)
 
 ## Copernicus
 

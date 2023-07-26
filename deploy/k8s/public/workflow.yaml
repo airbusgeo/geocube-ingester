@@ -78,6 +78,8 @@ spec:
               value: [Enter value]
             - name: CREODIAS_PASSWORD
               value: [Enter value]
+            - name: CREODIAS_TOTP_SECRET
+              value: [Enter value]
             - name: COPERNICUS_USERNAME
               value: [Enter value]
             - name: COPERNICUS_PASSWORD
@@ -95,6 +97,8 @@ spec:
             - "--copernicus-password=$(COPERNICUS_PASSWORD)"
             - "--creodias-username=$(CREODIAS_USERNAME)"
             - "--creodias-password=$(CREODIAS_PASSWORD)"
+            - "--creodias-totp-secret=$(CREODIAS_TOTP_SECRET)"
+            - "--creodias-cache-uri=$(CREODIAS_CACHE_URI)"
             - "--gs-provider-buckets=$(GCS_PROVIDER_BUCKETS)"
           image: {{DOWNLOADER_IMAGE}}
           imagePullPolicy: Always
