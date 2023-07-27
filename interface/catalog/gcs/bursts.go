@@ -29,7 +29,7 @@ func (ap AnnotationsProvider) AnnotationsFiles(ctx context.Context, scene *entit
 	if err != nil {
 		return nil, fmt.Errorf("AnnotationsFiles.Info: %w", err)
 	}
-	file := common.FormatBrackets(ap.Bucket, info)
+	file := common.FormatBrackets(ap.Bucket, info, map[string]string{"AREA": scene.AOI})
 	annotationsFiles, err := extract(ctx, file, *reg)
 	if err != nil {
 		return nil, fmt.Errorf("annotationsFiles[%s].%w", file, err)

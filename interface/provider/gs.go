@@ -103,7 +103,7 @@ func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, loc
 	}
 
 	for _, bucket := range buckets {
-		url := common.FormatBrackets(bucket, format)
+		url := common.FormatBrackets(bucket, format, map[string]string{"AREA": scene.AOI})
 		if strings.Contains(url, "*") {
 			if url, err = findBlob(ctx, url); err != nil {
 				return fmt.Errorf("GSImageProvider: %w", err)
