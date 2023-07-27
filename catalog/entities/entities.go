@@ -11,6 +11,7 @@ import (
 	"github.com/go-spatial/geom"
 	"github.com/go-spatial/geom/encoding/geojson"
 	"github.com/go-spatial/geom/encoding/wkt"
+	"github.com/paulsmith/gogeos/geos"
 )
 
 // TileLite defined only the needed fields for a Previous or Reference Tile
@@ -47,6 +48,8 @@ type SceneType struct {
 	Constellation string `json:"constellation"`
 	Parameters    map[string]string
 }
+
+const AOIBuffer = 0.05
 
 // AreaToIngest is the input of the catalog
 type AreaToIngest struct {
@@ -127,6 +130,20 @@ func (area *AreaToIngest) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+func (area *AreaToIngest) GeosAOI(applyBuffer bool) (*geos.Geometry, error) {
+	aoi, err := geos.FromWKT(wkt.MustEncode(area.AOI))
+	if err != nil {
+		return nil, fmt.Errorf("GeosAOI: %w", err)
+	}
+	if applyBuffer {
+		aoi, err = aoi.Buffer(AOIBuffer)
+		if err != nil {
+			return nil, fmt.Errorf("GeosAOI.Buffer: %w", err)
+		}
+	}
+	return aoi, nil
 }
 
 func (scene *Scene) toFeature() (geojson.Feature, error) {

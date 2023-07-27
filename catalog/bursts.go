@@ -73,13 +73,6 @@ func sceneBurstsInventoryWorker(ctx context.Context, jobs <-chan *entities.Scene
 // BurstsInventory creates an inventory of all the bursts of the given scenes
 // Returns the number of bursts
 func (c *Catalog) BurstsInventory(ctx context.Context, area entities.AreaToIngest, aoi geos.Geometry, scenes []*entities.Scene) ([]*entities.Scene, int, error) {
-	// Prepare geometry for intersection
-	areaAOI, err := aoi.Buffer(0.05)
-	if err != nil {
-		return nil, 0, fmt.Errorf("burstsInventory.Buffer: %w", err)
-	}
-	pareaAOI := areaAOI.Prepare()
-
 	// Create group
 	wg, ctx := errgroup.WithContext(ctx)
 	jobChan := make(chan *entities.Scene, len(scenes))
@@ -94,6 +87,9 @@ func (c *Catalog) BurstsInventory(ctx context.Context, area entities.AreaToInges
 	if len(annotationsProviders) == 0 {
 		return nil, 0, fmt.Errorf("burstsInventory: no annotationProvider defined")
 	}
+
+	// Prepare geometry for intersection
+	pareaAOI := aoi.Prepare()
 
 	// Start 10 workers
 	for i := 0; i < 10 && i < len(scenes); i++ {
@@ -110,7 +106,7 @@ func (c *Catalog) BurstsInventory(ctx context.Context, area entities.AreaToInges
 	if err := wg.Wait(); err != nil {
 		return nil, 0, fmt.Errorf("burstsInventory.%w", err)
 	}
-	runtime.KeepAlive(areaAOI)
+	runtime.KeepAlive(aoi)
 
 	// Filter empty scenes and get number of bursts
 	n, j := 0, 0
@@ -195,6 +191,7 @@ func burstsFromAnnotations(ctx context.Context, scene *entities.Scene, annotatio
 		for anxTime, burst := range bursts {
 			if _, ok := anxTimes[anxTime]; !ok {
 				anxTimes[anxTime] = struct{}{}
+
 				// Add info from scene
 				burst.Date = scene.Scene.Data.Date
 				burst.SceneID = scene.SourceID

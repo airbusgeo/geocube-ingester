@@ -11,8 +11,6 @@ import (
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
-	"github.com/go-spatial/geom/encoding/wkt"
-	"github.com/paulsmith/gogeos/geos"
 )
 
 // Catalog is the main class of this package
@@ -73,8 +71,7 @@ func (c *Catalog) ValidateArea(ctx context.Context, area *entities.AreaToIngest)
 
 // DoScenesInventory lists scenes for a given AOI, satellites and interval of time
 func (c *Catalog) DoScenesInventory(ctx context.Context, area entities.AreaToIngest) (entities.Scenes, error) {
-	// geos AOI
-	aoi, err := geos.FromWKT(wkt.MustEncode(area.AOI))
+	aoi, err := area.GeosAOI(false)
 	if err != nil {
 		return entities.Scenes{}, fmt.Errorf("DoScenesInventory.FromWKT: %w", err)
 	}
@@ -110,7 +107,7 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 			}
 		} else {
 			// burst inventory intersecting AOI
-			aoi, err := geos.FromWKT(wkt.MustEncode(area.AOI))
+			aoi, err := area.GeosAOI(true)
 			if err != nil {
 				return 0, fmt.Errorf("DoTilesInventory.FromWKT: %w", err)
 			}
