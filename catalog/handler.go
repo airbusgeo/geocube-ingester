@@ -58,16 +58,24 @@ func (c *Catalog) loadArea(req *http.Request) (catalog.AreaToIngest, error) {
 	return area, nil
 }
 
+type EmptyError struct {
+	field string
+}
+
+func (e EmptyError) Error() string {
+	return fmt.Sprintf("missing required field: '%s' (application/json)", e.field)
+}
+
 func loadScenes(w http.ResponseWriter, req *http.Request, field string, ignore_empty bool) (catalog.Scenes, error) {
 	scenes := catalog.Scenes{}
 
 	scenesJSON, err := readField(req, field)
 	if err != nil || len(scenesJSON) == 0 {
+		if err != nil {
+			err = &EmptyError{field: field}
+		}
 		if !ignore_empty {
 			w.WriteHeader(400)
-			if err != nil {
-				err = fmt.Errorf("missing required field: '%s' (application/json)", field)
-			}
 			fmt.Fprintf(w, "%v", err)
 		}
 		return catalog.Scenes{}, err
@@ -202,12 +210,15 @@ func (c Catalog) PostAOIHandler(w http.ResponseWriter, req *http.Request) {
 
 	var scenes, tiles catalog.Scenes
 	// Try to load tiles
-	if tiles, err = loadScenes(w, req, tilesJSONField, true); err != nil {
+	if tiles, err = loadScenes(w, req, tilesJSONField, true); errors.As(err, &EmptyError{}) {
 		// Or try to load scenes
-		scenes, _ = loadScenes(w, req, scenesJSONField, true)
+		scenes, err = loadScenes(w, req, scenesJSONField, true)
 	}
 
-	result, err := c.IngestArea(ctx, area, scenes, tiles, "")
+	var result IngestAreaResult
+	if err == nil {
+		result, err = c.IngestArea(ctx, area, scenes, tiles, "")
+	}
 	if err != nil {
 		log.Logger(ctx).Sugar().Warnf("wf.PostAOIHandler: %v", err)
 		w.WriteHeader(500)
