@@ -6,6 +6,7 @@ import (
 	"fmt"
 	neturl "net/url"
 	"syscall"
+	"time"
 
 	"google.golang.org/api/googleapi"
 )
@@ -88,4 +89,22 @@ func MergeErrors(priorityToError bool, err error, newErrs ...error) error {
 		err = fmt.Errorf("%w\n %v", newErr, err)
 	}
 	return MergeErrors(priorityToError, err, newErrs[1:]...)
+}
+
+func Retriable(ctx context.Context, f func() error, delay time.Duration, retry int) error {
+	var err error
+	for i := 1; i <= retry; i++ {
+		if err = f(); err == nil {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		default:
+		}
+		if i < retry {
+			time.Sleep(delay)
+		}
+	}
+	return err
 }

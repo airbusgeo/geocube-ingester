@@ -18,6 +18,11 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+type outFileTile struct {
+	file graph.OutFile
+	tile common.Tile
+}
+
 // ProcessTile processes a tile.
 func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *geocube.Client, tile common.TileToProcess, workdir string, opts []graph.Option) error {
 	tag := fmt.Sprintf("%s_%s", tile.Scene.Data.Date.Format("20060102"), tile.SourceID)
@@ -82,7 +87,9 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 
 	// Handle outFiles
 	outFileErr := func() error {
-		indexed := false
+		toIndex := map[string]outFileTile{}
+		var toDelete []outFileTile
+		// Create file, delay indexation and deletion
 		for i, outtilefile := range outfiles {
 			for _, f := range outtilefile {
 				switch f.Action {
@@ -93,28 +100,42 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 					if err != nil {
 						return fmt.Errorf("ProcessTile[%s].%w", tag, err)
 					}
-					// Index tile
+					// Index tile => differ
 					if f.Action == graph.ToIndex {
-						log.Logger(ctx).Sugar().Infof("index layer %s", f.Layer)
-						if err := indexTile(ctx, gcclient, tiles[i], tiles[i].Scene.Data.InstancesID, tiles[i].Scene.Data.RecordID, f, uri); err != nil {
-							if geocube.Code(err) == codes.AlreadyExists {
-								log.Logger(ctx).Sugar().Warnf("layer already exists")
-							} else {
-								return fmt.Errorf("ProcessTile[%s].%w", tag, err)
-							}
-						}
-						indexed = true
+						toIndex[uri] = outFileTile{file: f, tile: tiles[i]}
 					}
 				case graph.ToDelete:
-					log.Logger(ctx).Sugar().Infof("delete layer '%s'", f.Layer)
-					if err := storageService.DeleteLayer(ctx, tiles[i], f.Layer, f.Extension); err != nil && !errors.As(err, &service.ErrFileNotFound{}) {
-						return fmt.Errorf("ProcessTile[%s].%w", tag, err)
-					}
+					toDelete = append(toDelete, outFileTile{file: f, tile: tiles[i]})
 				}
 			}
 		}
 
-		if indexed {
+		// Index tiles
+		if err := service.Retriable(ctx, func() error {
+			for uri, f := range toIndex {
+				log.Logger(ctx).Sugar().Infof("index layer %s", f.file.Layer)
+				if err := indexTile(ctx, gcclient, f.tile, f.tile.Scene.Data.InstancesID, f.tile.Scene.Data.RecordID, f.file, uri); err != nil {
+					if geocube.Code(err) == codes.AlreadyExists {
+						log.Logger(ctx).Sugar().Warnf("layer %s already exists: %v", f.file.Layer, err)
+					} else {
+						return fmt.Errorf("ProcessTile[%s].%w", tag, err)
+					}
+				}
+			}
+			return nil
+		}, 5*time.Second, 3); err != nil {
+			return fmt.Errorf("ProcessTile[%s].%w", tag, err)
+		}
+
+		// Delete tiles at the end to ease a retry
+		for _, f := range toDelete {
+			log.Logger(ctx).Sugar().Infof("delete layer '%s'", f.file.Layer)
+			if err := storageService.DeleteLayer(ctx, f.tile, f.file.Layer, f.file.Extension); err != nil && !errors.As(err, &service.ErrFileNotFound{}) {
+				return fmt.Errorf("ProcessTile[%s].%w", tag, err)
+			}
+		}
+
+		if len(toIndex) > 0 {
 			// Update record processing date (errors are not fatal)
 			if _, err := gcclient.AddRecordsTags(ctx, []string{tile.Scene.Data.RecordID}, map[string]string{common.TagProcessingDate: time.Now().Format("2006-01-02 15:04:05")}); err != nil {
 				log.Logger(ctx).Sugar().Warnf("UpdateRecordTag[%s] fails: %v", tile.Scene.Data.RecordID, err)
