@@ -487,6 +487,9 @@ func (wf *Workflow) IngestScene(ctx context.Context, aoi string, scene common.Sc
 	if len(scene.Tiles) == 0 || len(scene.Tiles) != len(scene.Data.TileMappings) {
 		return 0, fmt.Errorf("ingestScene: scene has no tiles")
 	}
+	if scene.AOI != aoi {
+		return 0, fmt.Errorf("ingestScene: scene.AOI and aoi are different")
+	}
 
 	// Check that the scene does not already exists
 	if _, err := wf.SceneId(ctx, aoi, scene.SourceID); err != nil && !errors.As(err, &db.ErrNotFound{}) {
