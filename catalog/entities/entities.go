@@ -93,7 +93,7 @@ func (s *Scene) AutoFill() {
 	case common.Sentinel2:
 		constellation = "SENTINEL2"
 		satellite = constellation + s.SourceID[2:3]
-		s.ProductName = s.SourceID[0:44]
+		s.ProductName = s.SourceID[0:26] + "_NXXYY" + s.SourceID[32:44]
 	default:
 		return
 	}
