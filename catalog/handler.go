@@ -72,7 +72,7 @@ func loadScenes(w http.ResponseWriter, req *http.Request, field string, ignore_e
 	scenesJSON, err := readField(req, field)
 	if err != nil || len(scenesJSON) == 0 {
 		if err != nil {
-			err = &EmptyError{field: field}
+			err = EmptyError{field: field}
 		}
 		if !ignore_empty {
 			w.WriteHeader(400)
