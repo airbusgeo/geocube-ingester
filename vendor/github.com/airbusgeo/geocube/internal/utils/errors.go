@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	neturl "net/url"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -23,6 +24,20 @@ func MakeTemporary(err error) error {
 
 // Temporary inspects the error trace and returns whether the error is transient
 func Temporary(err error) bool {
+	if Retriable(err) {
+		return true
+	}
+	if errors.Is(err, context.Canceled) {
+		return true
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	return false
+}
+
+// Retriable inspects the error trace and returns whether the error is transient and can be retriable
+func Retriable(err error) bool {
 	var uerr *neturl.Error
 	if errors.As(err, &uerr) {
 		err = uerr.Err
@@ -45,13 +60,9 @@ func Temporary(err error) bool {
 	if errors.As(err, &gapiError) {
 		return gapiError.Code == 429 || (gapiError.Code >= 500 && gapiError.Code < 600)
 	}
-	if errors.Is(err, context.Canceled) {
-		return true
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return true
-	}
-	return false
+
+	errmsg := err.Error()
+	return strings.Contains(errmsg, "timeout")
 }
 
 // ErrWaitGroup is a collection of goroutines working on subtasks that are part of the same overall task.

@@ -18,7 +18,7 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// GSImageProvider implements ImageProvider for Google Storage Sentinel2 and LANDSAT buckets
+// GSImageProvider implements ImageProvider for Google Storage
 type GSImageProvider struct {
 	buckets map[common.Constellation][]string
 }
@@ -28,7 +28,7 @@ func (ip *GSImageProvider) Name() string {
 	return "GoogleStorage"
 }
 
-// NewGSImageProvider creates a new ImageProvider from Google Storage Sentinel2 and LANDSAT buckets
+// NewGSImageProvider creates a new ImageProvider from Google Storage buckets
 func NewGSImageProvider() *GSImageProvider {
 	return &GSImageProvider{buckets: map[common.Constellation][]string{}}
 }
@@ -198,7 +198,7 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 	}
 	client, err := storage.NewClient(ctx)
 	if err != nil {
-		return nil, err
+		return nil, gcs.GsError(err)
 	}
 	q := &storage.Query{Prefix: prefix, Versions: false}
 	q.SetAttrSelection([]string{"Name"})
@@ -210,7 +210,7 @@ func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, ds
 		}
 		if iterr != nil {
 			close(downloads)
-			return nil, fmt.Errorf("bucket iterate: %w", iterr)
+			return nil, fmt.Errorf("bucket iterate: %w", gcs.GsError(iterr))
 		}
 		if objectAttrs.Prefix != "" {
 			mkdir := filepath.Join(dstDir, objectAttrs.Prefix)
