@@ -96,6 +96,7 @@ func (b Backend) AOIs(ctx context.Context, aoi string) ([]db.AOI, error) {
 	if aoi == "" {
 		rows, err = b.QueryContext(ctx, "select id, status from aoi ORDER BY id")
 	} else {
+		aoi = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(aoi, "_", "\\_"), "%", "\\%"), "*", "%"), "?", "_")
 		rows, err = b.QueryContext(ctx, "select id, status from aoi where id LIKE $1 ORDER BY id", aoi)
 	}
 

@@ -122,17 +122,23 @@
     }
 
     function loadAOIS(){
+      aoi_pattern = $('#aoi').val()
+      if (!aoi_pattern.includes("*") && !aoi_pattern.includes("?")) {
+        aoi_pattern = ""
+      }
       $("body").css("cursor", "progress");
       getJSON({
-        url: url("aoi/")
+        url: url("aoi/"+aoi_pattern)
       })
       .done(function( json ) {
         if (json == null || json.length == 0){
           return ""
         }
+        var aois = [];
         res = "<table>"
         type_id = null
         $.each( json, function( key, val ) {
+          aois.push(val['ID'])
           val_displayed = val['ID']
           if (val['status'] != 'DONE') {
             val_displayed +=  " (" + val['status'] + ")"
@@ -140,7 +146,7 @@
           value = formatLink("loadAOI", val_displayed, "'" + val['ID'] + "'")
           res += "<tr style=\"vertical-align:top\"><td>" + value + "</td></tr>";
         })
-        $( "#result" ).html( res + "</table>" )
+        $( "#result" ).html( res + "</table><button id=\"btn_delete_aois\" onclick=\"deleteAOIs('" + aois + "')\">Remove ALL AOIs, scenes and tiles</button>" )
       })
       .fail(function(jqXHR, textStatus, error) {
         $( "#result" ).html( "Request failed: " + textStatus + " responseText: " + jqXHR.responseText);
@@ -274,8 +280,8 @@
       }
     }
 
-    function deleteAOI(aoi){
-      if (confirm("Are you sure to delete the aoi '" + aoi + "' and all its scenes and tiles from the database ?\nIt does not delete the layers from the Geocube.")){
+    function deleteAOI(aoi, confirmation=true){
+      if (!confirmation || confirm("Are you sure to delete the aoi '" + aoi + "' and all its scenes and tiles from the database ?\nIt does not delete the layers from the Geocube.")){
         $("body").css("cursor", "progress");
         $.ajax({
           headers: authHeaders(),
@@ -285,6 +291,17 @@
         .always(function(){
           $("body").css("cursor", "default");
         });
+      }
+    }
+
+    function deleteAOIs(aois){
+      aois = aois.split(',')
+      if (confirm("Are you sure to delete the aois '" + aois + "' and all their scenes and tiles from the database ?\nIt does not delete the layers from the Geocube.")){
+        if (confirm("Are you REALLY sure ??? It's " + aois.length + " aois that will be deleted !!")){
+          for (const aoi of aois){
+            deleteAOI(aoi, false)
+          }
+        }
       }
     }
 

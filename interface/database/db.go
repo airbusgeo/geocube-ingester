@@ -81,7 +81,7 @@ type WorkflowBackend interface {
 	// Create an AOI in database, may return ErrAlreadyExists
 	CreateAOI(ctx context.Context, aoi string) error
 	// AOIs returns the list of the aois fitting the pattern
-	// pattern [optional=""] aoi_patern
+	// pattern [optional=""] aoi_patern, support  and * for any number of character and ? for a character
 	AOIs(ctx context.Context, pattern string) ([]AOI, error)
 	// UpdateAOIStatus update the status of the AOI regarding the status of all the scenes and the tiles
 	// Priority is RETRY>PENDING>NEW>DONE>FAILED

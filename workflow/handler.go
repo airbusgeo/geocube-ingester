@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -365,7 +366,7 @@ func (wf *Workflow) PrintDotHandler(w http.ResponseWriter, req *http.Request) {
 // ListAOIsHandler returns the list of aois
 func (wf *Workflow) ListAOIsHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	pattern := mux.Vars(req)["pattern"]
+	pattern := mux.Vars(req)["aoi"]
 	aois, err := wf.AOIs(ctx, pattern)
 	if err != nil {
 		log.Logger(ctx).Sugar().Warnf("wf.aois: %v", err)
@@ -380,6 +381,10 @@ func (wf *Workflow) ListAOIsHandler(w http.ResponseWriter, req *http.Request) {
 func (wf *Workflow) GetAOIStatusHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	aoi := mux.Vars(req)["aoi"]
+	if strings.Contains(aoi, "*") || strings.Contains(aoi, "?") {
+		wf.ListAOIsHandler(w, req)
+		return
+	}
 	scenesStatus, err := wf.ScenesStatus(ctx, aoi)
 	if err != nil {
 		w.WriteHeader(500)
