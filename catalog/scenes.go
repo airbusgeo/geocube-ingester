@@ -151,6 +151,12 @@ func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest
 		if len(scene.Tiles) == 0 || scene.Ingested {
 			continue
 		}
+		// Check that the records of the area are the same as the one of the scene
+		for k, v := range area.RecordTags {
+			if vs, ok := scene.Tags[k]; !ok || v != vs {
+				return nil, fmt.Errorf("scenesToIngest.CheckRecordTags: area and scene '%s' have different value for tag '%s': '%s' != '%s'", scene.SourceID, k, v, vs)
+			}
+		}
 
 		// Create sceneToIngest
 		sceneToIngest := common.SceneToIngest{
