@@ -28,7 +28,10 @@ func runAutoscalers(ctx context.Context, downloaderBacklog, processorBacklog qba
 		MinRatio:     1,
 		MaxInstances: config.MaxDownloaderInstances,
 		MinInstances: 0,
-		MaxStep:      1,
+		MaxStep:      config.MaxDownloaderInstances / 10,
+	}
+	if cfg.MaxStep == 0 {
+		cfg.MaxStep = 1
 	}
 	as := autoscaler.New(downloaderBacklog, controller, cfg, log.Logger(ictx))
 	log.Logger(ictx).Sugar().Infof("starting autoscaler")
@@ -50,7 +53,10 @@ func runAutoscalers(ctx context.Context, downloaderBacklog, processorBacklog qba
 		MinRatio:     1,
 		MaxInstances: config.MaxProcessorInstances,
 		MinInstances: 0,
-		MaxStep:      40,
+		MaxStep:      config.MaxProcessorInstances / 10,
+	}
+	if cfg.MaxStep == 0 {
+		cfg.MaxStep = 1
 	}
 	as = autoscaler.New(processorBacklog, controller, cfg, log.Logger(bctx))
 	log.Logger(bctx).Sugar().Infof("starting autoscaler")
