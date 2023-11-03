@@ -30,8 +30,6 @@ type config struct {
 	GeocubeServer         string
 	GeocubeServerInsecure bool
 	GeocubeServerApiKey   string
-	ScihubUsername        string
-	ScihubPassword        string
 	AnnotationsURLs       []string
 	WorkflowServer        string
 	WorkflowToken         string
@@ -52,8 +50,6 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.GeocubeServer, "geocube-server", "", "address of geocube server")
 	flag.BoolVar(&config.GeocubeServerInsecure, "geocube-insecure", false, "connection to geocube server is insecure")
 	flag.StringVar(&config.GeocubeServerApiKey, "geocube-apikey", "", "geocube server api key")
-	flag.StringVar(&config.ScihubUsername, "scihub-username", "", "username to connect to the scihub catalog service")
-	flag.StringVar(&config.ScihubPassword, "scihub-password", "", "password to connect to the scihub catalog service")
 	flag.StringVar(&annotationsURLs, "annotations-urls", "", "URL (local/gs/aws) containing S1-scenes (as zip) to read annotations without downloading the whole file (optional, contains identifiers between brackets that will be replaced by those of the scene. E.g: gs://bucket/{DATE}/{SCENE}.zip), several urls are coma separated")
 	flag.StringVar(&config.WorkflowServer, "workflow-server", "", "address of workflow server")
 	flag.StringVar(&config.WorkflowToken, "workflow-token", "", "address of workflow server")
@@ -102,9 +98,6 @@ func run(ctx context.Context) error {
 		}
 
 		// Connection to the external catalogue service
-		// Scihub connection
-		c.ScihubUser = config.ScihubUsername
-		c.ScihubPword = config.ScihubPassword
 		// GCS Storage
 		c.AnnotationsURLs = config.AnnotationsURLs
 

@@ -37,9 +37,9 @@ cf. [Payload ingestion](payload.md#example)
 
 ## Catalogue APIS
 
-### Scihub
+### Copernicus
 
-See Scihub [API guide](https://scihub.copernicus.eu/userguide/WebHome)
+Copernicus available parameters: 	`productType`,`platformname`,`polarisationmode`,`sensoroperationalmode`, `cloudcoverpercentage`, `relativeorbitnumber` and `filename`
 
 ### OneAtlas
 

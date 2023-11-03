@@ -77,8 +77,6 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 			v = strings.Replace(v, " ", "%26", 1)
 		} else if strings.Contains(k, "cloudCover") {
 			v = strings.Replace(v, " TO ", ",", 1)
-			//	vs := strings.Split(v, " TO ")
-			//	parameters = append(parameters, fmt.Sprintf(k, vs[0], vs[1]))
 		}
 		parameters = append(parameters, fmt.Sprintf(k, v))
 	}
@@ -148,8 +146,6 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		case common.Sentinel1:
 			scenes[i].Tags[common.TagPolarisationMode] = rawscene.Properties.Polarisation
 			scenes[i].Tags[common.TagSliceNumber] = "undefined"
-			scenes[i].Tags[common.TagLastOrbit] = "undefined"
-			scenes[i].Tags[common.TagLastRelativeOrbit] = "undefined"
 		case common.Sentinel2:
 			scenes[i].Tags[common.TagCloudCoverPercentage] = fmt.Sprintf("%f", rawscene.Properties.CloudCoverPercentage)
 		}
@@ -166,11 +162,6 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 }
 
 type creodiasHits struct {
-	//Uuid          string           `json:"Id"`
-	//Identifier    string           `json:"Name"`
-	//BeginPosition string           `json:"OriginDate"`
-	//IngestionDate int64            `json:"PublicationDate"`
-	//Footprint     geojson.Geometry `json:"GeoFootprint"`
 	Uuid       string           `json:"id"`
 	Footprint  geojson.Geometry `json:"geometry"`
 	Properties struct {
@@ -217,7 +208,7 @@ func (s *Provider) queryCreodias(ctx context.Context, baseurl string, query stri
 		}
 
 		if results.Status != 0 && results.Status != 200 {
-			return nil, fmt.Errorf("queryCreodias.Unmarshal : %w (response: %s)", err, jsonResults)
+			return nil, fmt.Errorf("queryCreodias : http status %d (response: %s)", results.Status, jsonResults)
 		}
 
 		// Merge the results

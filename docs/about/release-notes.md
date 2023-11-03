@@ -10,7 +10,9 @@
 - URL patterns support {KEY}-format to be replaced by information extracted from the scene name (see --help)
 - Add paging for loadScenes & loadTiles
 - Onda catalogue (/!\ seems to not return all the S2 scenes !!) and Creodias Catalogue (does not support filename option)
+- Copernicus catalogue
 - Sobloo catalog/provider decomissioning
+- Scihub catalog/provider decomissioning
 
 ### Bug fixes
 - return EmptyError, in case of ingestion of an empty area

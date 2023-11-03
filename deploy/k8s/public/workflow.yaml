@@ -25,10 +25,6 @@ spec:
             - name: GEOCUBE_SERVER
               value: [Enter value]
               value: [Enter value]
-            - name: SCIHUB_USERNAME
-              value: [Enter value]
-            - name: SCIHUB_PASSWORD
-              value: [Enter value]
           args:
             - "--db-connection=$(DB_CONNECTION)"
             - "--pgq-connection=$(DB_CONNECTION)"
@@ -42,8 +38,6 @@ spec:
             - "--max-processor=800"
             - "--geocube-server=$(GEOCUBE_SERVER)"
             - "--geocube-apikey=$(GEOCUBE_CLIENTAPIKEY)"
-            - "--scihub-username=$(SCIHUB_USERNAME)"
-            - "--scihub-password=$(SCIHUB_PASSWORD)"
           imagePullPolicy: Always
           resources:
             requests:
@@ -87,9 +81,9 @@ spec:
               value: [Enter value]
             - name: CREODIAS_PASSWORD
               value: [Enter value]
-            - name: SCIHUB_USERNAME
+            - name: COPERNICUS_USERNAME
               value: [Enter value]
-            - name: SCIHUB_PASSWORD
+            - name: COPERNICUS_PASSWORD
               value: [Enter value]
             - name: MUNDI_SEEED_TOKEN
               value: [Enter value]
@@ -104,8 +98,8 @@ spec:
             - "--peps-password=$(PEPS_PASSWORD)"
             - "--onda-username=$(ONDA_USERNAME)"
             - "--onda-password=$(ONDA_PASSWORD)"
-            - "--scihub-username=$(SCIHUB_USERNAME)"
-            - "--scihub-password=$(SCIHUB_PASSWORD)"
+            - "--copernicus-username=$(COPERNICUS_USERNAME)"
+            - "--copernicus-password=$(COPERNICUS_PASSWORD)"
             - "--creodias-username=$(CREODIAS_USERNAME)"
             - "--creodias-password=$(CREODIAS_PASSWORD)"
             - "--gs-provider-buckets=$(GCS_PROVIDER_BUCKETS)"

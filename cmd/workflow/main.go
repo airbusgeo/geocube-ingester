@@ -36,8 +36,6 @@ type catalogConfig struct {
 	GeocubeServer                  string
 	GeocubeServerInsecure          bool
 	GeocubeServerApiKey            string
-	ScihubUsername                 string
-	ScihubPassword                 string
 	AnnotationsURLs                []string
 	OneAtlasUsername               string
 	OneAtlasApikey                 string
@@ -92,8 +90,6 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.CatalogConfig.GeocubeServerApiKey, "geocube-apikey", "", "geocube server api key")
 
 	// Providers
-	flag.StringVar(&config.CatalogConfig.ScihubUsername, "scihub-username", "", "username to connect to the Scihub catalog service")
-	flag.StringVar(&config.CatalogConfig.ScihubPassword, "scihub-password", "", "password to connect to the Scihub catalog service")
 	flag.StringVar(&annotationsURLs, "annotations-urls", "", "URL (local/gs/aws) containing S1-scenes (as zip) to read annotations without downloading the whole file (optional, contains identifiers between brackets that will be replaced by those of the scene. E.g: gs://bucket/{DATE}/{SCENE}.zip), several urls are coma separated")
 	flag.StringVar(&config.CatalogConfig.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
 	flag.StringVar(&config.CatalogConfig.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas account apikey (to generate an api key for your account: https://account.foundation.oneatlas.airbus.com/api-keys)")
@@ -242,10 +238,6 @@ func run(ctx context.Context) error {
 		}
 
 		// Connection to the external catalogue service
-		// Scihub connection
-		catalog.ScihubUser = config.CatalogConfig.ScihubUsername
-		catalog.ScihubPword = config.CatalogConfig.ScihubPassword
-
 		// GCStorage
 		catalog.AnnotationsURLs = config.CatalogConfig.AnnotationsURLs
 

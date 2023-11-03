@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/airbusgeo/geocube-ingester/interface/catalog/copernicus"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/creodias"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/onda"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/oneatlas"
@@ -19,7 +20,6 @@ import (
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog"
-	"github.com/airbusgeo/geocube-ingester/interface/catalog/scihub"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/go-spatial/geom"
@@ -29,7 +29,7 @@ import (
 )
 
 // ScenesInventory makes an inventory of all the scenes covering the area between startDate and endDate
-// The scenes are retrieved from scihub
+// The scenes are retrieved from different providers
 func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
 	// Search
 	var sceneProviders []catalog.ScenesProvider
@@ -39,10 +39,7 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 	if c.OndaCatalog {
 		sceneProviders = append(sceneProviders, &onda.Provider{})
 	}
-	if c.ScihubUser != "" {
-		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword, Name: "ApiHub", URL: scihub.ApiHubQueryURL})
-		sceneProviders = append(sceneProviders, &scihub.Provider{Username: c.ScihubUser, Password: c.ScihubPword, Name: "DHUS", URL: scihub.DHUSQueryURL})
-	}
+	sceneProviders = append(sceneProviders, &copernicus.Provider{})
 	if c.OneAtlasCatalogUser != "" {
 		oneAtlasProvider, oneAtlasProviderCncl := oneatlas.NewOneAtlasProvider(ctx,
 			c.OneAtlasCatalogUser,

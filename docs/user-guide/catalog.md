@@ -4,25 +4,23 @@ Catalogue component makes an inventory of all the scenes (and bursts for S1 imag
 
 Some providers are implemented in order to list scenes and retrieve scenes metadata (Name, ID, etc.):
 
-- [Scihub](#scihub): sentinel1 & 2 scenes
+- [Copernicus](#copernicus): sentinel1 & 2 scenes
 - [Creodias](#creodias): sentinel1 & 2 scenes
 - [OneAtlas](#oneatlas): PHR & SPOT scenes
 - [Creodias](#creodias), [GCS or AWS](#object-storage) and : for retrieving the Sentinel-1 annotations
 
 ## Sentinel constellations
-### Scihub
+### Copernicus
 
-Scihub can be used to list the Sentinel products. It require authentication using `scihub-username` and `scihub-password` catalogue arguments.
+Copernicus can be used to list the Sentinel products. It does not require authentication.
 
-First, [ApiHub](https://apihub.copernicus.eu/apihub/search) is used to request Scihub catalogue. In case of failure, [DHUS](https://scihub.copernicus.eu/dhus/search) is used instead.
-
-For more information see: [Scihub OpenSearch API Documentation](https://scihub.copernicus.eu/userguide/OpenSearchAPI)
+For more information see: [Copernicus OpenSearch API Documentation](https://documentation.dataspace.copernicus.eu/APIs/OpenSearch.html)  [Copernicus ODATA API Documentation](https://documentation.dataspace.copernicus.eu/APIs/OData.html)
 
 ### Creodias
 
 No authentication required.
 
-NB: Creodias is usually more reliable than Scihub, but Sentinel-1 catalogue returns less information than the Scihub's one.
+NB: Creodias is usually more reliable than Copernicus, but Sentinel-1 catalogue returns less information than the Copernicus' one.
 
 For more information see: [Creodias API](https://creodias.eu/data-offer)
 

@@ -84,7 +84,7 @@ Example:
 $ export GRAPHPATH=/home/user/geocube-ingester/graph
 $ export SNAPPATH=/usr/local/snap/bin/gpt
 $ export WORKING_DIR=/home/user/geocube-ingester/data/
-$ ./downloader --ps-project geocube-emulator --job-queue ingester-downloader --event-queue ingester-events --local-path $WORKING_DIR/data --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE}.SAFE --scihub-username=$SCIHUB_USERNAME --scihub-password=$SCIHUB_PASSWORD
+$ ./downloader --ps-project geocube-emulator --job-queue ingester-downloader --event-queue ingester-events --local-path $WORKING_DIR/data --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE}.SAFE --copernicus-username=$COPERNICUS_USERNAME --copernicus-password=$COPERNICUS_PASSWORD
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -143,10 +143,10 @@ Usage of ./downloader:
     	enable pgq messaging system with a connection to the database
   -ps-project string
     	pubsub subscription project (gcp only/not required in local usage)
-  -scihub-password string
-    	scihub account password (optional)
-  -scihub-username string
-    	scihub account username (optional). To configure Scihub as a potential image Provider.
+  -copernicus-password string
+    	copernicus account password (optional)
+  -copernicus-username string
+    	copernicus account username (optional). To configure Copernicus as a potential image Provider.
   -storage-uri string
     	storage uri (currently supported: local, gs). To store outputs of the scene preprocessing graph.
   -with-docker-engine
@@ -246,7 +246,7 @@ Example:
 ```bash
 $ export DB_CONNECTION=postgresql://user:password@localhost:5432/ingester?binary_parameters=yes
 $ export WORKFLOW_PORT=8082
-$ ./workflow --ps-project geocube-emulator --event-queue ingester-events --downloader-queue ingester-downloader --processor-queue ingester-processor --db-connection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --geocube-insecure --scihub-username "$SCIHUB_USERNAME" --scihub-password "$SCIHUB_PASSWORD"
+$ ./workflow --ps-project geocube-emulator --event-queue ingester-events --downloader-queue ingester-downloader --processor-queue ingester-processor --db-connection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --geocube-insecure
 ```
 
 For more information concerning flags and downloader argument, you can run:
@@ -298,10 +298,6 @@ Usage of ./workflow:
     	tile-processor replication controller name (autoscaler)
   -ps-project string
     	pubsub subscription project (gcp only/not required in local usage)
-  -scihub-password string
-    	password to connect to the Scihub catalog service
-  -scihub-username string
-    	username to connect to the Scihub catalog service
   -tls
     	enable TLS protocol (certificate and key must be /tls/tls.crt and /tls/tls.key)
 ```

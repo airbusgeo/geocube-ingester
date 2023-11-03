@@ -95,7 +95,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		// Parse aoi
 		wktAOI := strings.ToUpper(rawscene.Footprint)
 		if _, err := wkt.DecodeString(wktAOI); err != nil {
-			return entities.Scenes{}, fmt.Errorf("Scihub.searchScenes.wktDecodeString[%s]: %w", wktAOI, err)
+			return entities.Scenes{}, fmt.Errorf("Onda.searchScenes.wktDecodeString[%s]: %w", wktAOI, err)
 		}
 
 		// Create scene
@@ -130,8 +130,6 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		case common.Sentinel1:
 			scenes[i].Tags[common.TagPolarisationMode] = rawscene.Properties["polarisation"]
 			scenes[i].Tags[common.TagSliceNumber] = "undefined"
-			scenes[i].Tags[common.TagLastOrbit] = "undefined"
-			scenes[i].Tags[common.TagLastRelativeOrbit] = "undefined"
 		case common.Sentinel2:
 			scenes[i].Tags[common.TagCloudCoverPercentage] = rawscene.Properties["cloudCoverPercentage"]
 		}
@@ -190,7 +188,7 @@ func (s *Provider) queryOnda(ctx context.Context, query string) ([]ondaHits, err
 		}
 
 		if results.Status != 0 && results.Status != 200 {
-			return nil, fmt.Errorf("queryOnda.Unmarshal : %w (response: %s)", err, jsonResults)
+			return nil, fmt.Errorf("queryOnda : http status %d (response: %s)", results.Status, jsonResults)
 		}
 
 		// Transform metadata into a dict

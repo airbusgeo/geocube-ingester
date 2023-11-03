@@ -65,7 +65,7 @@ To download images from data-storages, the ingester has the current interface:
 The Downloader service is currently able to download Sentinel 1 & 2 products from:
 
 - Peps
-- Scihub
+- Copernicus (wip)
 - Onda
 - Creodias
 - Mundi
@@ -93,8 +93,7 @@ To be able to list the scenes available over an AOI, the Ingester has an interfa
 
 The Ingester is currently able to connect to the following catalogues:
 
-- Scihub for sentinel1 & 2 scenes
-- Creodias for bursts annotations of Sentinel1 products
+- Copernicus for sentinel1 & 2 scenes
 - GCS for bursts annotations of an archive stored in GCS
 
 

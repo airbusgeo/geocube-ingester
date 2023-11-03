@@ -2,7 +2,7 @@
 
 Providers are implemented in order to download scenes. They are called one by one until the corresponding image is found.
 
-- [Scihub](providers.md#scihub): sentinel1 & 2 scenes
+- [Copernicus](providers.md#copernicus): sentinel1 & 2 scenes
 - [Creodias](providers.md#creodias): for retrieving the annotations of Sentinel1 products
 - [GCS](providers.md#gcs): for retrieving the annotations of an Archive stored in GCS
 - [Local](providers.md#local-directory): directory sentinel1 & 2 scenes
@@ -25,9 +25,15 @@ Creodias account credentials are needed.
 
 and `https://auth.creodias.eu/auth/realms/DIAS/protocol/openid-connect/token` in order to get JWT Token.
 
-Scihub is requested with sceneName parameter.
-
 For more information see: [Creodias Documentation](https://creodias.eu/sentinel-hub-documentation)
+
+## Copernicus
+
+Copernicus account credentials are needed.
+
+`copernicus-username` and `copernicus-password` downloader arguments must be defined.
+
+For more information see: [Copernicus Documentation](https://documentation.dataspace.copernicus.eu/APIs/OData.html#product-download)
 
 ## GCS
 

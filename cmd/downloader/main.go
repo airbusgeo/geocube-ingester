@@ -37,8 +37,8 @@ type config struct {
 	OndaPassword                      string
 	OndaAllowOrder                    bool
 	ASFToken                          string
-	ScihubUsername                    string
-	ScihubPassword                    string
+	CopernicusUsername                string
+	CopernicusPassword                string
 	CreodiasUsername                  string
 	CreodiasPassword                  string
 	OneAtlasUsername                  string
@@ -74,8 +74,8 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.OndaPassword, "onda-password", "", "onda account password (optional)")
 	flag.BoolVar(&config.OndaAllowOrder, "onda-allow-order", false, "allow onda to order offline product (optional)")
 	flag.StringVar(&config.ASFToken, "asf-token", "", "ASF token (optional). To configure Alaska Satellite Facility as a potential image Provider.")
-	flag.StringVar(&config.ScihubUsername, "scihub-username", "", "scihub account username (optional). To configure Scihub as a potential image Provider.")
-	flag.StringVar(&config.ScihubPassword, "scihub-password", "", "scihub account password (optional)")
+	flag.StringVar(&config.CopernicusUsername, "copernicus-username", "", "copernicus account username (optional). To configure Copernicus as a potential image Provider.")
+	flag.StringVar(&config.CopernicusPassword, "copernicus-password", "", "copernicus account password (optional)")
 	flag.StringVar(&config.CreodiasUsername, "creodias-username", "", "creodias account username (optional). To configure Creodias as a potential image Provider.")
 	flag.StringVar(&config.CreodiasPassword, "creodias-password", "", "creodias account password (optional)")
 	flag.StringVar(&config.MundiSeeedToken, "mundi-seeed-token", "", "mundi seeed-token (optional). To configure Mundi as a potential image Provider.")
@@ -220,9 +220,9 @@ func run(ctx context.Context) error {
 		providerNames = append(providerNames, "ASF ("+config.ASFToken+")")
 		imageProviders = append(imageProviders, provider.NewASFImageProvider(config.ASFToken))
 	}
-	if config.ScihubUsername != "" {
-		providerNames = append(providerNames, "Scihub ("+config.ScihubUsername+")")
-		imageProviders = append(imageProviders, provider.NewScihubImageProvider(config.ScihubUsername, config.ScihubPassword))
+	if config.CopernicusUsername != "" {
+		providerNames = append(providerNames, "Copernicus ("+config.CopernicusUsername+")")
+		imageProviders = append(imageProviders, provider.NewCopernicusImageProvider(config.CopernicusUsername, config.CopernicusPassword))
 	}
 	if config.MundiSeeedToken != "" {
 		providerNames = append(providerNames, "Mundi")

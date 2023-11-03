@@ -19,8 +19,6 @@ import (
 type Catalog struct {
 	GeocubeClient                  *geocube.Client
 	Workflow                       WorkflowManager
-	ScihubUser                     string
-	ScihubPword                    string
 	CreodiasCatalog                bool
 	OndaCatalog                    bool
 	OneAtlasCatalogUser            string
