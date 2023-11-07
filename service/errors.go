@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	neturl "net/url"
+	"strings"
 	"syscall"
 	"time"
 
@@ -48,7 +49,7 @@ func Temporary(err error) bool {
 	}
 	var gapiError *googleapi.Error
 	if errors.As(err, &gapiError) {
-		return gapiError.Code == 429 || gapiError.Code == 500
+		return gapiError.Code == 429 || (gapiError.Code >= 500 && gapiError.Code < 600)
 	}
 	if errors.Is(err, context.Canceled) {
 		return true
@@ -56,7 +57,8 @@ func Temporary(err error) bool {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return true
 	}
-	return false
+	errmsg := strings.ToLower(err.Error())
+	return strings.Contains(errmsg, "timeout")
 }
 
 // Fatal inspects the error and returns whether it's a fatal error

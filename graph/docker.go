@@ -201,6 +201,9 @@ func (d *dockerManager) pullImage(ctx context.Context, image string) (types.Imag
 		RegistryAuth: d.AuthConfig,
 	})
 	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "timeout") {
+			err = service.MakeTemporary(err)
+		}
 		return types.ImageSummary{}, fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
 
