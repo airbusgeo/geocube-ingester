@@ -127,7 +127,7 @@ func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest
 	var scenesToIngest []common.SceneToIngest
 
 	if c.GeocubeClient == nil {
-		return nil, fmt.Errorf("createRecord: no connection to the geocube")
+		return nil, fmt.Errorf("scenesToIngest: no connection to the geocube")
 	}
 
 	if err := c.ValidateArea(ctx, &area); err != nil {
@@ -141,8 +141,11 @@ func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest
 	}
 	records := map[string][]*geocube.Record{}
 	for _, r := range recordsList {
+		delete(r.Tags, common.TagProcessingDate)
 		records[r.Name] = append(records[r.Name], r)
 	}
+
+	scenesToCreateRecord := map[int]*entities.Scene{} // Store the scenes that need to create their records
 
 	for _, scene := range scenes.Scenes {
 		if len(scene.Tiles) == 0 || scene.Ingested {
@@ -201,16 +204,21 @@ func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest
 			}
 		}
 		if scene.Data.RecordID == "" {
-			// Create record
-			if scene.Data.RecordID, err = c.createRecord(ctx, *scene); err != nil {
-				return nil, fmt.Errorf("scenesToIngest.%w", err)
-			}
+			scenesToCreateRecord[len(scenesToIngest)] = scene // Will be created later
 			scene.OwnRecord = true
+		} else {
+			sceneToIngest.Scene.Data.RecordID = scene.Data.RecordID
 		}
-
-		sceneToIngest.Scene.Data.RecordID = scene.Data.RecordID
 		sceneToIngest.Scene.Data.InstancesID = instances
 		scenesToIngest = append(scenesToIngest, sceneToIngest)
+	}
+
+	// Create all the records at once
+	if err := c.createRecords(ctx, scenesToCreateRecord); err != nil {
+		return nil, fmt.Errorf("sceneToIngest.%w", err)
+	}
+	for i, scene := range scenesToCreateRecord {
+		scenesToIngest[i].Scene.Data.RecordID = scene.Data.RecordID
 	}
 
 	// Sort by dates
@@ -355,34 +363,44 @@ func handleNonContinuousSwath(scenes []*entities.Scene) error {
 	return nil
 }
 
-// createRecord for the scene
-func (c *Catalog) createRecord(ctx context.Context, scene entities.Scene) (string, error) {
+// createRecords for the scenes
+func (c *Catalog) createRecords(ctx context.Context, scenes map[int]*entities.Scene) error {
 	if c.GeocubeClient == nil {
-		return "", fmt.Errorf("createRecord: no connection to the geocube")
+		return fmt.Errorf("createRecords: no connection to the geocube")
+	}
+	names := make([]string, len(scenes))
+	aois := make([]string, len(scenes))
+	tags := make([]map[string]string, len(scenes))
+	dates := make([]time.Time, len(scenes))
+	ind := make([]int, len(scenes))
+	i := 0
+	for j, scene := range scenes {
+		ind[i] = j
+		names[i] = scene.SourceID
+		tags[i] = scene.Tags
+		dates[i] = scene.Data.Date
+		// CreateAOI
+		{
+			aoi, err := wktToGeocubeAOI(scene.GeometryWKT)
+			if err != nil {
+				return fmt.Errorf("CreateRecords.%w", err)
+			}
+			if aois[i], err = c.GeocubeClient.CreateAOI(ctx, aoi); err != nil && geocube.Code(err) != codes.AlreadyExists {
+				return fmt.Errorf("CreateRecords.%w", err)
+			}
+		}
+		i++
 	}
 
-	// CreateAOI
-	var aoiID string
-	{
-		aoi, err := wktToGeocubeAOI(scene.GeometryWKT)
-		if err != nil {
-			return "", fmt.Errorf("CreateRecord.%w", err)
-		}
-		if aoiID, err = c.GeocubeClient.CreateAOI(ctx, aoi); err != nil && geocube.Code(err) != codes.AlreadyExists {
-			return "", fmt.Errorf("CreateRecord.%w", err)
-		}
-	}
-
-	// CreateRecord
-	r, err := c.GeocubeClient.CreateRecord(ctx, scene.SourceID, aoiID, scene.Data.Date, scene.Tags)
+	// CreateRecords
+	recordsId, err := c.GeocubeClient.CreateRecords(ctx, names, aois, dates, tags)
 	if err != nil {
-		return "", fmt.Errorf("CreateRecord.%w", err)
+		return fmt.Errorf("CreateRecords.%w", err)
 	}
-	if len(r) == 0 {
-		return "", fmt.Errorf("CreateRecord: No record created")
+	for i, r := range recordsId {
+		scenes[ind[i]].Data.RecordID = r
 	}
-
-	return r[0], nil
+	return nil
 }
 
 func wktToGeocubeAOI(wktAOI string) (geocube.AOI, error) {
