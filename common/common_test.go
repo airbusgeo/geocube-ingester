@@ -35,6 +35,7 @@ func TestInfo(t *testing.T) {
 		checkKeyValue(t, format, "LATITUDE_BAND", "32")
 		checkKeyValue(t, format, "GRID_SQUARE", "U")
 		checkKeyValue(t, format, "GRANULE_ID", "NF")
+		checkKeyValue(t, format, "PRODUCT_DISC", "20190108T124859")
 	}
 	if _, err := Info("S1A_IW_SLC__1SDV_20190115T170106_20190115T170133_025491_02D361_7F7"); err == nil {
 		t.Errorf("too short file name")

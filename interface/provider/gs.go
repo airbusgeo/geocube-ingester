@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 
@@ -74,6 +75,7 @@ func findBlob(ctx context.Context, url string) (string, error) {
 	}
 	// Find all the blobs that match the prefix
 	it := gsClient.Bucket(bucket).Objects(ctx, &storage.Query{Prefix: blob})
+	var blobs []string
 	for {
 		attrs, err := it.Next()
 		if err == iterator.Done {
@@ -83,10 +85,14 @@ func findBlob(ctx context.Context, url string) (string, error) {
 			return "", fmt.Errorf("list[%s/%s*]: %w", bucket, blob, err)
 		}
 		if idx := re.FindIndex([]byte(attrs.Name)); idx != nil && idx[0] == 0 {
-			return "gs://" + bucket + "/" + attrs.Name[:idx[1]], nil
+			blobs = append(blobs, "gs://"+bucket+"/"+attrs.Name[:idx[1]])
 		}
 	}
-	return url, ErrProductNotFound{url}
+	if len(blobs) == 0 {
+		return url, ErrProductNotFound{url}
+	}
+	sort.Strings(blobs)
+	return blobs[len(blobs)-1], nil
 }
 
 // Download implements ImageProvider
@@ -114,7 +120,7 @@ func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, loc
 				if err := ip.downloadZip(ctx, url, localDir); err != nil {
 					return fmt.Errorf("GSImageProvider[%s].%w", url, err)
 				}
-			} else if files, err := ip.downloadDirectory(ctx, url, filepath.Join(localDir, filepath.Base(url))); err != nil {
+			} else if files, err := ip.downloadDirectory(ctx, url, filepath.Join(localDir, sceneName+".SAFE")); err != nil {
 				return fmt.Errorf("GSImageProvider[%s].%w", url, err)
 			} else if len(files) == 0 {
 				return fmt.Errorf("GSImageProvider[%s]: not found", url)

@@ -95,6 +95,7 @@ func Info(sceneName string) (map[string]string, error) {
 				"LATITUDE_BAND":   sceneName[39:41],
 				"GRID_SQUARE":     sceneName[41:42],
 				"GRANULE_ID":      sceneName[42:44],
+				"PRODUCT_DISC":    sceneName[45:60],
 			}, nil
 		} else if len(sceneName) < len("MMM_CCCC_FFFFDDDDDD_ssss_YYYYMMDDTHHMMSS_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS") {
 			return nil, fmt.Errorf("invalid Sentinel2 file name: " + sceneName)
