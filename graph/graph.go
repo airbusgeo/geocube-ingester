@@ -1035,6 +1035,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 			//graph envs
 			envs = append(envs, graphEnvs...)
 
+			ctx = log.With(ctx, "docker", step.Command)
 			if err = g.opts.dockerManager.Process(ctx, config["workdir"], step.Command, args, envs); err != nil {
 				return g.onFailureGetOutFiles(err, config, tiles), err
 			}
@@ -1201,17 +1202,18 @@ func (f *DockerLogFilter) Filter(msg string, defaultLevel zapcore.Level) (string
 	if len(msg) == 0 {
 		return msg, defaultLevel, true
 	}
-	if strings.Contains(msg, "INFO:") {
+	trimmedmsg := strings.TrimLeft(msg, " \t")
+	if strings.HasPrefix(trimmedmsg, "INFO") || strings.Contains(trimmedmsg, "INFO:") {
 		return msg, zapcore.InfoLevel, false
 	}
-	if strings.Contains(msg, "DEBUG:") {
+	if strings.HasPrefix(trimmedmsg, "DEBUG") || strings.Contains(trimmedmsg, "DEBUG:") {
 		return msg, zapcore.DebugLevel, false
 	}
-	if strings.Contains(msg, "ERROR:") {
+	if strings.HasPrefix(trimmedmsg, "ERROR") || strings.Contains(trimmedmsg, "ERROR:") {
 		f.lastError = msg
 		return msg, zapcore.ErrorLevel, false
 	}
-	if strings.Contains(msg, "WARNING:") {
+	if strings.HasPrefix(trimmedmsg, "WARNING") || strings.Contains(trimmedmsg, "WARNING:") {
 		return msg, zapcore.WarnLevel, false
 	}
 	return msg, defaultLevel, false
