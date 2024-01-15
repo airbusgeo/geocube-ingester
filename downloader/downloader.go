@@ -57,6 +57,10 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 func ProcessTile(ctx context.Context, storageService service.Storage, scene common.Scene, tile, workdir string, opts []graph.Option) error {
 	ctx = log.With(ctx, "tile", tile)
 
+	if scene.Data.IsRetriable {
+		opts = append(opts, graph.WithRetriableErrors())
+	}
+
 	// Load the graph
 	g, config, envs, err := graph.LoadGraph(ctx, scene.Data.GraphName, opts...)
 	if err != nil {

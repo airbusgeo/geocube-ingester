@@ -40,8 +40,9 @@ type Option interface {
 }
 
 type graphOpts struct {
-	snapPath      string
-	dockerManager DockerManager
+	snapPath        string
+	dockerManager   DockerManager
+	retriableErrors bool // make error retriable, otherwise, errors are fatal
 }
 
 type snapOpt struct{}
@@ -54,6 +55,18 @@ func WithSnap() interface {
 
 func (so snapOpt) setOpt(opts *graphOpts) {
 	opts.snapPath = snapPath
+}
+
+type retriableErrorOpt struct{}
+
+func WithRetriableErrors() interface {
+	Option
+} {
+	return retriableErrorOpt{}
+}
+
+func (ro retriableErrorOpt) setOpt(opts *graphOpts) {
+	opts.retriableErrors = true
 }
 
 type dockerOpt struct {
@@ -956,6 +969,9 @@ func cmdToString(cmd *exec.Cmd) string {
 }
 
 func (g *ProcessingGraph) onFailureGetOutFiles(err error, config GraphConfig, tiles []common.Tile) [][]OutFile {
+	if err != nil && !g.opts.retriableErrors {
+		err = service.MakeFatal(err)
+	}
 	outfiles := make([][]OutFile, len(tiles))
 	for i, outfs := range g.outFiles {
 		for _, f := range outfs {

@@ -154,6 +154,7 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 	for _, scene := range scenes.Scenes {
 		for _, tile := range scene.Tiles {
 			tile.Data.GraphName = area.TileGraphName
+			tile.Data.IsRetriable = area.IsRetriable
 		}
 		tilesNb += len(scene.Tiles)
 	}

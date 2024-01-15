@@ -162,12 +162,9 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		newScene := &entities.Scene{
 			Scene: common.Scene{
 				SourceID: parentIdentifier,
-				AOI:      area.AOIID,
 				Data: common.SceneAttrs{
 					UUID:         id,
 					Date:         processingDate,
-					GraphName:    area.SceneGraphName,
-					GraphConfig:  area.GraphConfig,
 					TileMappings: map[string]common.TileMapping{},
 					Metadata:     metadata,
 				},
@@ -183,13 +180,6 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 				common.TagCloudCoverPercentage: cloudcover,
 			},
 			GeometryWKT: wktGeometry,
-		}
-
-		// Copy area tags
-		for k, v := range area.RecordTags {
-			if _, ok := newScene.Tags[k]; !ok {
-				newScene.Tags[k] = v
-			}
 		}
 
 		// Order Needed

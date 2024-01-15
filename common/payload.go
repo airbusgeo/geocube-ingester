@@ -30,12 +30,14 @@ type SceneAttrs struct {
 	RecordID     string                 `json:"record_id"`
 	InstancesID  map[string]string      `json:"instances_id"`
 	Metadata     map[string]interface{} `json:"metadata"`
+	IsRetriable  bool                   `json:"is_retriable"`
 }
 
 type TileAttrs struct {
-	SwathID   string `json:"swath_id"`
-	TileNr    int    `json:"tile_nr"`
-	GraphName string `json:"graph_name"`
+	SwathID     string `json:"swath_id"`
+	TileNr      int    `json:"tile_nr"`
+	GraphName   string `json:"graph_name"`
+	IsRetriable bool   `json:"is_retriable"`
 }
 
 type Scene struct {

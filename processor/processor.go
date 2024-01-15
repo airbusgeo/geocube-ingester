@@ -38,6 +38,10 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 		return service.MakeTemporary(fmt.Errorf("chdir: %w", err))
 	}
 
+	if tile.Data.IsRetriable {
+		opts = append(opts, graph.WithRetriableErrors())
+	}
+
 	// Graph
 	g, config, envs, err := graph.LoadGraph(ctx, tile.Data.GraphName, opts...)
 	if err != nil {

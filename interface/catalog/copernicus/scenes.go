@@ -158,12 +158,9 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		scenes[i] = &entities.Scene{
 			Scene: common.Scene{
 				SourceID: sourceID,
-				AOI:      area.AOIID,
 				Data: common.SceneAttrs{
 					UUID:         rawscene.Uuid,
 					Date:         date,
-					GraphName:    area.SceneGraphName,
-					GraphConfig:  area.GraphConfig,
 					TileMappings: map[string]common.TileMapping{},
 				},
 			},
@@ -189,13 +186,6 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 			scenes[i].Tags[common.TagSliceNumber] = rawscene.AttributesMap["sliceNumber"]
 		case common.Sentinel2:
 			scenes[i].Tags[common.TagCloudCoverPercentage] = rawscene.AttributesMap["cloudCover"]
-		}
-
-		// Copy area tags
-		for k, v := range area.RecordTags {
-			if _, ok := scenes[i].Tags[k]; !ok {
-				scenes[i].Tags[k] = v
-			}
 		}
 	}
 

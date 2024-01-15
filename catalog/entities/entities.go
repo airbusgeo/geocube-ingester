@@ -65,6 +65,7 @@ type AreaToIngest struct {
 	} `json:"layers"`
 	RecordTags      map[string]string `json:"record_tags"`
 	AnnotationsURLs []string          `json:"annotations_urls"`
+	IsRetriable     bool              `json:"is_retriable"`
 	RetryCount      int               `json:"retry_count"`
 }
 

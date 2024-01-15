@@ -183,7 +183,6 @@ func run(ctx context.Context) error {
 			}()
 			ctx = log.With(ctx, "msgID", msg.ID)
 			log.Logger(log.With(ctx, "body", string(msg.Data))).Sugar().Debugf("message %s try %d", msg.ID, msg.TryCount)
-			status := common.StatusRETRY
 			tile := common.TileToProcess{}
 			message := ""
 			if err := json.Unmarshal(msg.Data, &tile); err != nil {
@@ -191,6 +190,13 @@ func run(ctx context.Context) error {
 			} else if tile.ID == 0 {
 				return fmt.Errorf("invalid payload: %d", tile.ID)
 			}
+
+			// Default status
+			status := common.StatusFAILED
+			if tile.Data.IsRetriable {
+				status = common.StatusRETRY
+			}
+
 			ctx = log.With(ctx, "tile", fmt.Sprintf("%s_%s", tile.Scene.Data.Date.Format("20060102"), tile.SourceID))
 
 			defer func() {

@@ -285,7 +285,6 @@ func run(ctx context.Context) error {
 			}()
 			ctx = log.With(ctx, "msgID", msg.ID)
 			log.Logger(log.With(ctx, "body", string(msg.Data))).Sugar().Debugf("message %s try %d", msg.ID, msg.TryCount)
-			status := common.StatusRETRY
 			scene := common.Scene{}
 			message := ""
 
@@ -293,6 +292,12 @@ func run(ctx context.Context) error {
 				return fmt.Errorf("invalid payload: %w", err)
 			} else if scene.ID == 0 || len(scene.Data.TileMappings) == 0 {
 				return fmt.Errorf("invalid payload : %d-%d", scene.ID, len(scene.Data.TileMappings))
+			}
+
+			// Default status
+			status := common.StatusFAILED
+			if scene.Data.IsRetriable {
+				status = common.StatusRETRY
 			}
 
 			ctx = log.With(ctx, "image", scene.SourceID)

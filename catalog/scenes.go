@@ -69,6 +69,21 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 		return entities.Scenes{}, fmt.Errorf("ScenesInventory.%w", err)
 	}
 
+	// Define common attributes:
+	for _, scene := range scenes.Scenes {
+		scene.AOI = area.AOIID
+		scene.Data.GraphName = area.SceneGraphName
+		scene.Data.GraphConfig = area.GraphConfig
+		scene.Data.IsRetriable = area.IsRetriable
+
+		// Copy area tags
+		for k, v := range area.RecordTags {
+			if _, ok := scene.Tags[k]; !ok {
+				scene.Tags[k] = v
+			}
+		}
+	}
+
 	if len(area.AnnotationsURLs) == 1 {
 		for i, s := range scenes.Scenes {
 			if scenes.Scenes[i].Data.Metadata == nil {
