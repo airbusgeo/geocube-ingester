@@ -5,7 +5,7 @@ import argparse
 
 def search_file(directory = None, file = None):
     assert os.path.isdir(directory)
-    for cur_path, directories, files in os.walk(directory):
+    for cur_path, _, files in os.walk(directory):
         if file in files:
             return os.path.join(directory, cur_path, file)
     return None

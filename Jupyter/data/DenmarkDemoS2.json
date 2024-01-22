@@ -1,0 +1,58 @@
+{
+    "name":"DenmarkDemoS2",
+    "type":"Feature",
+    "geometry":{
+        "type": "MultiPolygon",
+        "coordinates":
+        [
+			[
+				[
+					[10.061230468750068, 54.88637695312502],
+					[9.957128906249977, 54.87246093750002],
+					[9.903906250000063, 54.896630859374994],
+					[9.80625, 54.90600585937503],
+					[9.77119140625004, 55.059912109375034],
+					[9.78125, 55.06904296875001],
+					[9.830371093750015, 55.05825195312505],
+					[9.998828125000045, 54.986474609374994],
+					[10.05771484375006, 54.90791015624998],
+					[10.061230468750068, 54.88637695312502]
+				]
+			]
+    	]
+    },
+    "start_time":"2022-01-01T00:00:00.000Z",
+    "end_time":"2022-01-12T00:00:00.000Z",
+	  "scene_type":{
+        "constellation":"sentinel2",
+        "parameters": {
+            "cloudcoverpercentage": "[0 TO 80]"
+        }
+    },
+    "scene_graph_name":"CopyProductToStorage",
+    "tile_graph_name":"library/graph/ExtractS2Bands.json",
+    "graph_config":{
+    },
+    "layers":{
+      "B01": {"variable":"B01", "instance":"raw"},
+      "B02": {"variable":"B02", "instance":"raw"},
+      "B03": {"variable":"B03", "instance":"raw"},
+      "B04": {"variable":"B04", "instance":"raw"},
+      "B05": {"variable":"B05", "instance":"raw"},
+      "B06": {"variable":"B06", "instance":"raw"},
+      "B07": {"variable":"B07", "instance":"raw"},
+      "B08": {"variable":"B08", "instance":"raw"},
+      "B09": {"variable":"B09", "instance":"raw"},
+      "B10": {"variable":"B10", "instance":"raw"},
+      "B11": {"variable":"B11", "instance":"raw"},
+      "B12": {"variable":"B12", "instance":"raw"}
+    },
+    "record_tags":{
+        "source": "tutorial",
+		    "provider": "geocube-ingester",
+		    "area":"Denmark"
+    },
+    "is_retriable": true,
+    "retry_count": 1
+}
+

@@ -1,0 +1,135 @@
+{
+  "config": {
+   "dformat_out": "uint16,NaN,0,32767"
+  },
+  "processing_steps": [
+   {
+    "engine": "python",
+    "command": "python/extract_s2.py",
+    "args": {
+      "workdir": { "type": "config", "value": "workdir" },
+      "pattern-out": { "type": "out", "layer": "*", "extension": "jp2" }
+    },
+    "condition": "pass"
+   }
+  ],
+  "in_files": [
+   [
+    {
+      "layer": "product",
+      "extension": "SAFE"
+    }
+  ],
+   [],
+   []
+  ],
+  "out_files": [
+   [
+     {
+       "layer": "B01",
+       "extension": "jp2",
+       "dformat_out": { "type": "config", "value": "dformat_out" },
+       "ext_min_value": 0,
+       "ext_max_value": 1,
+       "action": "to_index"
+     },
+     {
+      "layer": "B02",
+      "extension": "jp2",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+     },
+     {
+      "layer": "B03",
+      "extension": "jp2",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+     },
+     {
+      "layer": "B04",
+      "extension": "jp2",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+     },
+     {
+      "layer": "B05",
+      "extension": "jp2",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+     },
+     {
+      "layer": "B06",
+      "extension": "jp2",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+     },
+     {
+      "layer": "B07",
+      "extension": "jp2",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+     },
+     {
+      "layer": "B08",
+      "extension": "jp2",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+     },
+     {
+      "layer": "B09",
+      "extension": "jp2",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+     },
+     {
+      "layer": "B10",
+      "extension": "jp2",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+     },
+     {
+      "layer": "B11",
+      "extension": "jp2",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+     },
+     {
+      "layer": "B12",
+      "extension": "jp2",
+      "dformat_out": { "type": "config", "value": "dformat_out" },
+      "ext_min_value": 0,
+      "ext_max_value": 1,
+      "action": "to_index"
+     },
+     {
+      "layer": "product",
+      "extension": "SAFE",
+      "action": "to_delete",
+      "error_condition": "on_fatal_failure"
+    }
+   ],
+   [],
+   []
+  ]
+ }
+ 

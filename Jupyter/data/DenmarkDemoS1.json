@@ -23,13 +23,13 @@
     },
     "start_time":"2022-01-01T00:00:00.000Z",
     "end_time":"2022-02-10T00:00:00.000Z",
-	"scene_type":{
+	  "scene_type":{
         "constellation":"sentinel1",
         "parameters": {
             "producttype": "SLC",
             "polarisationmode": "VV VH",
             "sensoroperationalmode": "IW",
-			"relativeorbitnumber": "44"
+			      "relativeorbitnumber": "44"
         }
     },
     "scene_graph_name":"S1Preprocessing",
@@ -40,14 +40,16 @@
         "bkg_resampling": "BISINC_5_POINT_INTERPOLATION"
     },
     "layers":{
-		"sigma0_VV": {"variable":"BackscatterSigma0VV", "instance":"RNKell"},
-		"sigma0_VH": {"variable":"BackscatterSigma0VH", "instance":"RNKell"},
-		"coh_VV": {"variable":"CoherenceVV", "instance":"master"},
-		"coh_VH": {"variable":"CoherenceVH", "instance":"master"}
+		    "sigma0_VV": {"variable":"BackscatterSigma0VV", "instance":"RNKell"},
+		    "sigma0_VH": {"variable":"BackscatterSigma0VH", "instance":"RNKell"},
+		    "coh_VV": {"variable":"CoherenceVV", "instance":"master"},
+		    "coh_VH": {"variable":"CoherenceVH", "instance":"master"}
     },
     "record_tags":{
         "source": "tutorial",
-		"provider": "geocube-ingester",
-		"area":"Denmark"
-    }
+		    "provider": "geocube-ingester",
+		    "area":"Denmark"
+    },
+    "is_retriable": true,
+    "retry_count": 1
 }
