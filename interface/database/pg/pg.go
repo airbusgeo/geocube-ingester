@@ -10,6 +10,7 @@ import (
 
 	"github.com/airbusgeo/geocube-ingester/common"
 	db "github.com/airbusgeo/geocube-ingester/interface/database"
+	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/lib/pq"
 )
 
@@ -87,28 +88,28 @@ func New(ctx context.Context, dbConnection string) (*BackendDB, error) {
 }
 
 // AOIs implements WorkflowBackend
-func (b Backend) AOIs(ctx context.Context, aoi string) ([]string, error) {
+func (b Backend) AOIs(ctx context.Context, aoi string) ([]db.AOI, error) {
 	var (
 		rows *sql.Rows
 		err  error
 	)
 	if aoi == "" {
-		rows, err = b.QueryContext(ctx, "select id from aoi ORDER BY id")
+		rows, err = b.QueryContext(ctx, "select id, status from aoi ORDER BY id")
 	} else {
-		rows, err = b.QueryContext(ctx, "select id from aoi where id LIKE $1 ORDER BY id", aoi)
+		rows, err = b.QueryContext(ctx, "select id, status from aoi where id LIKE $1 ORDER BY id", aoi)
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("aois.QueryContext: %w", err)
 	}
 	defer rows.Close()
-	aois := make([]string, 0)
+	aois := make([]db.AOI, 0)
 	for rows.Next() {
-		var s string
-		if err := rows.Scan(&s); err != nil {
+		var aoi db.AOI
+		if err := rows.Scan(&aoi.ID, &aoi.Status); err != nil {
 			return nil, fmt.Errorf("aois.Scan: %w", err)
 		}
-		aois = append(aois, s)
+		aois = append(aois, aoi)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("aois.rows.err: %w", err)
@@ -127,6 +128,89 @@ func (b Backend) CreateAOI(ctx context.Context, aoi string) error {
 	default:
 		return fmt.Errorf("CreateAOI.exec: %w", err)
 	}
+}
+
+func extractStatus(status service.StringSet) common.Status {
+	// Priority: RETRY>PENDING>NEW>DONE>FAILED
+	if status.Exists(common.StatusRETRY.String()) {
+		return common.StatusRETRY
+	}
+	if status.Exists(common.StatusPENDING.String()) {
+		return common.StatusPENDING
+	}
+	if status.Exists(common.StatusNEW.String()) {
+		return common.StatusNEW
+	}
+	if status.Exists(common.StatusDONE.String()) {
+		return common.StatusDONE
+	}
+	if status.Exists(common.StatusFAILED.String()) {
+		return common.StatusFAILED
+	}
+	return common.StatusNEW
+}
+
+func (b Backend) findAOIStatus(ctx context.Context, aoi string) (common.Status, error) {
+
+	// Get status of scenes
+	rows, err := b.QueryContext(ctx, "select status from scene where aoi_id = $1 GROUP BY status", aoi)
+
+	if err != nil {
+		return common.StatusNEW, fmt.Errorf("findScenesStatus.QueryContext: %w", err)
+	}
+	defer rows.Close()
+	status := service.StringSet{}
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return common.StatusNEW, fmt.Errorf("findScenesStatus.Scan: %w", err)
+		}
+		status.Push(s)
+	}
+	if err := rows.Err(); err != nil {
+		return common.StatusNEW, fmt.Errorf("findScenesStatus.rows.err: %w", err)
+	}
+
+	// Inspect scenes status
+	if scenesStatus := extractStatus(status); scenesStatus != common.StatusDONE {
+		return scenesStatus, nil
+	}
+
+	// All scenes are finished... Inspect tiles
+	if rows, err = b.QueryContext(ctx, "select tile.status from tile, scene where aoi_id = $1 and scene.status='DONE' and scene.id=tile.scene_id GROUP BY tile.status", aoi); err != nil {
+		return common.StatusNEW, fmt.Errorf("findTilesStatus.QueryContext: %w", err)
+	}
+	defer rows.Close()
+	status = service.StringSet{}
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return common.StatusNEW, fmt.Errorf("findTilesStatus.Scan: %w", err)
+		}
+		status.Push(s)
+	}
+	if err := rows.Err(); err != nil {
+		return common.StatusNEW, fmt.Errorf("findTilesStatus.rows.err: %w", err)
+	}
+	return extractStatus(status), nil
+}
+
+// UpdateAOIStatus implements WorkflowBackend
+func (b Backend) UpdateAOIStatus(ctx context.Context, aoi string, isRetry bool) (common.Status, error) {
+	// Priority: RETRY>PENDING>NEW>DONE>FAILED
+	var status common.Status
+	var err error
+	if isRetry {
+		status = common.StatusRETRY
+	} else {
+		if err != nil {
+			return common.StatusNEW, fmt.Errorf("updateAOIStatus.%w", err)
+		}
+	}
+	if _, err := b.ExecContext(ctx, "update aoi set status=$1 where id = $2", status, aoi); err != nil {
+		return status, fmt.Errorf("updateAOIStatus.exec: %w", err)
+	}
+	return status, nil
 }
 
 // DeleteAOI implements WorkflowBackend

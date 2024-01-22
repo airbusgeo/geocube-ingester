@@ -7,6 +7,11 @@ import (
 	"github.com/airbusgeo/geocube-ingester/common"
 )
 
+type AOI struct {
+	ID     string        `json:"ID"`
+	Status common.Status `json:"status"`
+}
+
 type Scene struct {
 	common.Scene
 	Status  common.Status `json:"status"`
@@ -75,7 +80,11 @@ type WorkflowBackend interface {
 	CreateAOI(ctx context.Context, aoi string) error
 	// AOIs returns the list of the aois fitting the pattern
 	// pattern [optional=""] aoi_patern
-	AOIs(ctx context.Context, pattern string) ([]string, error)
+	AOIs(ctx context.Context, pattern string) ([]AOI, error)
+	// UpdateAOIStatus update the status of the AOI regarding the status of all the scenes and the tiles
+	// Priority is RETRY>PENDING>NEW>DONE>FAILED
+	// Return new status
+	UpdateAOIStatus(ctx context.Context, aoi string, isRetry bool) (common.Status, error)
 	// Delete an AOI from the database
 	DeleteAOI(ctx context.Context, aoi string) error
 
@@ -113,7 +122,7 @@ type WorkflowBackend interface {
 	RootTiles(ctx context.Context, aoi string) ([]common.Tile, error)
 	// Get leaf tiles (no next tiles) and their scene.
 	LeafTiles(ctx context.Context, aoi string) ([]common.Tile, error)
-	// Update tile status & message (if != nil)
+	// Update tile status & message (if != nil) & set Prev=nil if requested
 	UpdateTile(ctx context.Context, id int, status common.Status, message *string, resetPrev bool) error
 	// Set status of given tiles
 	SetTilesStatus(ctx context.Context, ids []int, status common.Status) error

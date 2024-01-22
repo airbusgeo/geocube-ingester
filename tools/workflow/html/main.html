@@ -133,7 +133,11 @@
         res = "<table>"
         type_id = null
         $.each( json, function( key, val ) {
-          value = formatLink("loadAOI", val, "'" + val + "'")
+          val_displayed = val['ID']
+          if (val['status'] != 'DONE') {
+            val_displayed +=  " (" + val['status'] + ")"
+          }
+          value = formatLink("loadAOI", val_displayed, "'" + val['ID'] + "'")
           res += "<tr style=\"vertical-align:top\"><td>" + value + "</td></tr>";
         })
         $( "#result" ).html( res + "</table>" )

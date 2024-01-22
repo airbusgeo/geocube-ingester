@@ -205,8 +205,12 @@ func (wf *Workflow) UpdateTileStatus(ctx context.Context, id int, status common.
 				return wf.FailTile(ctx, tile, tx)
 			})
 		}
+		if err != nil {
+			return false, err
+		}
 
-		return err == nil, err
+		_, err := wf.UpdateAOIStatus(ctx, tile.Scene.AOI, status == common.StatusRETRY)
+		return true, err
 	}
 
 	if tile.Status == status {
@@ -259,8 +263,15 @@ func (wf *Workflow) UpdateTileStatus(ctx context.Context, id int, status common.
 		lg.Errorf("cannot update tile %d status %s->%s", id, tile.Status, status)
 		return false, nil
 	}
+	if err != nil {
+		return false, err
+	}
 
-	return err == nil, err
+	if _, err := wf.UpdateAOIStatus(ctx, tile.Scene.AOI, status == common.StatusRETRY); err != nil {
+		return true, err
+	}
+
+	return true, nil
 }
 
 func (wf *Workflow) Dot(ctx context.Context, aoi string, out io.Writer) error {
@@ -434,6 +445,10 @@ func (wf *Workflow) UpdateSceneStatus(ctx context.Context, id int, status common
 		case common.StatusPENDING:
 			err = wf.RetryScene(ctx, scene)
 		}
+		if err != nil {
+			return true, err
+		}
+		_, err = wf.UpdateAOIStatus(ctx, scene.AOI, status == common.StatusRETRY)
 		return true, err
 	}
 
@@ -471,8 +486,15 @@ func (wf *Workflow) UpdateSceneStatus(ctx context.Context, id int, status common
 		lg.Errorf("cannot update scene %d status %s->%s", id, scene.Status, status)
 		return false, nil
 	}
+	if err != nil {
+		return false, err
+	}
 
-	return err == nil, err
+	if _, err := wf.UpdateAOIStatus(ctx, scene.AOI, status == common.StatusRETRY); err != nil {
+		return true, err
+	}
+
+	return true, err
 }
 
 // IngestScene adds a new scene to the workflow and starts the processing
@@ -509,6 +531,9 @@ func (wf *Workflow) IngestScene(ctx context.Context, aoi string, scene common.Sc
 			}
 		}
 
+		if _, err := tx.UpdateAOIStatus(ctx, aoi, false); err != nil {
+			return err
+		}
 		log.Logger(ctx).Sugar().Infof("queueing image %s", scene.SourceID)
 		return wf.publishScene(ctx, scene.Scene)
 	})

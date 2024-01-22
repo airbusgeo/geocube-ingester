@@ -7,6 +7,7 @@ SET default_tablespace = '';
 
 CREATE TABLE public.aoi (
     id text NOT NULL,
+    status text NOT NULL DEFAULT 'NEW',
     UNIQUE (id)
 );
 
