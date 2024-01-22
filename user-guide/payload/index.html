@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://github.com/airbusgeo/geocube-ingester/user-guide/payload/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Payload - Geocube Ingester</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Payload";
+        var mkdocs_page_input_path = "user-guide/payload.md";
+        var mkdocs_page_url = "/airbusgeo/geocube-ingester/user-guide/payload/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Geocube Ingester
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../quickstart/">Getting started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Architecture</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../architecture/services/">Services</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../architecture/interfaces/">Interfaces</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/prerequisite/">Prerequisite</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/local-install/">Local environment</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/docker-install/">Docker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/k8s-install/">Deploying with Kubernetes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/others/">Customize environment</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../tutorials/">Tutorials</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="./">Payload</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#inputs">Inputs</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#sentinel1">Sentinel1</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#sentinel2-spot-phr">Sentinel2, SPOT, PHR</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#catalogue-apis">Catalogue APIS</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#copernicus">Copernicus</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#oneatlas">OneAtlas</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#utilities">Utilities</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#endpoints">Endpoints</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#tiles-payload">Tiles Payload</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#scenes-payload">Scenes Payload</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#aoi-payload">AOI Payload</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#example-aoi-payload">Example AOI Payload</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../catalog/">Catalogue</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../providers/">Provider</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graph/">Processing graphs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../monitoring/">Monitoring</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/help/">Getting help</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/development/">Development</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/release-notes/">Release Notes</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Geocube Ingester</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User guide</li>
+      <li class="breadcrumb-item active">Payload</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="payload">Payload</h2>
+<p>The input of the ingester is a payload. It contains an AOI, a date interval, parameters defining the raw products, parameters defining the processing and parameters defining the products to be ingested in the Geocube.</p>
+<p>The payload is a GeoJSON (all fields are mandatory unless otherwise stated):</p>
+<ul>
+<li><strong>AOI</strong> according to GeoJSON standards (type, geometry, coordinates...)</li>
+<li><strong>name</strong>: Unique name used to identify the Area in the workflow. After a first ingestion, new scenes can be added to the same area, benefiting from automatic scenes reference picking (useful for S1-bursts).</li>
+<li><strong>start_time</strong>, <strong>end_time</strong>: date interval</li>
+<li><strong>scene_type</strong>: describing the type of the products to be downloaded<ul>
+<li><strong>constellation</strong>: Name of the Satellite Constellation (currently supported : sentinel1, sentinel2)</li>
+<li><strong>parameters</strong>: (optional) specific parameters to filter the results (see <a href="#catalogue-apis">Catalogue API guide</a>)</li>
+</ul>
+</li>
+<li><strong>scene_graph_name</strong>: name of the graph that will be used just after downloading the scene (or "CopyProductToStorage") (see <a href="../graph/">Processing Graphs</a>)</li>
+<li><strong>tile_graph_name</strong>: name of the graph that will be used to process each tiles (or "Pass") (see <a href="../graph/">Processing Graphs</a>)</li>
+<li><strong>graph_config</strong>: (optional): specific configuration of the graphs</li>
+<li><strong>layers</strong>: mapping between layers to be indexed in the Geocube and the corresponding variable.instance from the Geocube (see Geocube Documentation).  <ul>
+<li><strong>layername</strong>: {"variable":"variable_name", "instance":"instance_name"}</li>
+</ul>
+</li>
+<li><strong>record_tags</strong> (optional): user-defined tags for identifying/creating the record in the Geocube.</li>
+</ul>
+<h3 id="inputs">Inputs</h3>
+<p>In ingestion payload, <code>geometry</code>, <code>start_time</code>, <code>end_time</code> and <code>scene_type</code> are mandatory in order to list available scenes covering by AOI and between range of time.</p>
+<h4 id="sentinel1">Sentinel1</h4>
+<p>We need to use <code>scene_graph_name</code> in order to extract every bursts from Scenes. This step is processed in downloader as pre-processing (1 job per Scenes).</p>
+<p><code>tile_graph_name</code> defines processing to use for every Tiles. This step is processed after downloading every Scenes (processor) (1 job per Tiles).</p>
+<h4 id="sentinel2-spot-phr">Sentinel2, SPOT, PHR</h4>
+<p>We need to use <code>scene_graph_name</code> in order to pre-process data (example: extract Panchromatic &amp; MultiSpectral Image from DIMAP product).</p>
+<p><code>tile_graph_name</code> defines processing to use for every Scenes/Tiles. This step is processed after downloading every Scenes (processor).</p>
+<p>cf. <a href="./#example">Payload ingestion</a></p>
+<h3 id="catalogue-apis">Catalogue APIS</h3>
+<h4 id="copernicus">Copernicus</h4>
+<p>Copernicus available parameters:    <code>productType</code>,<code>platformname</code>,<code>polarisationmode</code>,<code>sensoroperationalmode</code>, <code>cloudcoverpercentage</code>, <code>relativeorbitnumber</code> and <code>filename</code></p>
+<h4 id="oneatlas">OneAtlas</h4>
+<p>OneAtlas available parameters:  <code>productType</code>,<code>platform</code>,<code>processingLevel</code>,<code>cloudCover</code>, <code>incidenceAngle</code>, <code>workspace</code> and <code>relation</code></p>
+<p>NB: To use other parameters or mix different kind of imagery. You need to group all your images in the same workspace (via OneAtlas) and reference only <code>workspace</code> in payload ingestion.</p>
+<p>For more information see: <a href="https://www.geoapi-airbusds.com/api-catalog/oneatlas-data/index.html#tag/Search">OneAtlas API guide</a></p>
+<h3 id="utilities">Utilities</h3>
+<ul>
+<li><code>Geometry</code>, <code>scene_type</code>, <code>end_time</code> and <code>start_time</code> will be useful for catalog in order to search corresponding scenes.</li>
+<li><code>scene_graph_name</code> will be useful for pre-processing in downloader (example: extract every burst from scenes) in order to define which graph will be used.</li>
+<li><code>tile_graph_name</code> and <code>graph_config</code> will be useful for  processor in order to define which graph will be used.</li>
+<li><code>record_tags</code> and <code>layers</code> will be useful in workflow in order to create potential record in Geocube and reference existing variables and instances (for the indexation of the data).</li>
+</ul>
+<h3 id="endpoints">Endpoints</h3>
+<p>The Area, with scenes and tiles, is posted to the workflow service that is in charge of creating and running the processing flow.</p>
+<h4 id="tiles-payload">Tiles Payload</h4>
+<pre><code class="language-shell">curl -F &quot;area=@{payloadFile}&quot; -F &quot;tiles=@outputs/tiles.json&quot; -H {token} {workflow_server}/catalog/aoi
+</code></pre>
+<p>Example of tiles.json: <a href="../monitoring/#tiles">here</a></p>
+<h4 id="scenes-payload">Scenes Payload</h4>
+<pre><code class="language-shell">curl -F &quot;area=@{payloadFile}&quot; -F &quot;scenes=@outputs/scenes.json&quot; -H {token} {workflow_server}/catalog/aoi
+</code></pre>
+<p>Example of scenes.json: <a href="../monitoring/#scenes">here</a></p>
+<h4 id="aoi-payload">AOI Payload</h4>
+<pre><code class="language-shell">curl -F &quot;area=@{payloadFile}&quot; -H {token} {workflow_server}/catalog/aoi
+</code></pre>
+<h3 id="example-aoi-payload">Example AOI Payload</h3>
+<pre><code class="language-json">{
+    &quot;name&quot;:&quot;DenmarkDemo&quot;,
+    &quot;type&quot;:&quot;Feature&quot;,
+    &quot;geometry&quot;:{
+        &quot;type&quot;: &quot;MultiPolygon&quot;,
+        &quot;coordinates&quot;:
+        [
+            [
+                [
+                    [10.061230468750068, 54.88637695312502],
+                    [9.957128906249977, 54.87246093750002],
+                    [9.903906250000063, 54.896630859374994],
+                    [9.80625, 54.90600585937503],
+                    [9.77119140625004, 55.059912109375034],
+                    [9.78125, 55.06904296875001],
+                    [9.830371093750015, 55.05825195312505],
+                    [9.998828125000045, 54.986474609374994],
+                    [10.05771484375006, 54.90791015624998],
+                    [10.061230468750068, 54.88637695312502]
+                ]
+            ]
+        ]
+    },
+    &quot;start_time&quot;:&quot;2022-01-01T00:00:00.000Z&quot;,
+    &quot;end_time&quot;:&quot;2022-02-10T00:00:00.000Z&quot;,
+    &quot;scene_type&quot;:{
+        &quot;constellation&quot;:&quot;sentinel1&quot;,
+        &quot;parameters&quot;: {
+            &quot;producttype&quot;: &quot;SLC&quot;,
+            &quot;polarisationmode&quot;: &quot;VV VH&quot;,
+            &quot;sensoroperationalmode&quot;: &quot;IW&quot;,
+            &quot;relativeorbitnumber&quot;: &quot;44&quot;
+        }
+    },
+    &quot;scene_graph_name&quot;:&quot;S1Preprocessing&quot;,
+    &quot;tile_graph_name&quot;:&quot;S1BackscatterCoherence&quot;,
+    &quot;graph_config&quot;:{
+        &quot;projection&quot;:&quot;EPSG:32632&quot;,
+        &quot;snap_cpu_parallelism&quot;:&quot;8&quot;,
+        &quot;bkg_resampling&quot;: &quot;BISINC_5_POINT_INTERPOLATION&quot;
+    },
+    &quot;layers&quot;:{
+        &quot;sigma0_VV&quot;: {&quot;variable&quot;:&quot;BackscatterSigma0VV&quot;, &quot;instance&quot;:&quot;RNKell&quot;},
+        &quot;sigma0_VH&quot;: {&quot;variable&quot;:&quot;BackscatterSigma0VH&quot;, &quot;instance&quot;:&quot;RNKell&quot;},
+        &quot;coh_VV&quot;: {&quot;variable&quot;:&quot;CoherenceVV&quot;, &quot;instance&quot;:&quot;master&quot;},
+        &quot;coh_VH&quot;: {&quot;variable&quot;:&quot;CoherenceVH&quot;, &quot;instance&quot;:&quot;master&quot;}
+    },
+    &quot;record_tags&quot;:{
+        &quot;source&quot;: &quot;tutorial&quot;,
+        &quot;provider&quot;: &quot;geocube-ingester&quot;,
+        &quot;area&quot;:&quot;Denmark&quot;
+    }
+}
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../tutorials/" class="btn btn-neutral float-left" title="Tutorials"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../catalog/" class="btn btn-neutral float-right" title="Catalogue">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../tutorials/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../catalog/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
