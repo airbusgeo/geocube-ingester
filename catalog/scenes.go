@@ -160,8 +160,9 @@ func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest
 
 		// Create sceneToIngest
 		sceneToIngest := common.SceneToIngest{
-			Scene: scene.Scene,
-			Tiles: map[string]common.TileToIngest{},
+			Scene:      scene.Scene,
+			Tiles:      map[string]common.TileToIngest{},
+			RetryCount: area.RetryCount,
 		}
 		prevScenes := service.StringSet{}
 		refScenes := service.StringSet{}

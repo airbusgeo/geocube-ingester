@@ -18,6 +18,7 @@ CREATE TABLE public.scene (
     message text NOT NULL DEFAULT '',
     source_id text NOT NULL,
     data jsonb,
+    retry_countdown int NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     FOREIGN KEY (aoi_id) REFERENCES public.aoi(id) ON DELETE CASCADE
 );
@@ -42,6 +43,7 @@ CREATE TABLE public.tile (
     ref integer,
     source_id text NOT NULL,
     data jsonb,
+    retry_countdown int NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     UNIQUE (source_id, scene_id),
     FOREIGN KEY (prev) REFERENCES public.tile(id),

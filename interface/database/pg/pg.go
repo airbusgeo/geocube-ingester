@@ -244,10 +244,10 @@ func (b Backend) ScenesStatus(ctx context.Context, aoi string) (db.Status, error
 }
 
 // CreateScene implements WorkflowBackend
-func (b Backend) CreateScene(ctx context.Context, sourceID, aoi string, status common.Status, data common.SceneAttrs) (int, error) {
+func (b Backend) CreateScene(ctx context.Context, sourceID, aoi string, status common.Status, data common.SceneAttrs, retryCount int) (int, error) {
 	scID := 0
-	if err := b.QueryRowContext(ctx, "insert into scene(source_id,aoi_id,status,data) values($1,$2,$3,$4) returning id",
-		sourceID, aoi, status, data).Scan(&scID); err != nil {
+	if err := b.QueryRowContext(ctx, "insert into scene(source_id,aoi_id,status,data,retry_countdown) values($1,$2,$3,$4,$5) returning id",
+		sourceID, aoi, status, data, retryCount).Scan(&scID); err != nil {
 		return 0, fmt.Errorf("CreateScene: %w", err)
 	}
 	return scID, nil
@@ -263,8 +263,8 @@ func (b Backend) Scene(ctx context.Context, id int, scenesCache *map[int]db.Scen
 
 	scene := db.Scene{}
 	scene.ID = id
-	if err := b.QueryRowContext(ctx, "select source_id,aoi_id,status,message,data from scene where id=$1", id).Scan(
-		&scene.SourceID, &scene.AOI, &scene.Status, &scene.Message, &scene.Data); err != nil {
+	if err := b.QueryRowContext(ctx, "select source_id,aoi_id,status,message,data,retry_countdown from scene where id=$1", id).Scan(
+		&scene.SourceID, &scene.AOI, &scene.Status, &scene.Message, &scene.Data, &scene.RetryCountDown); err != nil {
 		if err == sql.ErrNoRows {
 			return scene, db.ErrNotFound{Type: "scene", ID: fmt.Sprintf("%d", id)}
 		}
@@ -281,7 +281,7 @@ func (b Backend) Scene(ctx context.Context, id int, scenesCache *map[int]db.Scen
 // Scenes implements WorkflowBackend
 func (b Backend) Scenes(ctx context.Context, aoi string, page, limit int) ([]db.Scene, error) {
 	scenes := make([]db.Scene, 0)
-	query := "select id,source_id,status,message,data from scene where aoi_id=$1"
+	query := "select id,source_id,status,message,data,retry_countdown from scene where aoi_id=$1"
 	if limit > 0 {
 		query += " LIMIT " + strconv.Itoa(limit)
 	}
@@ -296,7 +296,7 @@ func (b Backend) Scenes(ctx context.Context, aoi string, page, limit int) ([]db.
 	for rows.Next() {
 		s := db.Scene{}
 		s.AOI = aoi
-		if err := rows.Scan(&s.ID, &s.SourceID, &s.Status, &s.Message, &s.Data); err != nil {
+		if err := rows.Scan(&s.ID, &s.SourceID, &s.Status, &s.Message, &s.Data, &s.RetryCountDown); err != nil {
 			return nil, fmt.Errorf("scenes.Scan: %w", err)
 		}
 		scenes = append(scenes, s)
@@ -310,10 +310,14 @@ func (b Backend) Scenes(ctx context.Context, aoi string, page, limit int) ([]db.
 // UpdateScene implements WorkflowBackend
 func (b Backend) UpdateScene(ctx context.Context, id int, status common.Status, message *string) error {
 	var err error
+	var retryCountdown string
+	if status == common.StatusPENDING {
+		retryCountdown = ", retry_countdown=retry_countdown-1"
+	}
 	if message != nil {
-		_, err = b.ExecContext(ctx, "update scene set status=$1, message=$2 where id=$3", status, *message, id)
+		_, err = b.ExecContext(ctx, "update scene set status=$1, message=$2"+retryCountdown+" where id=$3", status, *message, id)
 	} else {
-		_, err = b.ExecContext(ctx, "update scene set status=$1 where id=$2", status, id)
+		_, err = b.ExecContext(ctx, "update scene set status=$1"+retryCountdown+" where id=$2", status, id)
 	}
 	if err != nil {
 		return fmt.Errorf("updateScene: %w", err)
@@ -368,18 +372,18 @@ func (b Backend) TilesStatus(ctx context.Context, aoi string) (db.Status, error)
 }
 
 // CreateTile implements WorkflowBackend
-func (b Backend) CreateTile(ctx context.Context, sourceID string, sceneID int, data common.TileAttrs, aoi, prevTileSource, prevSceneSource, refTileSource, refSceneSource string) (int, error) {
+func (b Backend) CreateTile(ctx context.Context, sourceID string, sceneID int, data common.TileAttrs, aoi, prevTileSource, prevSceneSource, refTileSource, refSceneSource string, retryCount int) (int, error) {
 	bid := 0
 	if prevTileSource != "" && refTileSource != "" {
-		if err := b.QueryRowContext(ctx, `insert into tile(source_id,scene_id,status,data,prev,ref)
-		select $1,$2,$3,$4,tprev.id,tref.id from tile tprev, scene sprev, tile tref, scene sref
-		where sprev.aoi_id=$5 and tprev.source_id=$6 and sprev.source_id=$7 and tprev.scene_id=sprev.id and tprev.status != $10
-		and   sref.aoi_id =$5 and tref.source_id =$8 and sref.source_id =$9 and tref.scene_id =sref.id  and tref.status  != $10
+		if err := b.QueryRowContext(ctx, `insert into tile(source_id,scene_id,status,data,retry_countdown,prev,ref)
+		select $1,$2,$3,$4,$5,tprev.id,tref.id from tile tprev, scene sprev, tile tref, scene sref
+		where sprev.aoi_id=$6 and tprev.source_id=$7 and sprev.source_id=$8 and tprev.scene_id=sprev.id and tprev.status != $11
+		and   sref.aoi_id =$6 and tref.source_id =$9 and sref.source_id =$10 and tref.scene_id=sref.id  and tref.status  != $11
 		RETURNING tile.id`,
-			sourceID, sceneID, common.StatusNEW, data, aoi, prevTileSource, prevSceneSource, refTileSource, refSceneSource, common.StatusFAILED).Scan(&bid); err != nil {
+			sourceID, sceneID, common.StatusNEW, data, retryCount, aoi, prevTileSource, prevSceneSource, refTileSource, refSceneSource, common.StatusFAILED).Scan(&bid); err != nil {
 			return 0, fmt.Errorf("CreateTile: insert tile %s (parent %s, ref %s) (hint: check parent tile is not FAILED): %w", sourceID, prevSceneSource, refSceneSource, err)
 		}
-	} else if err := b.QueryRowContext(ctx, "insert into tile(source_id,scene_id,status,data) values($1,$2,$3,$4) RETURNING tile.id", sourceID, sceneID, common.StatusNEW, data).Scan(&bid); err != nil {
+	} else if err := b.QueryRowContext(ctx, "insert into tile(source_id,scene_id,status,data,retry_countdown) values($1,$2,$3,$4,$5) RETURNING tile.id", sourceID, sceneID, common.StatusNEW, data, retryCount).Scan(&bid); err != nil {
 		return 0, fmt.Errorf("CreateTile: insert root tile %s: %w", sourceID, err)
 	}
 	return bid, nil
@@ -393,11 +397,11 @@ func (b Backend) Tile(ctx context.Context, tile int, loadScene bool) (db.Tile, c
 	var sceneStatus common.Status
 	if loadScene {
 		err = b.QueryRowContext(ctx,
-			"select t.source_id,t.scene_id,t.prev,t.ref,t.status,t.message,t.data, s.source_id,s.aoi_id,s.status,s.data from tile t, scene s where t.id=$1 and t.scene_id = s.id", tile).Scan(
-			&ti.SourceID, &ti.Scene.ID, &ti.PreviousID, &ti.ReferenceID, &ti.Status, &ti.Message, &ti.Data, &ti.Scene.SourceID, &ti.Scene.AOI, &sceneStatus, &ti.Scene.Data)
+			"select t.source_id,t.scene_id,t.prev,t.ref,t.status,t.message,t.data,t.retry_countdown, s.source_id,s.aoi_id,s.status,s.data from tile t, scene s where t.id=$1 and t.scene_id = s.id", tile).Scan(
+			&ti.SourceID, &ti.Scene.ID, &ti.PreviousID, &ti.ReferenceID, &ti.Status, &ti.Message, &ti.Data, &ti.RetryCountDown, &ti.Scene.SourceID, &ti.Scene.AOI, &sceneStatus, &ti.Scene.Data)
 	} else {
-		err = b.QueryRowContext(ctx, "select source_id,scene_id,prev,ref,status,message,data from tile where tile.id=$1", tile).Scan(
-			&ti.SourceID, &ti.Scene.ID, &ti.PreviousID, &ti.ReferenceID, &ti.Status, &ti.Message, &ti.Data)
+		err = b.QueryRowContext(ctx, "select source_id,scene_id,prev,ref,status,message,data,retry_countdown from tile where tile.id=$1", tile).Scan(
+			&ti.SourceID, &ti.Scene.ID, &ti.PreviousID, &ti.ReferenceID, &ti.Status, &ti.Message, &ti.Data, &ti.RetryCountDown)
 	}
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -411,7 +415,7 @@ func (b Backend) Tile(ctx context.Context, tile int, loadScene bool) (db.Tile, c
 // Tiles implements WorkflowBackend
 func (b Backend) Tiles(ctx context.Context, aoi string, sceneID int, status string, loadScene bool, page, limit int) ([]db.Tile, error) {
 	// Construct the query
-	query := "select t.id, t.source_id, t.scene_id, t.prev, t.ref, t.status, t.message, t.data"
+	query := "select t.id, t.source_id, t.scene_id, t.prev, t.ref, t.status, t.message, t.data, t.retry_countdown"
 
 	if loadScene {
 		query += ", s.source_id, s.aoi_id, s.data"
@@ -457,9 +461,9 @@ func (b Backend) Tiles(ctx context.Context, aoi string, sceneID int, status stri
 		for rows.Next() {
 			tile := db.Tile{}
 			if loadScene {
-				err = rows.Scan(&tile.ID, &tile.SourceID, &tile.Scene.ID, &tile.PreviousID, &tile.ReferenceID, &tile.Status, &tile.Message, &tile.Data, &tile.Scene.SourceID, &tile.Scene.AOI, &tile.Scene.Data)
+				err = rows.Scan(&tile.ID, &tile.SourceID, &tile.Scene.ID, &tile.PreviousID, &tile.ReferenceID, &tile.Status, &tile.Message, &tile.Data, &tile.RetryCountDown, &tile.Scene.SourceID, &tile.Scene.AOI, &tile.Scene.Data)
 			} else {
-				err = rows.Scan(&tile.ID, &tile.SourceID, &tile.Scene.ID, &tile.PreviousID, &tile.ReferenceID, &tile.Status, &tile.Message, &tile.Data)
+				err = rows.Scan(&tile.ID, &tile.SourceID, &tile.Scene.ID, &tile.PreviousID, &tile.ReferenceID, &tile.Status, &tile.Message, &tile.Data, &tile.RetryCountDown)
 			}
 			if err != nil {
 				return nil, fmt.Errorf("Tiles.Scan: %w", err)
@@ -523,11 +527,19 @@ func (b Backend) LeafTiles(ctx context.Context, aoi string) ([]common.Tile, erro
 	return tiles, nil
 }
 
+func updateTileStatusQuery(status common.Status) string {
+	query := "update tile set status=$1"
+	if status == common.StatusPENDING {
+		query += ",retry_countdown=retry_countdown-1"
+	}
+	return query
+}
+
 // UpdateTile implements WorkflowBackend
 func (b Backend) UpdateTile(ctx context.Context, id int, status common.Status, message *string, resetPrev bool) error {
 	var err error
 
-	query := "update tile set status=$1"
+	query := updateTileStatusQuery(status)
 	parameters := []interface{}{status, id}
 	if message != nil {
 		parameters = append(parameters, *message)
@@ -545,7 +557,7 @@ func (b Backend) UpdateTile(ctx context.Context, id int, status common.Status, m
 
 // SetTilesStatus implements WorkflowBackend
 func (b Backend) SetTilesStatus(ctx context.Context, ids []int, status common.Status) error {
-	if _, err := b.ExecContext(ctx, "update tile set status=$1 where id=ANY($2)", status, pq.Array(ids)); err != nil {
+	if _, err := b.ExecContext(ctx, updateTileStatusQuery(status)+" where id=ANY($2)", status, pq.Array(ids)); err != nil {
 		return fmt.Errorf("UpdateTile: %w", err)
 	}
 	return nil
@@ -553,8 +565,8 @@ func (b Backend) SetTilesStatus(ctx context.Context, ids []int, status common.St
 
 // UpdateNextTilesStatus implements WorkflowBackend
 func (b Backend) UpdateNextTilesStatus(ctx context.Context, prevID int, status, sceneStatus, newStatus common.Status) ([]db.Tile, []int, error) {
-	rows, err := b.QueryContext(ctx,
-		`update tile set status=$1 FROM scene where
+	rows, err := b.QueryContext(ctx, updateTileStatusQuery(status)+
+		` FROM scene where
 			tile.prev=$2 and tile.status=$3 and tile.scene_id=scene.id and scene.status=$4
 			RETURNING tile.id, tile.source_id, tile.scene_id, tile.ref, tile.data`,
 		newStatus, prevID, status, sceneStatus)
@@ -582,8 +594,8 @@ func (b Backend) UpdateNextTilesStatus(ctx context.Context, prevID int, status, 
 
 // UpdateSceneTilesStatus implements WorkflowBackend
 func (b Backend) UpdateSceneTilesStatus(ctx context.Context, sceneID int, status, prevStatus, newStatus common.Status) ([]db.Tile, []db.Tile, []int, error) {
-	rows, err := b.QueryContext(ctx,
-		`update tile set status=$1 FROM tile prev_tile where tile.scene_id=$2 and tile.status=$3
+	rows, err := b.QueryContext(ctx, updateTileStatusQuery(status)+
+		` FROM tile prev_tile where tile.scene_id=$2 and tile.status=$3
 				and tile.prev=prev_tile.id and prev_tile.status=$4
 				RETURNING tile.id, tile.source_id, tile.ref, tile.data, prev_tile.id,prev_tile.source_id,prev_tile.scene_id,prev_tile.data`,
 		newStatus, sceneID, status, prevStatus)
@@ -616,8 +628,8 @@ func (b Backend) UpdateSceneTilesStatus(ctx context.Context, sceneID int, status
 
 // UpdateSceneRootTilesStatus implements WorkflowBackend
 func (b Backend) UpdateSceneRootTilesStatus(ctx context.Context, sceneID int, status, newStatus common.Status) ([]db.Tile, error) {
-	rows, err := b.QueryContext(ctx,
-		`update tile set status=$1 where scene_id=$2 and status=$3 and prev IS NULL
+	rows, err := b.QueryContext(ctx, updateTileStatusQuery(status)+
+		` where scene_id=$2 and status=$3 and prev IS NULL
 		RETURNING tile.id, tile.source_id, tile.ref, tile.data`,
 		newStatus, sceneID, status)
 	if err != nil {

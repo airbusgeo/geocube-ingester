@@ -14,16 +14,18 @@ type AOI struct {
 
 type Scene struct {
 	common.Scene
-	Status  common.Status `json:"status"`
-	Message string        `json:"message"`
+	Status         common.Status `json:"status"`
+	Message        string        `json:"message"`
+	RetryCountDown int
 }
 
 type Tile struct {
 	common.Tile
-	Status      common.Status `json:"status"`
-	Message     string        `json:"message"`
-	PreviousID  *int
-	ReferenceID *int
+	Status         common.Status `json:"status"`
+	Message        string        `json:"message"`
+	PreviousID     *int
+	ReferenceID    *int
+	RetryCountDown int
 }
 
 type ErrAlreadyExists struct {
@@ -91,13 +93,13 @@ type WorkflowBackend interface {
 	// Returns the status of the scenes of the aoi
 	ScenesStatus(ctx context.Context, aoi string) (Status, error)
 	// Create a new scene, returning its id
-	CreateScene(ctx context.Context, sourceID, aoi string, status common.Status, data common.SceneAttrs) (int, error)
+	CreateScene(ctx context.Context, sourceID, aoi string, status common.Status, data common.SceneAttrs, retryCount int) (int, error)
 	// Get scene with the given id, may return ErrNotFound
 	// If a scenesCache is provided, try first to get the scene from the map. Otherwise, the map is updated
 	Scene(ctx context.Context, id int, scenesCache *map[int]Scene) (Scene, error)
 	// List scenes of the given AOI
 	Scenes(ctx context.Context, aoi string, page, limit int) ([]Scene, error)
-	// Update scene status & message (if != nil)
+	// Update scene status & message (if != nil), decrease retry_countdown if status=PENDING
 	UpdateScene(ctx context.Context, id int, status common.Status, message *string) error
 	// Update scene data
 	UpdateSceneAttrs(ctx context.Context, id int, data common.SceneAttrs) error
@@ -108,7 +110,7 @@ type WorkflowBackend interface {
 	TilesStatus(ctx context.Context, aoi string) (Status, error)
 	// Create a new tile, returning its id
 	// prevTileSource == "" || refTileSource == "" => root tile
-	CreateTile(ctx context.Context, sourceID string, sceneID int, data common.TileAttrs, aoi, prevTileSource, prevSceneSource, refTileSource, refSceneSource string) (int, error)
+	CreateTile(ctx context.Context, sourceID string, sceneID int, data common.TileAttrs, aoi, prevTileSource, prevSceneSource, refTileSource, refSceneSource string, retryCount int) (int, error)
 	// Get tile with the given id and status of the scene. May return ErrNotFound
 	// If loadScene, the scene is also loaded
 	Tile(ctx context.Context, id int, loadScene bool) (Tile, common.Status, error)
@@ -122,14 +124,14 @@ type WorkflowBackend interface {
 	RootTiles(ctx context.Context, aoi string) ([]common.Tile, error)
 	// Get leaf tiles (no next tiles) and their scene.
 	LeafTiles(ctx context.Context, aoi string) ([]common.Tile, error)
-	// Update tile status & message (if != nil) & set Prev=nil if requested
+	// Update tile status & message (if != nil) & set Prev=nil if requested, decrease retry_countdown if status=PENDING
 	UpdateTile(ctx context.Context, id int, status common.Status, message *string, resetPrev bool) error
-	// Set status of given tiles
+	// Set status of given tiles, decrease retry_countdown if status=PENDING
 	SetTilesStatus(ctx context.Context, ids []int, status common.Status) error
-	// Update status of tiles given previous tile ID, current status and scene status
+	// Update status of tiles given previous tile ID, current status and scene status, decrease retry_countdown if status=PENDING
 	// Returns updated tiles and their scenesID
 	UpdateNextTilesStatus(ctx context.Context, prevID int, status, sceneStatus, newStatus common.Status) ([]Tile, []int, error)
-	// Update status of tiles given scene ID, current status and status of previous tile
+	// Update status of tiles given scene ID, current status and status of previous tile, decrease retry_countdown if status=PENDING
 	// Returns updated tiles, previous tiles and previous scenes ID
 	UpdateSceneTilesStatus(ctx context.Context, sceneID int, status, prevStatus, newStatus common.Status) ([]Tile, []Tile, []int, error)
 	// Same as UpdateSceneTilesStatus, but only updates root tiles

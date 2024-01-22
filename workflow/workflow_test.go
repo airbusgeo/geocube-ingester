@@ -46,6 +46,7 @@ var _ = Describe("Workflow", func() {
 				Data:             common.TileAttrs{SwathID: "IW1", TileNr: 5, GraphName: "S1BackscatterCoherence"},
 			},
 		},
+		RetryCount: 2,
 	}
 	leaf1SceneToIngest := common.SceneToIngest{
 		Scene: common.Scene{
@@ -215,6 +216,7 @@ var _ = Describe("Workflow", func() {
 	})
 
 	Describe("Creating a Scene", func() {
+		var sceneQueueLenBefore int
 		BeforeEach(func() {
 			_, err = pgdb.ExecContext(ctx, "DELETE from public.tile")
 			Expect(err).NotTo(HaveOccurred())
@@ -230,6 +232,7 @@ var _ = Describe("Workflow", func() {
 			Context("With empty scene table", func() {
 				id := 0
 				JustBeforeEach(func() {
+					sceneQueueLenBefore = len(sceneQueue.messages)
 					id, err = wf.IngestScene(ctx, aoi, rootSceneToIngest)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -258,11 +261,12 @@ var _ = Describe("Workflow", func() {
 					for _, t := range tiles {
 						tile, ok := rootSceneToIngest.Tiles[t.SourceID]
 						Expect(ok).To(Equal(true))
+						Expect(t.RetryCountDown).To(Equal(rootSceneToIngest.RetryCount))
 						Expect(tile.Data).To(Equal(t.Data))
 					}
 				})
 				It("should post a message in sceneQueue", func() {
-					Expect(len(sceneQueue.messages)).To(Equal(1))
+					Expect(len(sceneQueue.messages)).To(Equal(sceneQueueLenBefore + 1))
 					scene := common.Scene{}
 					Expect(json.Unmarshal(sceneQueue.messages[0], &scene)).NotTo(HaveOccurred())
 					sceneToEqual := rootSceneToIngest.Scene
@@ -290,6 +294,7 @@ var _ = Describe("Workflow", func() {
 			Context("With a root scene", func() {
 				id := 0
 				JustBeforeEach(func() {
+					sceneQueueLenBefore = len(sceneQueue.messages)
 					id, err = wf.IngestScene(ctx, aoi, rootSceneToIngest)
 					Expect(err).NotTo(HaveOccurred())
 					id, err = wf.IngestScene(ctx, aoi, leaf1SceneToIngest)
@@ -307,8 +312,8 @@ var _ = Describe("Workflow", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(count).To(Equal(1))
 				})
-				It("should post a message in sceneQueue", func() {
-					Expect(len(sceneQueue.messages)).To(Equal(2))
+				It("should post two messages in sceneQueue", func() {
+					Expect(len(sceneQueue.messages)).To(Equal(sceneQueueLenBefore + 2))
 					scene := common.Scene{}
 					Expect(json.Unmarshal(sceneQueue.messages[1], &scene)).NotTo(HaveOccurred())
 					sceneToEqual := leaf1SceneToIngest.Scene
@@ -337,6 +342,7 @@ var _ = Describe("Workflow", func() {
 			Context("With previous and ref scene", func() {
 				id := 0
 				JustBeforeEach(func() {
+					sceneQueueLenBefore = len(sceneQueue.messages)
 					id, err = wf.IngestScene(ctx, aoi, rootSceneToIngest)
 					Expect(err).NotTo(HaveOccurred())
 					id, err = wf.IngestScene(ctx, aoi, leaf1SceneToIngest)
@@ -356,8 +362,8 @@ var _ = Describe("Workflow", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(count).To(Equal(1))
 				})
-				It("should post a message in sceneQueue", func() {
-					Expect(len(sceneQueue.messages)).To(Equal(3))
+				It("should post three messages in sceneQueue", func() {
+					Expect(len(sceneQueue.messages)).To(Equal(sceneQueueLenBefore + 3))
 					scene := common.Scene{}
 					Expect(json.Unmarshal(sceneQueue.messages[2], &scene)).NotTo(HaveOccurred())
 					sceneToEqual := leaf2SceneToIngest.Scene
@@ -371,6 +377,7 @@ var _ = Describe("Workflow", func() {
 
 	Describe("Finishing a scene", func() {
 		var id0, id1 int
+		var sceneQueueLenBefore, tileQueueLenBefore int
 		BeforeEach(func() {
 			tileQueue.messages = nil
 			sceneQueue.messages = nil
@@ -391,6 +398,8 @@ var _ = Describe("Workflow", func() {
 		Describe("Which is a root scene", func() {
 			Context("With success", func() {
 				JustBeforeEach(func() {
+					sceneQueueLenBefore = len(sceneQueue.messages)
+					tileQueueLenBefore = len(tileQueue.messages)
 					wf.ResultHandler(ctx, common.Result{
 						Type:   common.ResultTypeScene,
 						ID:     id0,
@@ -430,8 +439,9 @@ var _ = Describe("Workflow", func() {
 				It("should update the status of the scene", func() {
 					scene, err := wf.Scene(ctx, id0, nil)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(scene.Status).To(Equal(common.StatusRETRY))
-					Expect(scene.Message).To(Equal("error"))
+					Expect(scene.Status).To(Equal(common.StatusPENDING))
+					Expect(scene.RetryCountDown).To(Equal(rootSceneToIngest.RetryCount - 1))
+					Expect(scene.Message).To(Equal(""))
 				})
 				It("should not update the status of its tiles", func() {
 					tiles, err := wf.Tiles(ctx, "", id0, "", false, 0, -1)
@@ -441,7 +451,10 @@ var _ = Describe("Workflow", func() {
 					}
 				})
 				It("should not post messages in tileQueue", func() {
-					Expect(len(tileQueue.messages)).To(Equal(0))
+					Expect(len(tileQueue.messages)).To(Equal(tileQueueLenBefore))
+				})
+				It("should post a message in sceneQueue", func() {
+					Expect(len(sceneQueue.messages)).To(Equal(sceneQueueLenBefore + 1))
 				})
 			})
 		})
@@ -465,6 +478,7 @@ var _ = Describe("Workflow", func() {
 			})
 			Context("And one tile of the previous scene is finished", func() {
 				JustBeforeEach(func() {
+					tileQueueLenBefore = len(tileQueue.messages)
 					wf.ResultHandler(ctx, common.Result{
 						Type:   common.ResultTypeScene,
 						ID:     id0,
@@ -501,10 +515,43 @@ var _ = Describe("Workflow", func() {
 					Expect(nbPending).To(Equal(1))
 				})
 				It("should post one message in tileQueue", func() {
-					Expect(len(tileQueue.messages)).To(Equal(1))
+					Expect(len(tileQueue.messages)).To(Equal(tileQueueLenBefore + 1))
 					tile := common.TileToProcess{}
 					Expect(json.Unmarshal(tileQueue.messages[0], &tile)).NotTo(HaveOccurred())
 					expectTileToProcessToBeIngested(tile, leaf1SceneToIngest)
+				})
+			})
+
+			Context("With retry", func() {
+				JustBeforeEach(func() {
+					sceneQueueLenBefore = len(sceneQueue.messages)
+					tileQueueLenBefore = len(tileQueue.messages)
+					wf.ResultHandler(ctx, common.Result{
+						Type:    common.ResultTypeScene,
+						ID:      id1,
+						Status:  common.StatusRETRY,
+						Message: "error",
+					})
+				})
+				It("should update the status of the scene", func() {
+					scene, err := wf.Scene(ctx, id1, nil)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(scene.Status).To(Equal(common.StatusRETRY))
+					Expect(scene.RetryCountDown).To(Equal(0))
+					Expect(scene.Message).To(Equal("error"))
+				})
+				It("should not update the status of its tiles", func() {
+					tiles, err := wf.Tiles(ctx, "", id1, "", false, 0, -1)
+					Expect(err).NotTo(HaveOccurred())
+					for _, t := range tiles {
+						Expect(t.Status).To(Equal(common.StatusNEW))
+					}
+				})
+				It("should not post messages in tileQueue", func() {
+					Expect(len(tileQueue.messages)).To(Equal(tileQueueLenBefore))
+				})
+				It("should not post a message in sceneQueue", func() {
+					Expect(len(sceneQueue.messages)).To(Equal(sceneQueueLenBefore))
 				})
 			})
 		})
@@ -512,6 +559,7 @@ var _ = Describe("Workflow", func() {
 
 	Describe("Finishing a tile", func() {
 		var idb0, idb1, idb2 int
+		var tileQueueLenBefore int
 		BeforeEach(func() {
 			_, _, _, idb0, idb1, idb2 = initDbScenesTiles(true)
 			tileQueue.messages = nil
@@ -521,6 +569,7 @@ var _ = Describe("Workflow", func() {
 		Describe("Which is a root tile", func() {
 			Context("With failure", func() {
 				JustBeforeEach(func() {
+					tileQueueLenBefore = len(tileQueue.messages)
 					wf.ResultHandler(ctx, common.Result{
 						Type:    common.ResultTypeTile,
 						ID:      idb0,
@@ -531,15 +580,17 @@ var _ = Describe("Workflow", func() {
 				It("should update the status of the tile", func() {
 					tile, _, err := wf.Tile(ctx, idb0, false)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(tile.Status).To(Equal(common.StatusRETRY))
-					Expect(tile.Message).To(Equal("error"))
+					Expect(tile.Status).To(Equal(common.StatusPENDING))
+					Expect(tile.RetryCountDown).To(Equal(rootSceneToIngest.RetryCount - 1))
+					Expect(tile.Message).To(Equal(""))
 				})
-				It("should not post any message in tileQueue", func() {
-					Expect(len(tileQueue.messages)).To(Equal(0))
+				It("should post a retry message in tileQueue", func() {
+					Expect(len(tileQueue.messages)).To(Equal(tileQueueLenBefore + 1))
 				})
 			})
 			Context("With success", func() {
 				JustBeforeEach(func() {
+					tileQueueLenBefore = len(tileQueue.messages)
 					wf.ResultHandler(ctx, common.Result{
 						Type:   common.ResultTypeTile,
 						ID:     idb0,
@@ -555,6 +606,7 @@ var _ = Describe("Workflow", func() {
 					tile, _, err := wf.Tile(ctx, idb1, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(tile.Status).To(Equal(common.StatusPENDING))
+					Expect(tile.RetryCountDown).To(Equal(0))
 				})
 				It("should not update the status of the final tile", func() {
 					tile, _, err := wf.Tile(ctx, idb2, false)
@@ -562,7 +614,7 @@ var _ = Describe("Workflow", func() {
 					Expect(tile.Status).To(Equal(common.StatusNEW))
 				})
 				It("should post one message in tileQueue", func() {
-					Expect(len(tileQueue.messages)).To(Equal(1))
+					Expect(len(tileQueue.messages)).To(Equal(tileQueueLenBefore + 1))
 					tile := common.TileToProcess{}
 					Expect(json.Unmarshal(tileQueue.messages[0], &tile)).NotTo(HaveOccurred())
 					Expect(tile.ID).To(Equal(idb1))

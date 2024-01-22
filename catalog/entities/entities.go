@@ -65,6 +65,7 @@ type AreaToIngest struct {
 	} `json:"layers"`
 	RecordTags      map[string]string `json:"record_tags"`
 	AnnotationsURLs []string          `json:"annotations_urls"`
+	RetryCount      int               `json:"retry_count"`
 }
 
 // GetConstellation returns the constellation from the user input

@@ -225,9 +225,15 @@ func (wf *Workflow) UpdateTileStatus(ctx context.Context, id int, status common.
 			tile.Status = common.StatusDONE
 			err = wf.FinishTile(ctx, tile)
 		case common.StatusRETRY:
-			tile.Status = common.StatusRETRY
-			if err := wf.UpdateTile(ctx, id, common.StatusRETRY, &tile.Message, false); err != nil {
-				return false, fmt.Errorf("update retry/fail status: %w", err)
+			if tile.RetryCountDown > 0 {
+				tile.Status = common.StatusPENDING
+				err = wf.RetryTile(ctx, tile)
+				status = common.StatusPENDING
+			} else {
+				tile.Status = common.StatusRETRY
+				if err := wf.UpdateTile(ctx, id, common.StatusRETRY, &tile.Message, false); err != nil {
+					return false, fmt.Errorf("update retry/fail status: %w", err)
+				}
 			}
 		case common.StatusFAILED:
 			tile.Status = common.StatusFAILED
@@ -463,7 +469,12 @@ func (wf *Workflow) UpdateSceneStatus(ctx context.Context, id int, status common
 		case common.StatusDONE:
 			err = wf.FinishScene(ctx, scene)
 		case common.StatusRETRY:
-			err = wf.UpdateScene(ctx, id, status, &scene.Message)
+			if scene.RetryCountDown > 0 {
+				err = wf.RetryScene(ctx, scene)
+				status = common.StatusPENDING
+			} else {
+				err = wf.UpdateScene(ctx, id, status, &scene.Message)
+			}
 		case common.StatusFAILED:
 			err = wf.FailScene(ctx, scene)
 		default:
@@ -522,11 +533,15 @@ func (wf *Workflow) IngestScene(ctx context.Context, aoi string, scene common.Sc
 
 	err := db.UnitOfWork(ctx, wf, func(tx db.WorkflowTxBackend) error {
 		var err error
-		if scene.ID, err = tx.CreateScene(ctx, scene.SourceID, aoi, common.StatusPENDING, scene.Data); err != nil {
+		if scene.ID == 0 {
+			if scene.ID, err = tx.CreateScene(ctx, scene.SourceID, aoi, common.StatusPENDING, scene.Data, scene.RetryCount); err != nil {
+				return err
+			}
+		} else if err := tx.UpdateSceneAttrs(ctx, scene.ID, scene.Data); err != nil {
 			return err
 		}
 		for sourceID, tile := range scene.Tiles {
-			if _, err := tx.CreateTile(ctx, sourceID, scene.ID, tile.Data, aoi, tile.PreviousTileID, tile.PreviousSceneID, tile.ReferenceTileID, tile.ReferenceSceneID); err != nil {
+			if _, err := tx.CreateTile(ctx, sourceID, scene.ID, tile.Data, aoi, tile.PreviousTileID, tile.PreviousSceneID, tile.ReferenceTileID, tile.ReferenceSceneID, scene.RetryCount); err != nil {
 				return err
 			}
 		}

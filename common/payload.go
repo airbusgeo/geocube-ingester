@@ -55,7 +55,8 @@ type TileToIngest struct {
 
 type SceneToIngest struct {
 	Scene
-	Tiles map[string]TileToIngest `json:"tiles"`
+	Tiles      map[string]TileToIngest `json:"tiles"`
+	RetryCount int                     `json:"retry_count"`
 }
 
 type Tile struct {
