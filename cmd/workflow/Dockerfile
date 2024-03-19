@@ -1,4 +1,4 @@
-FROM golang:1.19.9 AS builder
+FROM golang:1.21 AS builder
 
 RUN apt update && apt install -y --no-install-recommends libgeos++-dev \
     && rm -rf /var/lib/apt/lists/* \
@@ -17,7 +17,7 @@ COPY workflow workflow
 COPY cmd/workflow cmd
 RUN cd cmd && go install .
 
-FROM gcr.io/distroless/base
+FROM gcr.io/distroless/base-debian12
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libgeos* \
                     /usr/lib/x86_64-linux-gnu/libstdc++.so.6 \
