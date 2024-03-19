@@ -204,6 +204,7 @@ func (b Backend) UpdateAOIStatus(ctx context.Context, aoi string, isRetry bool) 
 	if isRetry {
 		status = common.StatusRETRY
 	} else {
+		status, err = b.findAOIStatus(ctx, aoi)
 		if err != nil {
 			return common.StatusNEW, fmt.Errorf("updateAOIStatus.%w", err)
 		}
