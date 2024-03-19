@@ -1,6 +1,8 @@
 module github.com/airbusgeo/geocube-ingester
 
-go 1.19
+go 1.21
+
+toolchain go1.22.1
 
 require (
 	cloud.google.com/go/pubsub v1.30.1
@@ -10,7 +12,7 @@ require (
 	github.com/airbusgeo/osio v0.1.3
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/cavaliercoder/grab v2.0.0+incompatible
-	github.com/dmarkham/enumer v1.5.8
+	github.com/dmarkham/enumer v1.5.9
 	github.com/docker/docker v20.10.25+incompatible
 	github.com/go-spatial/geom v0.0.0-20220918193402-3cd2f5a9a082
 	github.com/google/uuid v1.3.0
@@ -23,7 +25,7 @@ require (
 	github.com/onsi/gomega v1.27.6
 	github.com/paulsmith/gogeos v0.1.2
 	go.uber.org/zap v1.24.0
-	golang.org/x/sync v0.2.0
+	golang.org/x/sync v0.4.0
 	google.golang.org/api v0.122.0
 	google.golang.org/grpc v1.55.0
 )
@@ -106,15 +108,15 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/goleak v1.1.12 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.9.0 // indirect
-	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/mod v0.13.0 // indirect
+	golang.org/x/net v0.16.0 // indirect
 	golang.org/x/oauth2 v0.8.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/term v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.9.1 // indirect
+	golang.org/x/tools v0.14.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
