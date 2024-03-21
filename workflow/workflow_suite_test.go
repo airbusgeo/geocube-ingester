@@ -55,12 +55,19 @@ func loadSQLFile(db *sql.DB, sqlFile string) error {
 }
 
 var _ = BeforeSuite(func() {
-	dbConnection := "postgresql://postgres:1234@localhost:5432/geocube_test"
+	dbConnection := "postgresql://postgres:1234@localhost:5432/"
+	dbName := "geocube_test"
 	ctx = context.Background()
 	var err error
+
+	// Create database if not exists
 	pgdb, err = sql.Open("postgres", dbConnection)
 	Expect(err).NotTo(HaveOccurred())
+	pgdb.Exec("CREATE DATABASE " + dbName)
 
+	// Create schema and initialize database
+	pgdb, err = sql.Open("postgres", dbConnection+dbName)
+	Expect(err).NotTo(HaveOccurred())
 	_, err = pgdb.Exec("DROP SCHEMA IF EXISTS public CASCADE")
 	Expect(err).NotTo(HaveOccurred())
 	_, err = pgdb.Exec("CREATE SCHEMA public")
@@ -70,7 +77,7 @@ var _ = BeforeSuite(func() {
 	err = loadSQLFile(pgdb, "../interface/database/pg/db.sql")
 	Expect(err).NotTo(HaveOccurred())
 
-	backend, err := pg.New(ctx, dbConnection)
+	backend, err := pg.New(ctx, dbConnection+dbName)
 	Expect(err).NotTo(HaveOccurred())
 
 	wf = workflow.NewWorkflow(backend, &sceneQueue, &tileQueue, nil)
