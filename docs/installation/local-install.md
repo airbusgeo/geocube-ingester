@@ -105,7 +105,7 @@ Usage of ./downloader:
   -docker-registry-password string
     	password to authentication on private registry
   -docker-registry-server string
-    	address of server to authenticate on private registry (default "https://eu.gcr.io")
+    	address of server to authenticate on private registry
   -docker-registry-username string
     	username to authentication on private registry (default "_json_key")
   -event-queue string
@@ -198,7 +198,7 @@ Usage of ./processor:
   -docker-registry-password string
     	password to authentication on private registry
   -docker-registry-server string
-    	address of server to authenticate on private registry (default "https://eu.gcr.io")
+    	address of server to authenticate on private registry
   -docker-registry-username string
     	username to authentication on private registry (default "_json_key")
   -event-queue string

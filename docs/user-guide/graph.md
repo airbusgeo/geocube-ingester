@@ -729,7 +729,7 @@ In order to use private registry, credentials must be configured in Client side 
 
 * user (for gcp registry: `_json_key`)
 * password (for gcp registry: service account content)
-* server (for gcp registry: `https://eu.gcr.io`)
+* server (for gcp registry e.g: `https://europe-west1-docker.pkg.dev`)
 
 For images stored in public registry (ex. docker.hub), there is no need for credentials.
 

@@ -968,7 +968,7 @@ func cmdToString(cmd *exec.Cmd) string {
 	return s
 }
 
-func (g *ProcessingGraph) onFailureGetOutFiles(err error, config GraphConfig, tiles []common.Tile) [][]OutFile {
+func (g *ProcessingGraph) onFailureGetOutFiles(err error, tiles []common.Tile) [][]OutFile {
 	if err != nil && !g.opts.retriableErrors {
 		err = service.MakeFatal(err)
 	}
@@ -1019,7 +1019,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 		// Get args list
 		args, err := step.formatArgs(config, tiles)
 		if err != nil {
-			return g.onFailureGetOutFiles(err, config, tiles), fmt.Errorf("process.%w", err)
+			return g.onFailureGetOutFiles(err, tiles), fmt.Errorf("process.%w", err)
 		}
 
 		// Create command
@@ -1053,7 +1053,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 
 			ctx = log.With(ctx, "docker", step.Command)
 			if err = g.opts.dockerManager.Process(ctx, config["workdir"], step.Command, args, envs); err != nil {
-				return g.onFailureGetOutFiles(err, config, tiles), err
+				return g.onFailureGetOutFiles(err, tiles), err
 			}
 		}
 
@@ -1065,7 +1065,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 				if filter != nil {
 					err = filter.WrapError(err)
 				}
-				return g.onFailureGetOutFiles(err, config, tiles), fmt.Errorf("process[%s]: %w", cmdToString(cmd), err)
+				return g.onFailureGetOutFiles(err, tiles), fmt.Errorf("process[%s]: %w", cmdToString(cmd), err)
 			}
 		}
 	}
@@ -1091,7 +1091,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 				continue
 			}
 			if err := f.setDFormatOut(config); err != nil {
-				return g.onFailureGetOutFiles(err, config, tiles), fmt.Errorf("process.%w", err)
+				return g.onFailureGetOutFiles(err, tiles), fmt.Errorf("process.%w", err)
 			}
 			outfiles[i] = append(outfiles[i], f)
 		}

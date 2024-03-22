@@ -33,7 +33,7 @@ type dockerManager struct {
 
 type DockerConfig struct {
 	Envs             []string
-	RegistryServer   string // "https://eu.gcr.io" for gcs
+	RegistryServer   string // "https://europe-west1-docker.pkg.dev" for gcs for example
 	RegistryUserName string // _json_key for gcs
 	RegistryPassword string // service account for gcs
 	VolumesToMount   string // List of volumes to mount (comma separated)
@@ -54,7 +54,7 @@ func (cfg *DockerConfig) SetFlags() *string {
 	// Docker processing Images connection
 	flag.StringVar(&cfg.RegistryUserName, "docker-registry-username", "_json_key", "username to authentication on private registry")
 	flag.StringVar(&cfg.RegistryPassword, "docker-registry-password", "", "password to authentication on private registry")
-	flag.StringVar(&cfg.RegistryServer, "docker-registry-server", "https://eu.gcr.io", "address of server to authenticate on private registry")
+	flag.StringVar(&cfg.RegistryServer, "docker-registry-server", "", "address of server to authenticate on private registry (e.g. https://europe-west1-docker.pkg.dev)")
 	flag.StringVar(&cfg.VolumesToMount, "docker-mount-volumes", "", "list of volumes to mount on the docker (comma separated)")
 
 	return flag.String("docker-envs", "", "docker variable env key white list (comma sep) ")

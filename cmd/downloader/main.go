@@ -178,7 +178,7 @@ func run(ctx context.Context) error {
 
 	storageService, err := service.NewStorageStrategy(ctx, config.StorageURI)
 	if err != nil {
-		return fmt.Errorf("storage %s: %w"+config.StorageURI, err)
+		return fmt.Errorf("storage %s: %w", config.StorageURI, err)
 	}
 
 	// Load image providers
