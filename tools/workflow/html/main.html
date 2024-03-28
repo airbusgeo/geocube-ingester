@@ -29,8 +29,9 @@
     </tr>
     <tr style="vertical-align:top">
       <td>
-        <button id="btn_aois" style="width:255px">List all aois</button><br>
-        <input style="width:142px" type="text" id="aoi" name="aoi" value="DenmarkDemo">
+        <input style="width:142px" type="text" id="aois" name="aois" placeholder="Name pattern, including ? or *">
+        <button id="btn_aois" style="width:100px">List all aois</button><br>
+        <input style="width:142px" type="text" id="aoi" name="aoi" placeholder="Aoi name">
         <button id="btn_aoi" style="width:100px">Load aoi</button><br>
         <select style="width:150px" name="scenes_status" id="scenes_status" form="scenes_status_form">
           <option value="NEW">NEW</option>
@@ -82,6 +83,11 @@
     </tr>
   </table>  
   <script>
+    server = (new URL(document.location)).searchParams.get('server');
+    if (server != null && server != ""){
+      document.getElementById('wfserver').value = server
+    }
+
     $("#btn_aois").click(function() {
       loadAOIS()
     });
@@ -122,13 +128,13 @@
     }
 
     function loadAOIS(){
-      aoi_pattern = $('#aoi').val()
+      aoi_pattern = $('#aois').val()
       if (!aoi_pattern.includes("*") && !aoi_pattern.includes("?")) {
         aoi_pattern = ""
       }
       $("body").css("cursor", "progress");
       getJSON({
-        url: url("aoi/"+aoi_pattern)
+        url: url("aoi/"+encodeURIComponent(aoi_pattern))
       })
       .done(function( json ) {
         if (json == null || json.length == 0){
@@ -163,7 +169,7 @@
       $( "#aoi" ).val(aoi)
       $("body").css("cursor", "progress");
       $.get({
-        url: url("aoi/" + aoi),
+        url: url("aoi/" + encodeURIComponent(aoi)),
         headers: authHeaders(),
       })
       .done(function( data ) {
@@ -199,8 +205,9 @@
 
     function loadScenes(scene_status, page=0){
       $("body").css("cursor", "progress");
+      aoi = encodeURIComponent($('#aoi').val())
       getJSON({
-        url: url("aoi/" + $('#aoi').val() + "/scenes" + (scene_status != "" ? "/" + scene_status : "" ) + "?page=" + page + "&limit=" + $('#limit').val()),
+        url: url("aoi/" + aoi + "/scenes" + (scene_status != "" ? "/" + scene_status : "" ) + "?page=" + page + "&limit=" + $('#limit').val()),
         page: page,
         scene_status: "'" + scene_status + "'"
       })
@@ -221,8 +228,9 @@
 
     function loadTiles(tile_status, page=0){
       $("body").css("cursor", "progress");
+      aoi = encodeURIComponent($('#aoi').val())
       getJSON({
-        url: url("aoi/" + $('#aoi').val() + "/tiles" + (tile_status != "" ? "/" + tile_status : "" ) + "?page=" + page + "&limit=" + $('#limit').val()),
+        url: url("aoi/" + aoi + "/tiles" + (tile_status != "" ? "/" + tile_status : "" ) + "?page=" + page + "&limit=" + $('#limit').val()),
         page: page,
         tile_status: "'" + tile_status + "'"
       })
@@ -244,7 +252,7 @@
     function loadScene(scene){
       $( "#scene" ).val(scene)
       getJSON({
-        url: url("scene/" + scene)
+        url: url("scene/" + encodeURIComponent(scene))
       })
       .done(function( data ) {
         $( "#sceneResult" ).html( formatJson(data, "Scene", 1))
@@ -257,7 +265,7 @@
     function loadTile(tile){
       $( "#tile" ).val(tile)
       getJSON({
-        url: url("tile/" + tile)
+        url: url("tile/" + encodeURIComponent(tile))
       })
       .done(function( data ) {
         $( "#tileResult" ).html( formatJson(data, "Tile", 1))
@@ -285,7 +293,7 @@
         $("body").css("cursor", "progress");
         $.ajax({
           headers: authHeaders(),
-          url: url("aoi/" + aoi),
+          url: url("aoi/" + encodeURIComponent(aoi)),
           type: 'DELETE',
         })
         .always(function(){
