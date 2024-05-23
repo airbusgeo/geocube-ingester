@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -141,6 +142,10 @@ func (c *Catalog) IngestedScenesInventoryFromTiles(ctx context.Context, tiles []
 func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest, scenes entities.Scenes) ([]common.SceneToIngest, error) {
 	var scenesToIngest []common.SceneToIngest
 
+	if len(scenes.Scenes) == 0 {
+		return scenesToIngest, nil
+	}
+
 	if c.GeocubeClient == nil {
 		return nil, fmt.Errorf("scenesToIngest: no connection to the geocube")
 	}
@@ -150,7 +155,10 @@ func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest
 	}
 	instances := area.InstancesID()
 
-	recordsList, err := c.GeocubeClient.ListRecords(ctx, "", area.RecordTags, geocube.AOI{}, area.StartTime, area.EndTime.AddDate(0, 0, 1), 0, 0, false)
+	recordsList, err := c.GeocubeClient.ListRecords(ctx, "", area.RecordTags, geocube.AOI{},
+		slices.MinFunc(scenes.Scenes, func(s1, s2 *entities.Scene) int { return s1.Data.Date.Compare(s2.Data.Date) }).Data.Date,
+		slices.MaxFunc(scenes.Scenes, func(s1, s2 *entities.Scene) int { return s1.Data.Date.Compare(s2.Data.Date) }).Data.Date,
+		0, 0, false)
 	if err != nil {
 		return nil, fmt.Errorf("scenesToIngest.ListRecords: %w", err)
 	}

@@ -27,6 +27,7 @@
 - oneatlas: exponential retry
 - Processor.index: add more time before retry
 - ingestScenes might delete records that are used somewhere else
+- ingestScenes with more scenes than endDate/startDate
 
 ### Optimization
 - catalog.ScenesToIngest: list all records at once, instead of one by one
