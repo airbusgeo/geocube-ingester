@@ -97,8 +97,8 @@ type WorkflowBackend interface {
 	// Get scene with the given id, may return ErrNotFound
 	// If a scenesCache is provided, try first to get the scene from the map. Otherwise, the map is updated
 	Scene(ctx context.Context, id int, scenesCache *map[int]Scene) (Scene, error)
-	// List scenes of the given AOI
-	Scenes(ctx context.Context, aoi string, page, limit int) ([]Scene, error)
+	// List scenes of the given AOI (AOI can be a pattern, supporting ? and *), status can be empty
+	Scenes(ctx context.Context, aoi string, status string, page, limit int) ([]Scene, error)
 	// Update scene status & message (if != nil), decrease retry_countdown if status=PENDING
 	UpdateScene(ctx context.Context, id int, status common.Status, message *string) error
 	// Update scene data
@@ -115,7 +115,7 @@ type WorkflowBackend interface {
 	// If loadScene, the scene is also loaded
 	Tile(ctx context.Context, id int, loadScene bool) (Tile, common.Status, error)
 	// Tiles returns the list of tiles fitting the given parameters
-	// aoi [optional=""] aoi
+	// aoi [optional=""] can be a pattern, supporting ? and *
 	// sceneID [optional=0] sceneID
 	// status [optional=""] status of the tile
 	// loadScene also loads the scenes

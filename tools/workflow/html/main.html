@@ -130,7 +130,7 @@
     function loadAOIS(){
       aoi_pattern = $('#aois').val()
       if (!aoi_pattern.includes("*") && !aoi_pattern.includes("?")) {
-        aoi_pattern = ""
+        aoi_pattern = "*" + aoi_pattern + "*"
       }
       $("body").css("cursor", "progress");
       getJSON({
@@ -138,6 +138,7 @@
       })
       .done(function( json ) {
         if (json == null || json.length == 0){
+          $( "#result" ).html("No scenes found")
           return ""
         }
         var aois = [];

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -283,16 +282,26 @@ func (b Backend) Scene(ctx context.Context, id int, scenesCache *map[int]db.Scen
 }
 
 // Scenes implements WorkflowBackend
-func (b Backend) Scenes(ctx context.Context, aoi string, page, limit int) ([]db.Scene, error) {
+func (b Backend) Scenes(ctx context.Context, aoi string, status string, page, limit int) ([]db.Scene, error) {
 	scenes := make([]db.Scene, 0)
-	query := "select id,source_id,status,message,data,retry_countdown from scene where aoi_id=$1"
-	if limit > 0 {
-		query += " LIMIT " + strconv.Itoa(limit)
+	query := "select id,source_id,status,message,data,retry_countdown from scene"
+
+	// Create the Where clause
+	wc := joinClause{}
+
+	if aoi != "" {
+		aoi, operator := parseLike(aoi)
+		wc.append(" aoi_id "+operator+" $%d", aoi)
 	}
-	if page > 0 {
-		query += "  OFFSET " + strconv.Itoa(page*limit)
+	if status != "" {
+		wc.append(" status = $%d", status)
 	}
-	rows, err := b.QueryContext(ctx, query, aoi)
+	// Append the whereClause to the query
+	query += wc.WhereClause()
+
+	query += limitOffsetClause(page, limit)
+
+	rows, err := b.QueryContext(ctx, query, wc.Parameters...)
 	if err != nil {
 		return nil, fmt.Errorf("scenes.QueryContext: %w", err)
 	}
@@ -430,34 +439,27 @@ func (b Backend) Tiles(ctx context.Context, aoi string, sceneID int, status stri
 		query += " JOIN scene s ON s.id = t.scene_id"
 	}
 
-	var parameters []interface{}
-	var whereClause []string
+	// Create the Where clause
+	wc := joinClause{}
+
 	if aoi != "" {
-		parameters = append(parameters, aoi)
-		whereClause = append(whereClause, fmt.Sprintf(" s.aoi_id = $%d", len(parameters)))
+		aoi, operator := parseLike(aoi)
+		wc.append(" aoi_id "+operator+" $%d", aoi)
 	}
 	if sceneID != 0 {
-		parameters = append(parameters, sceneID)
-		whereClause = append(whereClause, fmt.Sprintf(" t.scene_id = $%d", len(parameters)))
+		wc.append(" t.scene_id = $%d", sceneID)
 	}
 	if status != "" {
-		parameters = append(parameters, status)
-		whereClause = append(whereClause, fmt.Sprintf(" t.status = $%d", len(parameters)))
+		wc.append(" t.status = $%d", status)
 	}
 
 	// Append the whereClause to the query
-	query += " WHERE" + strings.Join(whereClause, " AND")
-
-	if limit > 0 {
-		query += " LIMIT " + strconv.Itoa(limit)
-	}
-	if page > 0 {
-		query += "  OFFSET " + strconv.Itoa(page*limit)
-	}
+	query += wc.WhereClause()
+	query += limitOffsetClause(page, limit)
 
 	tiles := []db.Tile{}
 	{
-		rows, err := b.QueryContext(ctx, query, parameters...)
+		rows, err := b.QueryContext(ctx, query, wc.Parameters...)
 		if err != nil {
 			return nil, fmt.Errorf("Tiles.QueryContext: %w", err)
 		}

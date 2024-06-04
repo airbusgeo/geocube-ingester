@@ -177,7 +177,7 @@ func (wf *Workflow) UpdateTileStatus(ctx context.Context, id int, status common.
 	tile, sceneStatus, err := wf.Tile(ctx, id, true)
 	if err != nil {
 		if errors.As(err, &db.ErrNotFound{}) {
-			lg.Errorf("update: %v", err)
+			lg.Errorf("UpdateTileStatus: %v", err)
 			return false, nil
 		}
 		return false, fmt.Errorf("UpdateTileStatus: %w", err)
@@ -283,7 +283,7 @@ func (wf *Workflow) UpdateTileStatus(ctx context.Context, id int, status common.
 func (wf *Workflow) Dot(ctx context.Context, aoi string, out io.Writer) error {
 	fmt.Fprintf(out, "digraph %s {\n", aoi)
 	defer fmt.Fprintf(out, "}\n")
-	scenes, err := wf.Scenes(ctx, aoi, 0, 1000)
+	scenes, err := wf.Scenes(ctx, aoi, "", 0, 1000)
 	if err != nil {
 		return err
 	}
@@ -431,7 +431,7 @@ func (wf *Workflow) UpdateSceneStatus(ctx context.Context, id int, status common
 
 	scene, err := wf.Scene(ctx, id, nil)
 	if errors.As(err, &db.ErrNotFound{}) {
-		lg.Errorf("update: %v", err)
+		lg.Errorf("UpdateSceneStatus: %v", err)
 		return false, nil
 	}
 	if message != nil {
