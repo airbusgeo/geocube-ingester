@@ -85,8 +85,8 @@ type WorkflowBackend interface {
 	AOIs(ctx context.Context, pattern string) ([]AOI, error)
 	// UpdateAOIStatus update the status of the AOI regarding the status of all the scenes and the tiles
 	// Priority is RETRY>PENDING>NEW>DONE>FAILED
-	// Return new status
-	UpdateAOIStatus(ctx context.Context, aoi string, isRetry bool) (common.Status, error)
+	// Return new status and if it changed
+	UpdateAOIStatus(ctx context.Context, aoi string, isRetry bool) (common.Status, bool, error)
 	// Delete an AOI from the database
 	DeleteAOI(ctx context.Context, aoi string) error
 

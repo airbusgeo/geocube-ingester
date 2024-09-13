@@ -209,7 +209,7 @@ func (wf *Workflow) UpdateTileStatus(ctx context.Context, id int, status common.
 			return false, err
 		}
 
-		_, err := wf.UpdateAOIStatus(ctx, tile.Scene.AOI, status == common.StatusRETRY)
+		err = wf.updateAOIStatus(ctx, wf, tile.Scene.AOI, status == common.StatusRETRY)
 		return true, err
 	}
 
@@ -273,7 +273,7 @@ func (wf *Workflow) UpdateTileStatus(ctx context.Context, id int, status common.
 		return false, err
 	}
 
-	if _, err := wf.UpdateAOIStatus(ctx, tile.Scene.AOI, status == common.StatusRETRY); err != nil {
+	if err = wf.updateAOIStatus(ctx, wf, tile.Scene.AOI, status == common.StatusRETRY); err != nil {
 		return true, err
 	}
 
@@ -454,7 +454,7 @@ func (wf *Workflow) UpdateSceneStatus(ctx context.Context, id int, status common
 		if err != nil {
 			return true, err
 		}
-		_, err = wf.UpdateAOIStatus(ctx, scene.AOI, status == common.StatusRETRY)
+		err = wf.updateAOIStatus(ctx, wf, scene.AOI, status == common.StatusRETRY)
 		return true, err
 	}
 
@@ -501,7 +501,7 @@ func (wf *Workflow) UpdateSceneStatus(ctx context.Context, id int, status common
 		return false, err
 	}
 
-	if _, err := wf.UpdateAOIStatus(ctx, scene.AOI, status == common.StatusRETRY); err != nil {
+	if err := wf.updateAOIStatus(ctx, wf, scene.AOI, status == common.StatusRETRY); err != nil {
 		return true, err
 	}
 
@@ -546,7 +546,7 @@ func (wf *Workflow) IngestScene(ctx context.Context, aoi string, scene common.Sc
 			}
 		}
 
-		if _, err := tx.UpdateAOIStatus(ctx, aoi, false); err != nil {
+		if err := wf.updateAOIStatus(ctx, tx, aoi, false); err != nil {
 			return err
 		}
 		log.Logger(ctx).Sugar().Infof("queueing image %s", scene.SourceID)
@@ -622,4 +622,9 @@ func (wf *Workflow) prepublishTile(ctx context.Context, tile common.Tile, prevTi
 		return nil, fmt.Errorf("prepublishTile.Message: %w", err)
 	}
 	return plb, nil
+}
+
+func (wf *Workflow) updateAOIStatus(ctx context.Context, wfb db.WorkflowBackend, aoi string, isRetry bool) error {
+	_, _, err := wfb.UpdateAOIStatus(ctx, aoi, isRetry)
+	return err
 }

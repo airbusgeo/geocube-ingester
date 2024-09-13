@@ -197,7 +197,7 @@ func (b Backend) findAOIStatus(ctx context.Context, aoi string) (common.Status, 
 }
 
 // UpdateAOIStatus implements WorkflowBackend
-func (b Backend) UpdateAOIStatus(ctx context.Context, aoi string, isRetry bool) (common.Status, error) {
+func (b Backend) UpdateAOIStatus(ctx context.Context, aoi string, isRetry bool) (common.Status, bool, error) {
 	// Priority: RETRY>PENDING>NEW>DONE>FAILED
 	var status common.Status
 	var err error
@@ -206,13 +206,15 @@ func (b Backend) UpdateAOIStatus(ctx context.Context, aoi string, isRetry bool) 
 	} else {
 		status, err = b.findAOIStatus(ctx, aoi)
 		if err != nil {
-			return common.StatusNEW, fmt.Errorf("updateAOIStatus.%w", err)
+			return common.StatusNEW, false, fmt.Errorf("updateAOIStatus.%w", err)
 		}
 	}
-	if _, err := b.ExecContext(ctx, "update aoi set status=$1 where id = $2", status, aoi); err != nil {
-		return status, fmt.Errorf("updateAOIStatus.exec: %w", err)
+	res, err := b.ExecContext(ctx, "update aoi set status=$1 where id = $2 and status!=$3", status, aoi, status)
+	if err != nil {
+		return status, false, fmt.Errorf("updateAOIStatus.exec: %w", err)
 	}
-	return status, nil
+	nb, _ := res.RowsAffected()
+	return status, nb != 0, nil
 }
 
 // DeleteAOI implements WorkflowBackend
