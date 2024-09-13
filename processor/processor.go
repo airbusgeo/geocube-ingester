@@ -118,17 +118,17 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 		if err := service.Retriable(ctx, func() error {
 			for uri, f := range toIndex {
 				log.Logger(ctx).Sugar().Infof("index layer %s", f.file.Layer)
-				if err := indexTile(ctx, gcclient, f.tile, f.tile.Scene.Data.InstancesID, f.tile.Scene.Data.RecordID, f.file, uri); err != nil {
+				if err := indexTile(ctx, gcclient, f.tile.Scene.Data.InstancesID, f.tile.Scene.Data.RecordID, f.file, uri); err != nil {
 					if geocube.Code(err) == codes.AlreadyExists {
 						log.Logger(ctx).Sugar().Warnf("layer %s already exists: %v", f.file.Layer, err)
 					} else {
-						return fmt.Errorf("ProcessTile[%s].%w", tag, err)
+						return err
 					}
 				}
 			}
 			return nil
-		}, 5*time.Second, 3); err != nil {
-			return fmt.Errorf("ProcessTile[%s].%w", tag, err)
+		}, 15*time.Second, 3); err != nil {
+			return fmt.Errorf("ProcessTile[%s].%w (after 3 retries)", tag, err)
 		}
 
 		// Delete tiles at the end to ease a retry
@@ -159,7 +159,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 }
 
 // indexTile indexes the tile in the Geocube
-func indexTile(ctx context.Context, gcclient *geocube.Client, tile common.Tile, instancesID map[string]string, recordID string, file graph.OutFile, uri string) error {
+func indexTile(ctx context.Context, gcclient *geocube.Client, instancesID map[string]string, recordID string, file graph.OutFile, uri string) error {
 	// Get dataset information
 	dformat := geocube.DataFormat{
 		NoData:   file.NoData,
