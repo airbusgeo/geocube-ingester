@@ -12,6 +12,7 @@ import (
 	"github.com/airbusgeo/geocube-ingester/catalog"
 	"github.com/airbusgeo/geocube-ingester/common"
 	db "github.com/airbusgeo/geocube-ingester/interface/database"
+	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/airbusgeo/geocube/interface/messaging"
 )
@@ -387,7 +388,7 @@ func (wf *Workflow) RetryScene(ctx context.Context, scene db.Scene) error {
 			return err
 		}
 		lg.Infof("retrying scene %s", scene.SourceID)
-		return wf.publishScene(ctx, scene.Scene)
+		return wf.publishScenes(ctx, scene.Scene)
 	})
 	if err != nil {
 		return fmt.Errorf("RetryScene.%w", err)
@@ -508,55 +509,76 @@ func (wf *Workflow) UpdateSceneStatus(ctx context.Context, id int, status common
 	return true, err
 }
 
-// IngestScene adds a new scene to the workflow and starts the processing
+// IngestScenes adds new scenes to the workflow and starts the processing
 // Return id of the scene
-func (wf *Workflow) IngestScene(ctx context.Context, aoi string, scene common.SceneToIngest) (int, error) {
+func (wf *Workflow) IngestScenes(ctx context.Context, aoi string, scenes ...common.SceneToIngest) (map[string]int, error) {
 	wf.dbmu.Lock()
 	defer wf.dbmu.Unlock()
 
-	if scene.ID != 0 {
-		return 0, fmt.Errorf("ingestScene: scene must not have id set")
-	}
-	if len(scene.Tiles) == 0 || len(scene.Tiles) != len(scene.Data.TileMappings) {
-		return 0, fmt.Errorf("ingestScene: scene has no tiles")
-	}
-	if scene.AOI != aoi {
-		return 0, fmt.Errorf("ingestScene: scene.AOI and aoi are different")
-	}
-
-	// Check that the scene does not already exists
-	if _, err := wf.SceneId(ctx, aoi, scene.SourceID); err != nil && !errors.As(err, &db.ErrNotFound{}) {
-		return 0, fmt.Errorf("query scene: %w", err)
-	} else if err == nil {
-		return 0, db.ErrAlreadyExists{Type: "scene", ID: scene.SourceID}
-	}
-
-	err := db.UnitOfWork(ctx, wf, func(tx db.WorkflowTxBackend) error {
-		var err error
-		if scene.ID == 0 {
-			if scene.ID, err = tx.CreateScene(ctx, scene.SourceID, aoi, common.StatusPENDING, scene.Data, scene.RetryCount); err != nil {
-				return err
-			}
-		} else if err := tx.UpdateSceneAttrs(ctx, scene.ID, scene.Data); err != nil {
-			return err
+	// Validate the input
+	skipScenes := service.StringSet{}
+	for _, scene := range scenes {
+		if scene.ID != 0 {
+			return nil, fmt.Errorf("IngestScenes: scene[%s] must not have id set", scene.SourceID)
 		}
-		for sourceID, tile := range scene.Tiles {
-			if _, err := tx.CreateTile(ctx, sourceID, scene.ID, tile.Data, aoi, tile.PreviousTileID, tile.PreviousSceneID, tile.ReferenceTileID, tile.ReferenceSceneID, scene.RetryCount); err != nil {
+		if len(scene.Tiles) == 0 || len(scene.Tiles) != len(scene.Data.TileMappings) {
+			return nil, fmt.Errorf("IngestScenes: scene[%s] has no tiles", scene.SourceID)
+		}
+		if scene.AOI != aoi {
+			return nil, fmt.Errorf("IngestScenes: scene[%s].AOI and aoi are different", scene.SourceID)
+		}
+
+		// Check that the scene does not already exist
+		if _, err := wf.SceneId(ctx, aoi, scene.SourceID); err != nil {
+			if !errors.As(err, &db.ErrNotFound{}) {
+				return nil, fmt.Errorf("IngestScenes.SceneID[%s]: %w", scene.SourceID, err)
+			}
+		} else { // The scene already exists => Skip
+			skipScenes.Push(scene.SourceID)
+		}
+	}
+
+	ids := map[string]int{}
+	if err := db.UnitOfWork(ctx, wf, func(tx db.WorkflowTxBackend) error {
+		var err error
+		var pubScenes []common.Scene
+		for _, scene := range scenes {
+			if skipScenes.Exists(scene.SourceID) {
+				continue
+			}
+			if scene.ID == 0 {
+				if scene.ID, err = tx.CreateScene(ctx, scene.SourceID, aoi, common.StatusPENDING, scene.Data, scene.RetryCount); err != nil {
+					if errors.As(err, &db.ErrAlreadyExists{}) {
+						continue
+					}
+					return err
+				}
+			} else if err := tx.UpdateSceneAttrs(ctx, scene.ID, scene.Data); err != nil {
 				return err
 			}
+
+			for sourceID, tile := range scene.Tiles {
+				if _, err := tx.CreateTile(ctx, sourceID, scene.ID, tile.Data, aoi, tile.PreviousTileID, tile.PreviousSceneID, tile.ReferenceTileID, tile.ReferenceSceneID, scene.RetryCount); err != nil {
+					return err
+				}
+			}
+
+			log.Logger(ctx).Sugar().Infof("queueing image %s", scene.SourceID)
+			pubScenes = append(pubScenes, scene.Scene)
+			ids[scene.SourceID] = scene.ID
 		}
 
 		if err := wf.updateAOIStatus(ctx, tx, aoi, false); err != nil {
 			return err
 		}
-		log.Logger(ctx).Sugar().Infof("queueing image %s", scene.SourceID)
-		return wf.publishScene(ctx, scene.Scene)
-	})
-	if err != nil {
-		return 0, fmt.Errorf("IngestScene.%w", err)
+
+		err = wf.publishScenes(ctx, pubScenes...)
+		return err
+	}); err != nil {
+		return nil, fmt.Errorf("IngestScenes.%w", err)
 	}
 
-	return scene.ID, nil
+	return ids, nil
 }
 
 // UpdateSceneData update the data of a scene
@@ -585,13 +607,17 @@ func (wf *Workflow) UpdateTileData(ctx context.Context, tileID int, data common.
 	return nil
 }
 
-func (wf *Workflow) publishScene(ctx context.Context, scene common.Scene) error {
-	plb, err := json.Marshal(scene)
-	if err != nil {
-		return fmt.Errorf("marshal: %w", err)
+func (wf *Workflow) publishScenes(ctx context.Context, scenes ...common.Scene) error {
+	var scenesb [][]byte
+	for _, scene := range scenes {
+		plb, err := json.Marshal(scene)
+		if err != nil {
+			return fmt.Errorf("marshal: %w", err)
+		}
+		scenesb = append(scenesb, plb)
 	}
 
-	if err = wf.sceneQueue.Publish(ctx, plb); err != nil {
+	if err := wf.sceneQueue.Publish(ctx, scenesb...); err != nil {
 		return fmt.Errorf("failed to enqueue: %w", err)
 	}
 	return nil

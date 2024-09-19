@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 
@@ -20,9 +21,9 @@ type WorkflowManager interface {
 	LeafTiles(ctx context.Context, aoi string) ([]common.Tile, error)
 	// Create an AOI in the workflow server
 	CreateAOI(ctx context.Context, aoi string) error
-	// IngestScene adds a new scene to the workflow and starts the processing
-	// returns id of the scene, db.ErrAlreadyExists
-	IngestScene(ctx context.Context, aoi string, scene common.SceneToIngest) (int, error)
+	// IngestScenes adds new scenes to the workflow and starts the processing
+	// returns id per sourceID of the scenes ingested. If a scene already exists, the sourceID is not in the returned map
+	IngestScenes(ctx context.Context, aoi string, scene ...common.SceneToIngest) (map[string]int, error)
 }
 
 type RemoteWorkflowManager struct {
@@ -91,4 +92,19 @@ func (rwm RemoteWorkflowManager) IngestScene(ctx context.Context, aoi string, sc
 	}
 
 	return sceneJSON.ID, nil
+}
+
+func (rwm RemoteWorkflowManager) IngestScenes(ctx context.Context, aoi string, scenes ...common.SceneToIngest) (map[string]int, error) {
+	ids := map[string]int{}
+	for _, scene := range scenes {
+		id, err := rwm.IngestScene(ctx, aoi, scene)
+		if err != nil {
+			if !errors.As(err, &db.ErrAlreadyExists{}) {
+				return nil, err
+			}
+		} else {
+			ids[scene.SourceID] = id
+		}
+	}
+	return ids, nil
 }

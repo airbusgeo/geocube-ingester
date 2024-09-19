@@ -2,6 +2,7 @@ package workflow_test
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -126,13 +127,10 @@ var _ = Describe("Workflow", func() {
 		Expect(err).NotTo(HaveOccurred())
 		err = wf.CreateAOI(ctx, aoi)
 		Expect(err).NotTo(HaveOccurred())
-		ids0, err := wf.IngestScene(ctx, aoi, rootSceneToIngest)
+		ids, err := wf.IngestScenes(ctx, aoi, []common.SceneToIngest{rootSceneToIngest, leaf1SceneToIngest, leaf2SceneToIngest}...)
 		Expect(err).NotTo(HaveOccurred())
-		ids1, err := wf.IngestScene(ctx, aoi, leaf1SceneToIngest)
-		Expect(err).NotTo(HaveOccurred())
-		ids2, err := wf.IngestScene(ctx, aoi, leaf2SceneToIngest)
-		Expect(err).NotTo(HaveOccurred())
-		tiles, err := wf.Tiles(ctx, "", ids2, "", false, 0, -1)
+		ids0, ids1, ids2 := ids[rootSceneToIngest.SourceID], ids[leaf1SceneToIngest.SourceID], ids[leaf2SceneToIngest.SourceID]
+		tiles, err := wf.Tiles(ctx, "", ids[leaf2SceneToIngest.SourceID], "", false, 0, -1)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tiles)).To(Equal(2))
 		Expect(tiles[0].PreviousID).NotTo(Equal(nil))
@@ -233,7 +231,8 @@ var _ = Describe("Workflow", func() {
 				id := 0
 				JustBeforeEach(func() {
 					sceneQueueLenBefore = len(sceneQueue.messages)
-					id, err = wf.IngestScene(ctx, aoi, rootSceneToIngest)
+					ids, err := wf.IngestScenes(ctx, aoi, rootSceneToIngest)
+					id = ids[rootSceneToIngest.SourceID]
 					Expect(err).NotTo(HaveOccurred())
 				})
 				It("should create a scene with this name", func() {
@@ -280,7 +279,7 @@ var _ = Describe("Workflow", func() {
 		Describe("That has one previous scene", func() {
 			Context("With empty scene table", func() {
 				JustBeforeEach(func() {
-					_, err = wf.IngestScene(ctx, aoi, leaf1SceneToIngest)
+					_, err = wf.IngestScenes(ctx, aoi, leaf1SceneToIngest)
 					Expect(err).To(HaveOccurred())
 				})
 				It("should not create a scene with this name", func() {
@@ -292,25 +291,24 @@ var _ = Describe("Workflow", func() {
 			})
 
 			Context("With a root scene", func() {
-				id := 0
+				var ids map[string]int
 				JustBeforeEach(func() {
 					sceneQueueLenBefore = len(sceneQueue.messages)
-					id, err = wf.IngestScene(ctx, aoi, rootSceneToIngest)
-					Expect(err).NotTo(HaveOccurred())
-					id, err = wf.IngestScene(ctx, aoi, leaf1SceneToIngest)
+					ids, err = wf.IngestScenes(ctx, aoi, []common.SceneToIngest{rootSceneToIngest, leaf1SceneToIngest}...)
 					Expect(err).NotTo(HaveOccurred())
 				})
-				It("should create a scene with this name", func() {
-					count := 0
-					err := pgdb.QueryRowContext(ctx, "select count(*) from public.scene where aoi_id=$1 and source_id=$2", aoi, leaf1SceneToIngest.SourceID).Scan(&count)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(count).To(Equal(1))
+				It("should create scenes with those names", func() {
+					for sourceId, id := range ids {
+						dbId, err := wf.SceneId(ctx, aoi, sourceId)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(dbId).To(Equal(id))
+					}
 				})
-				It("should create a scene with the returned id", func() {
-					count := 0
-					err := pgdb.QueryRowContext(ctx, "select count(*) from public.scene where id=$1", id).Scan(&count)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(count).To(Equal(1))
+				It("should create scenes with the returned ids", func() {
+					for _, id := range ids {
+						_, err := wf.Scene(ctx, id, nil)
+						Expect(err).NotTo(HaveOccurred())
+					}
 				})
 				It("should post two messages in sceneQueue", func() {
 					Expect(len(sceneQueue.messages)).To(Equal(sceneQueueLenBefore + 2))
@@ -319,7 +317,31 @@ var _ = Describe("Workflow", func() {
 					sceneToEqual := leaf1SceneToIngest.Scene
 					sceneToEqual.ID = scene.ID
 					Expect(scene).To(Equal(sceneToEqual))
-					Expect(scene.ID).To(Equal(id))
+					Expect(scene.ID).To(Equal(ids[leaf1SceneToIngest.SourceID]))
+				})
+			})
+
+			Context("With a root scene that already exists", func() {
+				var ids map[string]int
+				JustBeforeEach(func() {
+					sceneQueueLenBefore = len(sceneQueue.messages)
+					_, err = wf.IngestScenes(ctx, aoi, []common.SceneToIngest{rootSceneToIngest}...)
+					Expect(err).NotTo(HaveOccurred())
+					ids, err = wf.IngestScenes(ctx, aoi, []common.SceneToIngest{rootSceneToIngest, leaf1SceneToIngest}...)
+					Expect(err).NotTo(HaveOccurred())
+				})
+				It("should create scenes with those names", func() {
+					for sourceId, id := range ids {
+						dbId, err := wf.SceneId(ctx, aoi, sourceId)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(dbId).To(Equal(id))
+					}
+				})
+				It("should create scenes with the returned ids", func() {
+					for _, id := range ids {
+						_, err := wf.Scene(ctx, id, nil)
+						Expect(err).NotTo(HaveOccurred())
+					}
 				})
 			})
 		})
@@ -327,40 +349,33 @@ var _ = Describe("Workflow", func() {
 		Describe("That has two previous scenes", func() {
 			Context("With no previous scene", func() {
 				JustBeforeEach(func() {
-					_, err = wf.IngestScene(ctx, aoi, rootSceneToIngest)
-					Expect(err).NotTo(HaveOccurred())
-					_, err = wf.IngestScene(ctx, aoi, leaf2SceneToIngest)
+					_, err = wf.IngestScenes(ctx, aoi, []common.SceneToIngest{rootSceneToIngest, leaf2SceneToIngest}...)
 					Expect(err).To(HaveOccurred())
 				})
 				It("should not create a scene with this name", func() {
-					count := 0
-					err := pgdb.QueryRowContext(ctx, "select count(*) from public.scene where aoi_id=$1 and source_id=$2", aoi, leaf2SceneToIngest.SourceID).Scan(&count)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(count).To(Equal(0))
+					_, err := wf.SceneId(ctx, aoi, leaf2SceneToIngest.SourceID)
+					Expect(errors.As(err, &db.ErrNotFound{})).To(BeTrue())
 				})
 			})
 			Context("With previous and ref scene", func() {
-				id := 0
+				var ids map[string]int
 				JustBeforeEach(func() {
 					sceneQueueLenBefore = len(sceneQueue.messages)
-					id, err = wf.IngestScene(ctx, aoi, rootSceneToIngest)
-					Expect(err).NotTo(HaveOccurred())
-					id, err = wf.IngestScene(ctx, aoi, leaf1SceneToIngest)
-					Expect(err).NotTo(HaveOccurred())
-					id, err = wf.IngestScene(ctx, aoi, leaf2SceneToIngest)
+					ids, err = wf.IngestScenes(ctx, aoi, []common.SceneToIngest{rootSceneToIngest, leaf1SceneToIngest, leaf2SceneToIngest}...)
 					Expect(err).NotTo(HaveOccurred())
 				})
-				It("should create a scene with this name", func() {
-					count := 0
-					err := pgdb.QueryRowContext(ctx, "select count(*) from public.scene where aoi_id=$1 and source_id=$2", aoi, leaf2SceneToIngest.SourceID).Scan(&count)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(count).To(Equal(1))
+				It("should create scenes with those names", func() {
+					for sourceId, id := range ids {
+						dbId, err := wf.SceneId(ctx, aoi, sourceId)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(dbId).To(Equal(id))
+					}
 				})
-				It("should create a scene with the returned id", func() {
-					count := 0
-					err := pgdb.QueryRowContext(ctx, "select count(*) from public.scene where id=$1", id).Scan(&count)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(count).To(Equal(1))
+				It("should create scenes with the returned ids", func() {
+					for _, id := range ids {
+						_, err := wf.Scene(ctx, id, nil)
+						Expect(err).NotTo(HaveOccurred())
+					}
 				})
 				It("should post three messages in sceneQueue", func() {
 					Expect(len(sceneQueue.messages)).To(Equal(sceneQueueLenBefore + 3))
@@ -369,7 +384,7 @@ var _ = Describe("Workflow", func() {
 					sceneToEqual := leaf2SceneToIngest.Scene
 					sceneToEqual.ID = scene.ID
 					Expect(scene).To(Equal(sceneToEqual))
-					Expect(scene.ID).To(Equal(id))
+					Expect(scene.ID).To(Equal(ids[leaf2SceneToIngest.SourceID]))
 				})
 			})
 		})
@@ -389,10 +404,9 @@ var _ = Describe("Workflow", func() {
 			Expect(err).NotTo(HaveOccurred())
 			err = wf.CreateAOI(ctx, aoi)
 			Expect(err).NotTo(HaveOccurred())
-			id0, err = wf.IngestScene(ctx, aoi, rootSceneToIngest)
+			ids, err := wf.IngestScenes(ctx, aoi, []common.SceneToIngest{rootSceneToIngest, leaf1SceneToIngest}...)
 			Expect(err).NotTo(HaveOccurred())
-			id1, err = wf.IngestScene(ctx, aoi, leaf1SceneToIngest)
-			Expect(err).NotTo(HaveOccurred())
+			id0, id1 = ids[rootSceneToIngest.SourceID], ids[leaf1SceneToIngest.SourceID]
 		})
 
 		Describe("Which is a root scene", func() {

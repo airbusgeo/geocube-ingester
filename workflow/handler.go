@@ -471,7 +471,7 @@ func (wf *Workflow) CreateSceneHandler(w http.ResponseWriter, req *http.Request)
 		w.WriteHeader(400)
 		return
 	}
-	nid, err := wf.IngestScene(ctx, mux.Vars(req)["aoi"], sc)
+	nid, err := wf.IngestScenes(ctx, mux.Vars(req)["aoi"], sc)
 	if err != nil {
 		if errors.As(err, &db.ErrAlreadyExists{}) {
 			w.WriteHeader(409)
@@ -483,7 +483,7 @@ func (wf *Workflow) CreateSceneHandler(w http.ResponseWriter, req *http.Request)
 		return
 	}
 	w.WriteHeader(200)
-	fmt.Fprintf(w, "{\"id\":%d}", nid)
+	fmt.Fprintf(w, "{\"id\":%d}", nid[sc.SourceID])
 }
 
 // ListScenesHandler lists the scenes of the aoi

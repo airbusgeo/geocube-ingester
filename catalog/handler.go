@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	catalog "github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -114,30 +115,22 @@ func (c *Catalog) FindTiles(ctx context.Context, area catalog.AreaToIngest, scen
 }
 
 // PostScenes sends the scenes to the workflow server
-// Returns the id of the posted scenes (even if PostScenesToIngest returns an error)
 func (c Catalog) PostScenes(ctx context.Context, area catalog.AreaToIngest, scenesToIngest []common.SceneToIngest) (map[string]int, error) {
 	if c.Workflow == nil {
 		return nil, fmt.Errorf("postScenes: WorkflowServer is not defined")
 	}
 
-	ids := map[string]int{}
-
 	// First, create AOI
 	if err := c.Workflow.CreateAOI(ctx, area.AOIID); err != nil && !errors.As(err, &db.ErrAlreadyExists{}) {
-		return ids, fmt.Errorf("postScenes.%w", err)
+		return nil, fmt.Errorf("postScenes.%w", err)
 	}
 
 	// Then, create scenes
-	for _, scene := range scenesToIngest {
-		nid, err := c.Workflow.IngestScene(ctx, area.AOIID, scene)
-		if err != nil {
-			if errors.As(err, &db.ErrAlreadyExists{}) {
-				continue
-			}
-			return ids, fmt.Errorf("postScenes.%w", err)
-		}
-		ids[scene.SourceID] = nid
+	ids, err := c.Workflow.IngestScenes(ctx, area.AOIID, scenesToIngest...)
+	if err != nil {
+		return nil, fmt.Errorf("postScenes.%w", err)
 	}
+
 	return ids, nil
 }
 
@@ -215,6 +208,7 @@ func (c Catalog) PostAOIHandler(w http.ResponseWriter, req *http.Request) {
 		scenes, err = loadScenes(w, req, scenesJSONField, true)
 	}
 
+	t := time.Now()
 	var result IngestAreaResult
 	if err == nil {
 		result, err = c.IngestArea(ctx, area, scenes, tiles, "")
@@ -227,5 +221,5 @@ func (c Catalog) PostAOIHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.WriteHeader(200)
-	fmt.Fprintf(w, "Ingestion of %d scenes and %d tiles in progress\n", len(result.ScenesID), result.TilesNb)
+	fmt.Fprintf(w, "Ingestion of %d scenes and %d tiles in progress (%v)\n", len(result.ScenesID), result.TilesNb, time.Since(t))
 }

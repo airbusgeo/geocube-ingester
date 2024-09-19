@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"runtime"
+	"time"
 
 	geocube "github.com/airbusgeo/geocube-client-go/client"
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
@@ -194,6 +195,8 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 		return result, fmt.Errorf("IngestArea.%w", err)
 	}
 
+	t := time.Now()
+
 	// Scene inventory
 	if scenes.Scenes == nil && scenesWithTiles.Scenes == nil {
 		if scenes, err = c.DoScenesInventory(ctx, area); err != nil {
@@ -218,7 +221,8 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 	}()
 
 	// Create scenes to ingest
-	log.Logger(ctx).Sugar().Debugf("Create %d scenes to ingest", len(scenes.Scenes))
+	log.Logger(ctx).Sugar().Debugf("Create %d scenes to ingest (inventory took: %v)", len(scenes.Scenes), time.Since(t))
+	t = time.Now()
 	scenesToIngest, err = c.ScenesToIngest(ctx, area, scenes)
 	if err != nil {
 		return result, fmt.Errorf("ingestArea.%w", err)
@@ -226,11 +230,12 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 	service.ToJSON(struct{ Scenes []common.SceneToIngest }{Scenes: scenesToIngest}, outputDir, "scenesToIngest.json")
 
 	// Post scenes
-	log.Logger(ctx).Sugar().Debugf("Post %d scenes to ingest", len(scenesToIngest))
+	log.Logger(ctx).Sugar().Debugf("Post %d scenes to ingest (creation took %v)", len(scenesToIngest), time.Since(t))
+	t = time.Now()
 	if result.ScenesID, err = c.PostScenes(ctx, area, scenesToIngest); err != nil {
 		return result, fmt.Errorf("ingestArea.%w", err)
 	}
-	log.Logger(ctx).Debug("Done !")
+	log.Logger(ctx).Sugar().Debugf("Done ! (posting took %v)", time.Since(t))
 
 	result.TilesNb = 0
 	for _, scene := range scenes.Scenes {

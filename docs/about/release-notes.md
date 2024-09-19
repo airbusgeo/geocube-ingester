@@ -32,4 +32,5 @@
 ### Optimization
 - catalog.ScenesToIngest: list all records at once, instead of one by one
 - databse: add status to AOI to retrieve the status more efficiently 
+- ingestScenes: by batch instead of one by one
 
