@@ -78,7 +78,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 	// Execute query
 	options := "$format=json&$expand=Metadata&$select=id,name,beginPosition,creationDate,footprint"
 	search := strings.ReplaceAll(strings.Join(parameters, " AND "), " ", "%20")
-	rawscenes, err := s.queryOnda(ctx, "https://catalogue.onda-dias.eu/dias-catalogue/Products?"+options+"&$search=%22("+search+")%22") //+neturl.QueryEscape(strings.Join(parameters, " AND "))+"%22")
+	rawscenes, err := s.queryOnda(ctx, "https://catalogue.onda-dias.eu/dias-catalogue/Products?"+options+"&$search=%22("+search+")%22", area.Page, area.Limit) //+neturl.QueryEscape(strings.Join(parameters, " AND "))+"%22")
 	if err != nil {
 		return entities.Scenes{}, fmt.Errorf("SearchScenes.%w", err)
 	}
@@ -148,14 +148,17 @@ type ondaHits struct {
 	Properties map[string]string
 }
 
-func (s *Provider) queryOnda(ctx context.Context, query string) ([]ondaHits, error) {
+func (s *Provider) queryOnda(ctx context.Context, query string, page, limit int) ([]ondaHits, error) {
 	// Pagging
 	var rawscenes []ondaHits
 	nextPage := true
 	totalPages := "?"
-
-	for index, rows := 0, 1000; nextPage; index += rows {
+	index, limit := service.IndexLimitRows(page, limit)
+	for rows := 1000; nextPage && (index < limit); index += rows {
 		log.Logger(ctx).Sugar().Debugf("[Onda] Search page %d/%s", index/rows+1, totalPages)
+		if index+rows > limit {
+			rows = limit - index
+		}
 		// Load results
 		url := query + fmt.Sprintf("&$top=%d", rows)
 		if index != 0 {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	neturl "net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,7 +46,7 @@ func (s *Provider) OpenSearchScenes(ctx context.Context, area *entities.AreaToIn
 	}
 
 	// Execute query
-	rawscenes, err := opensearch.Query(ctx, query, opensearch.Config{Provider: "Copernicus", BaseUrl: hostUrl})
+	rawscenes, err := opensearch.Query(ctx, query, opensearch.Config{Provider: "Copernicus", BaseUrl: hostUrl}, area.Page, area.Limit)
 	if err != nil {
 		return entities.Scenes{}, fmt.Errorf("Copernicus.%w", err)
 	}
@@ -131,7 +132,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 	query := strings.Join(parameters, " and ")
 
 	// Execute query
-	rawscenes, err := s.queryCopernicus(ctx, CopernicusODataQueryURL, query)
+	rawscenes, err := s.queryCopernicus(ctx, CopernicusODataQueryURL, query, area.Page, area.Limit)
 	if err != nil {
 		return entities.Scenes{}, fmt.Errorf("Copernicus.searchScenes.%w", err)
 	}
@@ -210,16 +211,23 @@ type Hits struct {
 	AttributesMap map[string]string
 }
 
-func (s *Provider) queryCopernicus(ctx context.Context, baseurl, query string) ([]Hits, error) {
+func (s *Provider) queryCopernicus(ctx context.Context, baseurl, query string, page, limit int) ([]Hits, error) {
 	// Pagging
 	var rawscenes []Hits
 	nextPage := true
 	query = neturl.QueryEscape(query)
-	totalPages := "?"
-	for index, rows := 0, 1000; nextPage; index += rows {
+	totalPages, count := "?", false // count is false: it takes too much time... It can be set to true for debugging purpose
+	index, limit := service.IndexLimitRows(page, limit)
+	for rows := 1000; nextPage && (index < limit); index += rows {
 		log.Logger(ctx).Sugar().Debugf("[Copernicus] Search page %d/%s", index/rows+1, totalPages)
+		if index+rows > limit {
+			rows = limit - index
+		}
 		// Load results
-		url := baseurl + query + fmt.Sprintf("&$top=%d&$skip=%d&$expand=Attributes", rows, index)
+		url := baseurl + query + fmt.Sprintf("&$orderby=ContentDate/Start&$top=%d&$skip=%d&$expand=Attributes", rows, index)
+		if count {
+			url += "&$count=True"
+		}
 		jsonResults, err := service.GetBodyRetry(url, 3)
 		if err != nil {
 			return nil, fmt.Errorf("queryCopernicus: %w", err)
@@ -229,6 +237,7 @@ func (s *Provider) queryCopernicus(ctx context.Context, baseurl, query string) (
 		results := struct {
 			Status int    `json:"status"`
 			Next   string `json:"@odata.nextLink"`
+			Count  int    `json:"@odata.count"`
 			Hits   []Hits `json:"value"`
 		}{}
 
@@ -257,6 +266,10 @@ func (s *Provider) queryCopernicus(ctx context.Context, baseurl, query string) (
 
 		// Is there a next page ?
 		nextPage = results.Next != ""
+		if results.Count > 0 {
+			totalPages = strconv.Itoa((results.Count-1)/rows + 1)
+			count = false
+		}
 	}
 
 	return rawscenes, nil

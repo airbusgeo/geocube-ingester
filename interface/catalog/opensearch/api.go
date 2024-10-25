@@ -105,16 +105,17 @@ func ConstructQuery(ctx context.Context, area *entities.AreaToIngest, aoi geos.G
 	return strings.Join(parameters, "&"), nil
 }
 
-func Query(ctx context.Context, query string, config Config) ([]Hits, error) {
+func Query(ctx context.Context, query string, config Config, page, limit int) ([]Hits, error) {
 	var rawscenes []Hits
 	totalPages := "?"
 
-	for page, rows, nextPage := 1, 1000, true; nextPage; page += 1 {
+	pageLimit, rows := service.PageLimitRows(page, limit, 1000)
+
+	for nextPage := true; nextPage && page < pageLimit; page += 1 {
 		log.Logger(ctx).Sugar().Debugf("[%s] Search page %d/%s", config.Provider, page, totalPages)
 
 		// Load results
-		//url := baseurl + query + fmt.Sprintf("&$top=%d&$skip=%d", rows, index)
-		url := config.BaseUrl + query + fmt.Sprintf("&maxRecords=%d&page=%d", rows, page)
+		url := config.BaseUrl + query + fmt.Sprintf("&maxRecords=%d&page=%d", rows, page+1)
 		jsonResults, err := service.GetBodyRetry(url, 3)
 		if err != nil {
 			return nil, fmt.Errorf("query.getBodyRetry: %w", err)

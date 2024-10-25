@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	catalog "github.com/airbusgeo/geocube-ingester/catalog/entities"
@@ -20,6 +21,8 @@ import (
 const areaJSONField = "area"
 const scenesJSONField = "scenes"
 const tilesJSONField = "tiles"
+const pageField = "page"
+const limitField = "limit"
 
 func (c *Catalog) AddHandler(r *mux.Router) {
 	r.HandleFunc("/catalog/scenes", c.ScenesHandler).Methods("GET")
@@ -56,6 +59,13 @@ func (c *Catalog) loadArea(req *http.Request) (catalog.AreaToIngest, error) {
 	if err := json.Unmarshal(areaJSON, &area); err != nil {
 		return area, fmt.Errorf("loadArea: %w\nJSON:\n%s", err, areaJSON)
 	}
+	if page, err := strconv.Atoi(req.URL.Query().Get(pageField)); err == nil {
+		area.Page = page
+	}
+	if limit, err := strconv.Atoi(req.URL.Query().Get(limitField)); err == nil {
+		area.Limit = limit
+	}
+
 	return area, nil
 }
 

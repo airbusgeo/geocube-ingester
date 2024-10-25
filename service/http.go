@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 )
 
@@ -38,4 +39,23 @@ func doWithAuth(req *http.Request, authName, authPswd, authToken string) (*http.
 	}
 	client := http.Client{}
 	return client.Do(req)
+}
+
+// PageLimitRows returns the page limit and the optimal number of rows for a PageRows request
+func PageLimitRows(page, limit, defautRows int) (int, int) {
+	if limit == 0 {
+		return math.MaxInt64, defautRows
+	}
+	if limit%defautRows != 0 {
+		defautRows = limit
+	}
+	return page + limit/defautRows, defautRows
+}
+
+// IndexLimitRows returns the first index and the last index for an IndexRows request
+func IndexLimitRows(page, limit int) (int, int) {
+	if limit == 0 {
+		return 0, math.MaxInt64
+	}
+	return page * limit, (page + 1) * limit
 }

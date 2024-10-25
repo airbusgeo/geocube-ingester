@@ -70,6 +70,8 @@ type AreaToIngest struct {
 	AnnotationsURLs []string          `json:"annotations_urls"`
 	IsRetriable     bool              `json:"is_retriable"`
 	RetryCount      int               `json:"retry_count"`
+	Page            int               `json:"page"`
+	Limit           int               `json:"limit"`
 	StorageURI      string            `json:"storage_uri"` // If empty, use the default storage uri of the ingester
 }
 

@@ -101,7 +101,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 	parameters = append(parameters, fmt.Sprintf("startDate=%s&completionDate=%s", area.StartTime.Format("2006-01-02"), area.EndTime.Format("2006-01-02")))
 
 	// Execute query
-	rawscenes, err := s.queryCreodias(ctx, hostUrl, strings.Join(parameters, "&"))
+	rawscenes, err := s.queryCreodias(ctx, hostUrl, strings.Join(parameters, "&"), area.Page, area.Limit)
 	if err != nil {
 		return entities.Scenes{}, fmt.Errorf("SearchScenes.%w", err)
 	}
@@ -167,17 +167,19 @@ type creodiasHits struct {
 	} `json:"properties"`
 }
 
-func (s *Provider) queryCreodias(ctx context.Context, baseurl string, query string) ([]creodiasHits, error) {
+func (s *Provider) queryCreodias(ctx context.Context, baseurl string, query string, page, limit int) ([]creodiasHits, error) {
 	// Pagging
 	var rawscenes []creodiasHits
 	totalPages := "?"
 
-	for page, rows, nextPage := 1, 1000, true; nextPage; page += 1 {
+	pageLimit, rows := service.PageLimitRows(page, limit, 1000)
+
+	for nextPage := true; nextPage && (page < pageLimit); page += 1 {
 		log.Logger(ctx).Sugar().Debugf("[Creodias] Search page %d/%s", page, totalPages)
 
 		// Load results
 		//url := baseurl + query + fmt.Sprintf("&$top=%d&$skip=%d", rows, index)
-		url := baseurl + query + fmt.Sprintf("&maxRecords=%d&page=%d", rows, page)
+		url := baseurl + query + fmt.Sprintf("&maxRecords=%d&page=%d", rows, page+1)
 		jsonResults, err := service.GetBodyRetry(url, 3)
 		if err != nil {
 			return nil, fmt.Errorf("queryCreodias.getBodyRetry: %w", err)

@@ -100,12 +100,13 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 	}
 
 	// Refine inventory
+	scenesCount := len(scenes.Scenes)
 	scenes.Scenes, err = refineInventory(area, scenes.Scenes, aoi)
 	if err != nil {
 		return entities.Scenes{}, fmt.Errorf("ScenesInventory.%w", err)
 	}
 
-	log.Logger(ctx).Sugar().Debugf("%d scenes found", len(scenes.Scenes))
+	log.Logger(ctx).Sugar().Debugf("%d scenes found (%d filtered out)", len(scenes.Scenes), scenesCount-len(scenes.Scenes))
 
 	return scenes, nil
 }
