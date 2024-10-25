@@ -76,6 +76,7 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 		scene.Data.GraphName = area.SceneGraphName
 		scene.Data.GraphConfig = area.GraphConfig
 		scene.Data.IsRetriable = area.IsRetriable
+		scene.Data.StorageURI = area.StorageURI
 
 		// Copy area tags
 		for k, v := range area.RecordTags {

@@ -16,6 +16,10 @@ The payload is a GeoJSON (all fields are mandatory unless otherwise stated):
 - **layers**: mapping between layers to be indexed in the Geocube and the corresponding variable.instance from the Geocube (see Geocube Documentation).  
     - **layername**: {"variable":"variable_name", "instance":"instance_name"}
 - **record_tags** (optional): user-defined tags for identifying/creating the record in the Geocube.
+- **annotations_urls** (optional): list of urls to retrieve Sentinel-1 annotations
+- **is_retriable** (optional): define if the processing or download is retriable if a fatal error occurs (or if retry_count is over)
+- **retry_count** (optional): define the number of time a processing or download is retried if a transient error occurs
+- **storage_uri** (optional): define a custom storage
 
 ## Inputs
 

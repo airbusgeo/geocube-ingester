@@ -31,6 +31,7 @@ type SceneAttrs struct {
 	InstancesID  map[string]string      `json:"instances_id"`
 	Metadata     map[string]interface{} `json:"metadata"`
 	IsRetriable  bool                   `json:"is_retriable"`
+	StorageURI   string                 `json:"storage_uri"`
 }
 
 type TileAttrs struct {

@@ -5,6 +5,7 @@
 ### Functionalities
 - AreaToIngest: Add RetryCount to automatically retry a processing or a download RetryCount times
 - AreaToIngest: Add IsRetriable to enable or disable the retry of a processing or a download
+- AreaToIngest: Add StorageURI to define a custom storage URI for downloader and processor
 - Workflow: add endpoint \aoi\{pattern} to list aois by pattern
 - ProcessingGraph: add condition=on_failure/on_fatal_failure and error_condition=... to create/index/delete a file in case of failure
 - remove CreodiasAnnotationsProvider, add UrlAnnotationsProvider instead of GCSAnnotationBucket

@@ -38,6 +38,15 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 		return service.MakeTemporary(fmt.Errorf("chdir: %w", err))
 	}
 
+	// Custom storage
+	if tile.Scene.Data.StorageURI != "" {
+		var err error
+		storageService, err = service.NewStorageStrategy(ctx, tile.Scene.Data.StorageURI)
+		if err != nil {
+			return fmt.Errorf("ProcessTile[%s].%w", tag, err)
+		}
+	}
+
 	if tile.Data.IsRetriable {
 		opts = append(opts, graph.WithRetriableErrors())
 	}
@@ -45,7 +54,7 @@ func ProcessTile(ctx context.Context, storageService service.Storage, gcclient *
 	// Graph
 	g, config, envs, err := graph.LoadGraph(ctx, tile.Data.GraphName, opts...)
 	if err != nil {
-		return fmt.Errorf("ProcessTile.%w", err)
+		return fmt.Errorf("ProcessTile[%s].%w", tag, err)
 	}
 	// Append the user config
 	for key, val := range tile.Scene.Data.GraphConfig {

@@ -27,6 +27,15 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 		return service.MakeTemporary(fmt.Errorf("chdir: %w", err))
 	}
 
+    // Custom storage
+	if scene.Data.StorageURI != "" {
+		var err error
+		storageService, err = service.NewStorageStrategy(ctx, scene.Data.StorageURI)
+		if err != nil {
+			return fmt.Errorf("ProcessScene.Storage[%s]: %w", scene.Data.StorageURI, err)
+		}
+	}
+
 	// Download with the first successful imageProvider
 	log.Logger(ctx).Sugar().Infof("downloading %s", scene.SourceID)
 	var err error
