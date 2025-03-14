@@ -7,7 +7,7 @@ From an AOI, a time interval and a set of parameters (to configure the output la
 
 ![Workflow](architecture/IngesterWorkflow.png)
 
-It currently supports Sentinel-1, Sentinel-2, Pléiades and SPOT and it's designed to easily add new sources of data or satellites using the [interfaces](architecture/interfaces.md).
+It currently supports Sentinel-1, Sentinel-2, Pléiades and SPOT and it's designed to easily add new sources of data or satellites using the [interfaces](developer-guide/interfaces.md).
 
 Dockerfiles are provided to do automatic preprocessing of images using **user-defined SNAP-Processing graphs**, **python script** or **docker commands**.
 

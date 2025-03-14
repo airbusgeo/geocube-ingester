@@ -48,7 +48,7 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.Scenes, "scenes", "", "Json of the scenes to send to the workflow server (shortcut to reuse intermediate results)")
 
 	flag.StringVar(&config.GeocubeServer, "geocube-server", "", "address of geocube server")
-	flag.BoolVar(&config.GeocubeServerInsecure, "geocube-insecure", false, "connection to geocube server is insecure")
+	flag.BoolVar(&config.GeocubeServerInsecure, "geocube-insecure", false, "connection to geocube server is insecure (if geocube-server is started without -tls option)")
 	flag.StringVar(&config.GeocubeServerApiKey, "geocube-apikey", "", "geocube server api key")
 	flag.StringVar(&annotationsURLs, "annotations-urls", "", "URL (local/gs/aws) containing S1-scenes (as zip) to read annotations without downloading the whole file (optional, contains identifiers between brackets that will be replaced by those of the scene. E.g: gs://bucket/{DATE}/{SCENE}.zip), several urls are coma separated")
 	flag.StringVar(&config.WorkflowServer, "workflow-server", "", "address of workflow server")

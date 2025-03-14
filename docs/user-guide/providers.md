@@ -1,6 +1,6 @@
 # Provider
 
-NB: This documentation is for user that want to use the providers. For documentation on how to implement a new provider, see [Developer-Guide/Providers](#developer-guide/provideres.md).
+> NB: This documentation is for user that want to use the providers. For documentation on how to implement a new provider, see [Developer-Guide/Providers](#developer-guide/provideres.md).
 
 Providers are implemented in order to download scenes. They are called one by one until the corresponding image is found.
 

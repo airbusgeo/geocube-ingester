@@ -87,7 +87,7 @@ NB:
 
 - Workflow.yaml kubernetes file is an example of Ingester deployment in the cloud. You need to adapt them in order to configure database, messaging and storage access.
 - In you want to use pubsub emulator, you need to add `PUB_SUB_EMULATOR` variable environment in your deployment and replication controller (already describe in Geocube Documentation).
-- If you want to use pgqueue, you need to refer: [PGQueue Configuration](local-install.md#PGQueue)
+- If you want to use pgqueue, you need to refer to: [PGQueue Configuration](local-install.md#PGQueue)
 
 Ex configuration with pubSub emulator:
 

@@ -1,10 +1,12 @@
 # Catalogue
 
-NB: This documentation is for user that want to use the Catalogue. For documentation on how to implement a new catalogue, see [Developer-Guide/Catalogue](#developer-guide/catalog.md).
+> NB: This documentation is for user that want to use the Catalogue. For documentation on how to implement a new catalogue, see [Developer-Guide/Catalogue](#developer-guide/catalog.md).
 
 Catalogue component makes an inventory of all the scenes (and bursts for S1 images) covering the AOI between startDate and endDate. 
 
-Some providers are implemented in order to list scenes and retrieve scenes metadata (Name, ID, etc.):
+See [payload](payload.md) to create a payload.
+
+Some providers are implemented in order to list available products/scenes and retrieve products/scenes metadata (Name, ID, etc.):
 
 - [Copernicus](#copernicus): sentinel1 & 2 scenes
 - [Creodias](#creodias): sentinel1 & 2 scenes
@@ -12,8 +14,9 @@ Some providers are implemented in order to list scenes and retrieve scenes metad
 - [Creodias](#creodias), [GCS or AWS](#object-storage) and : for retrieving the Sentinel-1 annotations
 
 
-## Sentinel constellations
-### Copernicus
+## Constellations
+### Sentinel constellations
+#### Copernicus
 
 Copernicus can be used to list the Sentinel products. It does not require authentication.
 
@@ -21,19 +24,19 @@ Use the `--copernicus-catalog` flag to enable this catalogue.
 
 For more information see: [Copernicus OpenSearch API Documentation](https://documentation.dataspace.copernicus.eu/APIs/OpenSearch.html)  [Copernicus ODATA API Documentation](https://documentation.dataspace.copernicus.eu/APIs/OData.html)
 
-### Creodias
+#### Creodias
 
 No authentication required.
 
 Use the `--creodias-catalog` flag to enable this catalogue.
 
-NB: Creodias is usually more reliable than Copernicus, but Sentinel-1 catalogue returns less information than the Copernicus' one.
+> NB: Creodias is usually more reliable than Copernicus, but Sentinel-1 catalogue returns less information than the Copernicus' one.
 
 For more information see: [Creodias API](https://creodias.eu/data-offer)
 
-## Airbus constellations
+### Airbus constellations
 
-### OneAtlas
+#### OneAtlas
 
 Use the following arguments to configure this catalogue:
 - `oneatlas-username`
@@ -58,15 +61,15 @@ High resolution images are added continuously on a daily basis. It is designed t
 OneAtlas Catalog is requested in order to download PHR, SPOT Products in Dimap format. 
 Catalog provides an estimated cost of a potential processing order (available in ScenesInventory)
 
-## Sentinel-1 bursts annotations
+### Sentinel-1 bursts annotations
 
 To list the bursts of a Sentinel-1 product without downloading the file, the catalogue has to download the annotation file included in the .SAFE file. 
 
-### Creodias
+#### Creodias
 
 Creodias offers a service to get annotation files without downloading the whole product. Nevertheless, it's not always available on offline products.
 
-### Object storage
+#### Object storage
 
 Local storage, GCS or AWS can be used to retrieve burst annotations from archives (.SAFE.zip) stored in a user bucket.
 

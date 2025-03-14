@@ -5,7 +5,6 @@ nav:
     - 'Getting started': quickstart.md
     - 'Architecture':
       - 'Services': architecture/services.md
-      - 'Interfaces': architecture/interfaces.md
     - 'Installation':
         - 'Prerequisite': installation/prerequisite.md
         - 'Local environment': installation/local-install.md
@@ -15,10 +14,15 @@ nav:
     - 'User guide':
         - 'Tutorials': user-guide/tutorials.md
         - 'Payload': user-guide/payload.md
-        - 'Catalogue': user-guide/catalog.md
-        - 'Provider': user-guide/providers.md
         - 'Processing graphs': user-guide/graph.md
+        - 'Run a payload': user-guide/run.md
         - 'Monitoring': user-guide/monitoring.md
+        - 'Catalogue service': user-guide/catalog.md
+        - 'Provider': user-guide/providers.md
+    - 'Developer guide':
+        - 'Interfaces': developer-guide/interfaces.md
+        - 'Catalogue': developer-guide/catalog.md
+        - 'Provider': developer-guide/providers.md
     - 'About':
       - 'Getting help': about/help.md
       - 'Development': about/development.md

@@ -2,16 +2,13 @@
 
 ## Principle
 
-Processing graph defines a sequence of [steps](graph.md#steps) which will be executed. 
+A processing graph defines a sequence of [steps](graph.md#steps) which will be executed on the input images. 
 
-A step contains an execution command with some parameters and [configurations](graph.md#config), logical [condition](graph.md#condition) could be added in order to validate step status.
+Each step is a command with parameters and [configurations](graph.md#config). A logical [condition](graph.md#condition) can be added to the execution of the step.
 
-Every step could be defined with one of engine among `Python`, `Snap`, `cmd` and `Docker`.
+Each step is executed with an `engine` among `Python`, `Snap`, `cmd` and `Docker`.
 
 Graph should have [input](graph.md#input-files) or/and [output](graph.md#output-files) files (depends on kind of processing).
-
-Processing will be manage for all tiles/scenes defined by workflow.
-
 
 ## JSON Graph
 
@@ -21,81 +18,27 @@ Processing will be manage for all tiles/scenes defined by workflow.
 type ProcessingGraphJSON struct {
     Config   map[string]string `json:"config"`
     Envs     []string          `json:"envs,omitempty"`
-    Steps    []ProcessingStep  `json:"processing_steps"`
     InFiles  [3][]InFile       `json:"in_files"`
     OutFiles [][]OutFile       `json:"out_files"`
+    Steps    []ProcessingStep  `json:"processing_steps"`
 }
 ```
 
 ### Config
 
-List of configuration values useful for the correct execution of processing steps.
+List of configuration values that can be used as parameters of a `Command`, using `ArgConfig` structure (see [Args](#args)).
 
-### Steps
 
-List of processing execution script (Python, Snap of inside docker container).
+### Files
 
-#### Engine
+A file is defined by its name (`Layer` field) and its `Extension` (it must be consistent between the `scene graph` and the `tile graph`).
 
-Define the kind of engine that will be used in order to manage processing.
-
-Available engines:
-
-- Snap (for Sentinel1-2 constellation)
-- Python (for custom processing simple script)
-- Docker (for custom processing with specific binaries)
-- Cmd (for basic command available in processor OS)
-
-#### Command
-
-Name of processing binary to use. 
-
-MyBinary Example:
-
-```json
-{
-  "engine": "cmd",
-  "command": "./cmd/MyBinary"
-}
-```
-
-Docker Example:
-
-```json
-{
-  "engine": "docker",
-  "command": "containerRegistry/myImage:myTag"
-}
-```
-
-#### Args
-
-List of command arguments useful for the correct execution of processing steps.
-
-- Structure:
-
-```go
-type ArgIn struct {
-	Input     int               `json:"tile_index"` // Index of input [0, 1, 2]
-	Layer     service.Layer     `json:"layer"`
-	Extension service.Extension `json:"extension"`
-}
-
-type ArgOut struct { 
-    service.Layer `json:"layer"`
-    Extension     service.Extension `json:"extension"`
-}
-
-type ArgFixed string  // fixed arg
-type ArgConfig string // arg from config
-type ArgTile string   // arg from tile info
-```
-
-- Available layers
+##### Examples of Layer name
 
 ```go
 const (
-    Product Layer = "product"
+	  Product     Layer = "__product__"     // Special value, that will be replaced by the SourceID of the Scene
+	  Annotations Layer = "__annotations__" // Special value, that will be replaced by the SourceID of the Scene + "_annotations" suffix
     
     LayerPreprocessed  Layer = "preprocessed"
     LayerCoregistrated Layer = "coregistred"
@@ -111,109 +54,30 @@ const (
 )
 ```
 
-- Available extensions 
+##### Examples of File Extension
 
 ```go
 const (
-    ExtensionSAFE      Extension = "SAFE"
-    ExtensionZIP       Extension = "zip"
-    ExtensionDIMAP     Extension = "dim"
-    ExtensionDIMAPData Extension = "data"
-    ExtensionGTiff     Extension = "tif"
+	NoExtension    Extension = "" // The layer has no extension
+	ExtensionGTiff Extension = "tif"
+	ExtensionZIP   Extension = "zip"
+	// The following extensions are directories, thus, they are stored as a zip file (see service.storeAsZip() function)
+	// Using those extensions ensures that the stored files will be unzipped in a directory named <layer>.<Extension>
+	ExtensionSAFE      Extension = "SAFE" // Sentinel product
+	ExtensionDIMAP     Extension = "dim"
+	ExtensionDIMAPData Extension = "data"
+	ExtensionAll       Extension = "*" // The content of the whole working directory (e.g. useful to export all the downloaded files as one zip file). Replaced by NoExtension in the directory name
 )
 ```
+#### Input Files
 
-- Example
+> For the processor graph file only
 
-```json
-{
-  "engine":"docker",
-  "command":"containerRegistry/myImage:myTag",
-  "args":{
-    "workdir":{
-      "type":"config",
-      "value":"workdir"
-    },
-    "image":{
-      "type":"in",
-      "layer":"product",
-      "extension":"SAFE"
-    },
-    "srtm-uri":{
-      "type":"config",
-      "value":"srtm-uri"
-    },
-    "roadmap":{
-      "type":"config",
-      "value":"roadmap-robot"
-    },
-    "options":{
-      "type":"config",
-      "value":"roadmap-options"
-    },
-    "roadmap-params":{
-      "type":"config",
-      "value":"roadmap-params"
-    },
-    "libs":{
-      "type":"config",
-      "value":"libs"
-    },
-    "constellation":{
-      "type":"fixed",
-      "value":"sentinel2"
-    },
-    "out-pattern":{
-      "type":"out",
-      "layer":"*",
-      "extension":"tif"
-    }
-  }
-}
-```
+`InFile` defines a file used in input of the processing. It can be either a `product` that has just be downloaded by the `downloader` or a list of `Layer` that will be processed by the `processor`.
 
-#### Condition
+The files defined in `InFile` are automatically downloaded from the storage and stored locally during the processing.
 
-Condition to consider step as success.
-
-- Structure
-
-```go
-type TileCondition struct {
-	Name string
-	Pass func([]common.Tile) bool
-}
-```
-
-- Available tileConditions
-
-```go
-// condPass is a tileCondition always true
-var pass = TileCondition{"pass", func(tiles []common.Tile) bool { return true }}
-
-// condDiffTile returns true if tile1 != tile2
-var condDiffT0T1 = TileCondition{"different_T0_T1", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[1].Scene.SourceID }}
-var condDiffT0T2 = TileCondition{"different_T0_T2", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[2].Scene.SourceID }}
-var condDiffT1T2 = TileCondition{"different_T1_T2", func(tiles []common.Tile) bool { return tiles[1].Scene.SourceID != tiles[2].Scene.SourceID }}
-
-// condEqualTile returns true if tile1 == tile2
-var condEqualT0T1 = TileCondition{"equal_T0_T1", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID == tiles[1].Scene.SourceID }}
-var condEqualT0T2 = TileCondition{"equal_T0_T2", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID == tiles[2].Scene.SourceID }}
-var condEqualT1T2 = TileCondition{"equal_T1_T2", func(tiles []common.Tile) bool { return tiles[1].Scene.SourceID == tiles[2].Scene.SourceID }}
-```
-
-- Example
-```json
-{
-  "condition": "pass"
-}
-```
-
-### Input Files
-
-Input files necessary for the right execution of processing
-
-- Structure
+##### Structure
 
 ```go
 // InFile describes an input file of the processing
@@ -223,15 +87,31 @@ type InFile struct {
 }
 ```
 
-- Example
+##### Example
 
+To use the whole product as input
 ```json
 {
    "in_files":[
       [
          {
-            "layer":"product",
+            "layer":"__product__",
             "extension":"SAFE"
+         }
+      ],
+      [],
+      []
+   ]
+}
+
+To use a specitic layer that has been preprocessed by the downloader:
+```json
+{
+   "in_files":[
+      [
+         {
+            "layer":"coregistrated",
+            "extension":"tif"
          }
       ],
       [],
@@ -240,13 +120,24 @@ type InFile struct {
 }
 ```
 
-Infiles json block is an array of 3 in order to potentially reference current tile, previous and reference tile). For instance, it is useful in order to process coherence cf. [Example with S1](graph.md#example-processing-sentinel1)
+Infiles json block is an array of 3. The first value is always relative to the current product. The second and third values can be used to reference other products, such as the previous in the timeserie or the first of the timeserie (e.g: to have a unique reference for all the images in the timeserie). For instance, it is useful in order to process coherence cf. [Example with S1](graph.md#example-processing-sentinel1)
 
-### Output Files
+#### Output Files
 
-Output files generated by processing steps procedure.
+`OutFile` defines a file (name (`Layer`) and extension) generated by the processing steps. Output files can be stored in the storage, indexed in the geocube (for `processor` only), or flagged as to be deleted.
 
-- Structure
+If an `OutFile` is to be indexed in the Geocube, the following information must be provided (for other action, they will be ignored):
+- `DType`
+- `NoData`
+- `Min`, `Max`
+- `ExtMin`, `ExtMax`
+- `Exponent`
+- `Nbands`
+
+See geocube indexation documentation for further information.
+
+
+##### Structure
 
 ```go
 // OutFile describes an output file of the processing
@@ -266,19 +157,19 @@ type OutFile struct {
 }
 ```
 
-- Available action outFile
+##### Available action
 
 ```go
 // OutFileAction
 const (
-	ToIgnore OutFileAction = iota
-	ToCreate
-	ToIndex
-	ToDelete
+	ToIgnore OutFileAction = iota `json:"to_ignore"`
+	ToCreate                      `json:"to_create"`
+	ToIndex                       `json:"to_index"`
+	ToDelete                      `json:"to_delete"`
 )
 ```
 
-- Example
+##### Example
 
 ```json
 {
@@ -299,18 +190,176 @@ const (
          {
             "layer":"clcsh",
             "extension":"tif",
-            "action":"to_index",
-            "dformat_out":{
-               "type":"fixed",
-               "value":"int16,-1,0,10000"
-            },
-            "ext_min_value":0,
-            "ext_max_value":1
+            "action":"to_create",
+         },
+         {
+            "layer":"__product__",
+            "extension":"SAFE",
+            "action":"to_delete",
+            "error_condition": "on_fatal_failure"
          }
       ],
       [],
       []
    ]
+}
+```
+
+### Steps
+
+List of processing steps that will be executed sequentially.
+
+#### Engine
+
+Define the kind of engine that will be used to execute the step.
+
+Available engines:
+
+- Snap: for Sentinel constellation (if installed)
+- Python: to execute python script
+- Docker: to run a docker
+- Cmd: for command available in the docker
+
+#### Command
+
+Define the command to execute with the given engine.
+
+MyBinary Example:
+
+```json
+{
+  "processing_steps": [
+    {
+      "engine": "cmd",
+      "command": "./cmd/MyBinary"
+    }
+  ]
+}
+```
+
+Docker Example:
+
+```json
+{
+  "engine": "docker",
+  "command": "containerRegistry/myImage:myTag"
+}
+```
+
+#### Args
+
+List of arguments that will be passed to the command, with the following synthax : `--argument-name argument-value`.
+
+They can be of five types:
+
+- `ArgIn`: The path of the file corresponding to a layer in `InFiles`.
+- `ArgOut`: The path of the file corresponding to a layer in `OutFiles`.
+- `ArgFixed`: A fixed value
+- `ArgConfig`: A value retrieved from the `Config` using a key. The key `workdir` is defined at runtime to point to the working directory.
+- `ArgTile`: A value retrieved from the tile. Supported value:
+  - `constellation`
+  - `scene` name
+  - `date`
+	- `number`: tile number (for Sentinel-1: =burst number)
+	- `swath` (Sentinel-1)
+	- `cohdate`: (Sentinel-1) Date of the reference burst if different from previous date or date of the burst
+
+
+##### Structure:
+
+```go
+type ArgIn struct {
+	Input     int               `json:"tile_index"` // Index of input [0, 1, 2]
+	Layer     service.Layer     `json:"layer"`
+	Extension service.Extension `json:"extension"`
+}
+
+type ArgOut struct { 
+    service.Layer `json:"layer"`
+    Extension     service.Extension `json:"extension"`
+}
+
+type ArgFixed string  // fixed arg
+type ArgConfig string // arg from config
+type ArgTile string   // arg from tile info
+```
+
+##### Example
+
+```json
+{
+  "engine":"docker",
+  "command":"containerRegistry/myImage:myTag",
+  "args":{
+    "workdir":{
+      "type":"config",
+      "value":"workdir"
+    },
+    "image-in":{
+      "type":"in",
+      "layer":"__product__",
+      "extension":"SAFE"
+    },
+    "parameter-from-config":{
+      "type":"config",
+      "value":"key-in-config"
+    },
+    "constellation":{
+      "type":"fixed",
+      "value":"sentinel2"
+    },
+    "out-file":{
+      "type":"out",
+      "layer":"img",
+      "extension":"tif"
+    },
+    "out-pattern":{
+      "type":"out",
+      "layer":"*",
+      "extension":"tif"
+    }
+  }
+}
+```
+
+This step will run something similar to:
+
+`docker run -v <volume>:<workdir> containerRegistry/myImage:myTag --workdir <config['workdir']> --image-in <path to in_file[0]/product.SAFE> --parameter-from-config <config['key-in-config']> --constellation sentinel2 --out-file <path to out_file[0]/img.tif> --out-pattern <path to out_file[0]>/*.tif`
+
+#### Condition
+
+Condition to optionally execute the step.
+
+##### Structure
+
+```go
+type TileCondition struct {
+	Name string
+	Pass func([]common.Tile) bool
+}
+```
+
+##### Available tileConditions
+
+```go
+// condPass is a tileCondition always true
+var pass = TileCondition{"pass", func(tiles []common.Tile) bool { return true }}
+
+// condDiffTile returns true if tile1 != tile2
+var condDiffT0T1 = TileCondition{"different_T0_T1", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[1].Scene.SourceID }}
+var condDiffT0T2 = TileCondition{"different_T0_T2", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[2].Scene.SourceID }}
+var condDiffT1T2 = TileCondition{"different_T1_T2", func(tiles []common.Tile) bool { return tiles[1].Scene.SourceID != tiles[2].Scene.SourceID }}
+
+// condEqualTile returns true if tile1 == tile2
+var condEqualT0T1 = TileCondition{"equal_T0_T1", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID == tiles[1].Scene.SourceID }}
+var condEqualT0T2 = TileCondition{"equal_T0_T2", func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID == tiles[2].Scene.SourceID }}
+var condEqualT1T2 = TileCondition{"equal_T1_T2", func(tiles []common.Tile) bool { return tiles[1].Scene.SourceID == tiles[2].Scene.SourceID }}
+```
+
+##### Example
+```json
+{
+  "condition": "pass"
 }
 ```
 
@@ -586,26 +635,16 @@ const (
 ```json
 {
     "config": {
-     "srtm-uri": "gs://d-vrd-lai-crop-monitoring-ovl-artifacts/srtm/,gs://forest-overland-srtm-cache-dev/{NS}{LAT}{EW}{LON}.SRTMGL1.hgt.zip,gs://forest-overland-srtm-cache-dev/GLSDEM_{ns}0{LAT}{ew}{LON}.tif.zip",
-     "roadmap-robot": "/data/graph/cmd/roadmaps/robot_Mosaic-S2-VNIR4.xml",
-     "roadmap-options": "/data/graph/cmd/roadmaps/options_Geocube-VNIR4.xml",
-     "roadmap-params": "",
-     "libs": "/data/graph/cmd/libs",
-     "clod-optical-depth-x100": "200",
-     "rekl-workers": "-1"
+      "srtm-uri": "..."
     },
     "processing_steps": [
      {
       "engine": "cmd",
-      "command": "./cmd/overland",
+      "command": "./cmd/radiometric_processor",
       "args": {
         "workdir": { "type": "config", "value": "workdir" },
-        "image": { "type": "in", "layer": "product", "extension": "SAFE" },
+        "image": { "type": "in", "layer": "__product__", "extension": "SAFE" },
         "srtm-uri": { "type": "config", "value": "srtm-uri" },
-        "roadmap": { "type": "config", "value": "roadmap-robot" },
-        "options": { "type": "config", "value": "roadmap-options" },
-        "roadmap-params": { "type": "config", "value": "roadmap-params" },
-        "libs": { "type": "config", "value": "libs" },
         "constellation": { "type": "fixed", "value": "sentinel2" },
         "out-pattern": { "type": "out", "layer": "*", "extension": "tif" }
       },
@@ -613,15 +652,12 @@ const (
      },
      {
       "engine": "cmd",
-      "command": "./cmd/rekl",
+      "command": "./cmd/registation",
       "args": {
         "workdir": { "type": "config", "value": "workdir" },
-        "satellite-image": { "type": "in", "layer": "product", "extension": "SAFE" },
+        "satellite-image": { "type": "in", "layer": "__product__", "extension": "SAFE" },
         "input": { "type": "fixed", "value": "*.tif"},
         "output": { "type": "fixed", "value": "." },
-        "mask": { "type": "out", "layer": "clod", "extension": "tif" },
-        "mask-threshold": { "type": "config", "value": "clod-optical-depth-x100" },
-        "workers": { "type": "config", "value": "rekl-workers" },
         "constellation": { "type": "fixed", "value": "Sentinel2" }
       },
       "condition": "pass"
@@ -630,7 +666,7 @@ const (
     "in_files": [
      [
       {
-        "layer": "product",
+        "layer": "__product__",
         "extension": "SAFE"
       }
      ],
@@ -649,36 +685,12 @@ const (
         "nbands": 4
       },
       {
-        "layer": "clcsh",
+        "layer": "quality_mask",
         "extension": "tif",
         "action": "to_index",
         "dformat_out": { "type": "fixed", "value": "int16,-1,0,10000" },
         "ext_min_value": 0,
         "ext_max_value": 1
-      },
-      {
-        "layer": "clod",
-        "extension": "tif",
-        "action": "to_index",
-        "dformat_out": { "type": "fixed", "value": "int16,-1,0,5000" },
-        "ext_min_value": 0,
-        "ext_max_value": 50
-      },
-      {
-        "layer": "fcover",
-        "extension": "tif",
-        "action": "to_index",
-        "dformat_out": { "type": "fixed", "value": "int16,-1,0,10000" },
-        "ext_min_value": 0,
-        "ext_max_value": 1
-      },
-      {
-        "layer": "hod",
-        "extension": "tif",
-        "action": "to_index",
-        "dformat_out": { "type": "fixed", "value": "int16,-1,0,5000" },
-        "ext_min_value": 0,
-        "ext_max_value": 5
       }
      ],
      [],
@@ -747,7 +759,7 @@ Variable environment must be also defined in graph file:
       "command": "myImage",
       "args": {
         "workdir": { "type": "config", "value": "workdir" },
-        "image": { "type": "in", "layer": "product", "extension": "SAFE" },
+        "image": { "type": "in", "layer": "__product__", "extension": "SAFE" },
         "srtm-uri": { "type": "config", "value": "srtm-uri" },
         "roadmap": { "type": "config", "value": "roadmap-robot" },
         "options": { "type": "config", "value": "roadmap-options" },

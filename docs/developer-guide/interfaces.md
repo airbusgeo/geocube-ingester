@@ -8,9 +8,12 @@ The messaging interface is available here : `vendor/github.com/geocube/interface
 
 It is used to communicate between `workflow`, `downloader` and `processor` service. It is configured in the corresponding `main.go` in the `cmd` folder.
 
-### Pgqueue implementation
+### Postgres-based implementation
 
 A messaging interface based on postgres is implemented using the [btubbs/pgq](https://github.com/btubbs/pgq) library: `vendor/github.com/geocube/interface/messaging/pgqueue`. This implementation has autoscaling capabilities.
+
+>>The postgreqsl database must be configured to accept as many connections as the number of workers, because pgqueue keeps the connection open during the whole processing.
+
 
 ### PubSub implementation
 
@@ -22,7 +25,7 @@ Three topics/subscriptions must be created:
 - To communicate from workflow to processor service i.e : ingester-processor
 - To communicate from downloader & processor to workflow i.e : ingester-event
 
-NB: Topics & Subscriptions must be created before running Downloader, Processor and Workflow.
+> NB: Topics & Subscriptions must be created before running Downloader, Processor and Workflow.
 
 A Pub/Sub emulator is available to use PubSub in a local system (with limited capacities).
 
@@ -75,13 +78,7 @@ Depending on the provider, the user may need credentials. Please refer to the AP
 
 ### Add a new provider
 
-1. Add configuration parameters (credentials, endpoint) in `cmd/downloader/main.go` and add the new provider to the list of providers.
-2. Implement the new provider in `ìnterface/provider` with methods:
-
-```go
-Name() string
-Download(ctx context.Context, scene common.Scene, localDir string) error
-``` 
+See [Developer Guide/Provider](providers.md).
 
 ## Image Catalog
 
@@ -95,22 +92,6 @@ The Ingester is currently able to connect to the following catalogues:
 - GCS for bursts annotations of an archive stored in GCS
 
 
-<div id="custom-interface"></div>
 ### Add a new catalogue
 
-In order to add a new catalogue:
-
-1. For a new constellation/satellite: in file `catalog/catalog.go`, adapt `DoTilesInventory` method in order to be able to interpret the new constellation (otherwise no update needed).
-2. In file `catalog/scenes.go`, add newProvider instantiation in `ScenesInventory` method.
-3. For a new constellation/satellite: in file `catalog/entities/entities.go` add the constellation name and adapt `GetConstellation` method in order to manage the new constellation (otherwise no update needed).
-4. Add configuration parameters (credentials, endpoint) in `cmd/catalog/main.go`.
-5. Implement new catalog in `interface/catalog` with method:
-
-```go
-SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) ([]*entities.Scene, error)
-```
-
-This method returns a list of available scenes
-
-
-
+See [Developer Guide/Provider](catalog.md).

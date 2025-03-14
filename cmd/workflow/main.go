@@ -85,7 +85,7 @@ func newAppConfig() (*config, error) {
 	flag.Int64Var(&config.AutoscalerConfig.MaxProcessorInstances, "max-processor", 900, "Max Processor instances (autoscaler)")
 
 	// Geocube
-	flag.StringVar(&config.CatalogConfig.GeocubeServer, "geocube-server", "127.0.0.1:8080", "address of geocube server")
+	flag.StringVar(&config.CatalogConfig.GeocubeServer, "geocube-server", "", "address of geocube server (e.g. 127.0.0.1:8080)")
 	flag.BoolVar(&config.CatalogConfig.GeocubeServerInsecure, "geocube-insecure", false, "connection to geocube server is insecure")
 	flag.StringVar(&config.CatalogConfig.GeocubeServerApiKey, "geocube-apikey", "", "geocube server api key")
 
