@@ -36,6 +36,14 @@ func NewOneAtlasProvider(ctx context.Context, username, apikey, endpoint, orderE
 		orderManager: orderManager,
 	}, cncl
 }
+func (p *provider) Supports(c common.Constellation) bool {
+	switch c {
+	case common.PHR:
+	case common.SPOT:
+		return true
+	}
+	return false
+}
 
 func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
 	catalogRequestParameter, err := p.buildCatalogParameters(area, aoi)

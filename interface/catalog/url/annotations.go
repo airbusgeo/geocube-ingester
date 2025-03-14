@@ -151,7 +151,7 @@ func ReadAll(r io.Reader) ([]byte, error) {
 }
 
 // scanDir returns the files of the dir that match the reg
-func scanDir(ctx context.Context, dir string, reg regexp.Regexp) (map[string][]byte, error) {
+func scanDir(_ context.Context, dir string, reg regexp.Regexp) (map[string][]byte, error) {
 	files := map[string][]byte{}
 
 	if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {

@@ -13,5 +13,6 @@ type AnnotationsProvider interface {
 }
 
 type ScenesProvider interface {
+	Supports(c common.Constellation) bool
 	SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error)
 }

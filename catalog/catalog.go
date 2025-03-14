@@ -18,8 +18,8 @@ import (
 type Catalog struct {
 	GeocubeClient                  *geocube.Client
 	Workflow                       WorkflowManager
+	CopernicusCatalog              bool
 	CreodiasCatalog                bool
-	OndaCatalog                    bool
 	OneAtlasCatalogUser            string
 	OneAtlasApikey                 string
 	OneAtlasCatalogEndpoint        string

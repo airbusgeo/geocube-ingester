@@ -1,20 +1,20 @@
 # Provider
 
+NB: This documentation is for user that want to use the providers. For documentation on how to implement a new provider, see [Developer-Guide/Providers](#developer-guide/provideres.md).
+
 Providers are implemented in order to download scenes. They are called one by one until the corresponding image is found.
 
-- [Copernicus](providers.md#copernicus): sentinel1 & 2 scenes
-- [Creodias](providers.md#creodias): for retrieving the annotations of Sentinel1 products
-- [GCS](providers.md#gcs): for retrieving the annotations of an Archive stored in GCS
-- [Local](providers.md#local-directory): directory sentinel1 & 2 scenes
-- [Mundi](providers.md#mundi): sentinel1 & 2 scenes
-- [Onda](providers.md#onda): sentinel1 & 2 scenes
-- [OneAtlas](providers.md#oneatlas): PHR & SPOT scenes
-- [Peps](providers.md#peps): sentinel1 & 2 scenes
+- [Copernicus](providers.md#copernicus): Sentinel scenes
+- [Creodias](providers.md#creodias): Sentinel scenes
+- [GCS](providers.md#gcs): any scenes stored in GCS (can be used to retrieve the annotations of an Sentinel1 archive stored in GCS)
+- [Local](providers.md#local-directory): any scenes stored locally
+- [OneAtlas](providers.md#oneatlas): Airbus scenes (SPOT, Pleiades, PNEO)
 - [ASF](providers.md#asf): sentinel1 & 2 scenes
 
 The scenes to be downloaded are sent to the Downloader Service, then the tiles to be processed are sent to the Processor Service.
 
 If an autoscaler is configured, the downloading and the processing are done in parallel using all available machines.
+
 ## Creodias
 
 Creodias account credentials are needed.
@@ -51,27 +51,9 @@ For more information see: [GCS Documentation](https://cloud.google.com/storage)
 
 ## Local directory
 
-No need credentials. 
+No credentials needed.
 
 `local-path` downloader argument must be defined (local path where images are stored)
-
-## Mundi
-
-`mundi-seeed-token` downloader argument must be defined.
-
-Mundi uses `https://mundiwebservices.com/dp/s1-l%s-%s-%04d-q%d/%04d/%02d/%02d/%s/%s/%s.zip` for Sentinel1 and `https://mundiwebservices.com/dp/s2-%s-%04d-q%d/%s/%s/%s/%04d/%02d/%02d/%s.zip` for Sentinel2.
-
-For more information see: [Mundi Documentation](https://mundiwebservices.com/help/documentation)
-
-## Onda
-
-Onda account credentials are needed.
-
-`onda-username` and `onda-password` downloader arguments must be defined.
-
-Onda uses `https://catalogue.onda-dias.eu/dias-catalogue/Products(%s)/$value` endpoint.
-
-For more information see: [Onda Documentation](https://www.onda-dias.eu/cms/knowledge-base/)
 
 ## OneAtlas
 
@@ -91,16 +73,6 @@ It's possible to use another endpoint by defining `oneatlas-download-endpoint`, 
 Important: concerning pricing, OneAtlas provider will be process and download image while credits are available. 
 
 For more information see: [OneAtlas Documentation](https://oneatlas.airbus.com/home)
-
-## Peps
-
-Peps account credentials are needed.
-
-`peps-username` and `peps-password` downloader arguments must be defined.
-
-Peps uses `https://peps.cnes.fr/resto/api/collections/search.json?` endpoint.
-
-For more information see: [Peps Documentation](https://peps.cnes.fr/rocket/#/home)
 
 
 ## ASF

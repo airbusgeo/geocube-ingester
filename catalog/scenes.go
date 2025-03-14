@@ -14,7 +14,6 @@ import (
 
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/copernicus"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/creodias"
-	"github.com/airbusgeo/geocube-ingester/interface/catalog/onda"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/oneatlas"
 
 	geocube "github.com/airbusgeo/geocube-client-go/client"
@@ -33,14 +32,17 @@ import (
 // The scenes are retrieved from different providers
 func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
 	// Search
+	constellation := entities.GetConstellation(area.SceneType.Constellation)
 	var sceneProviders []catalog.ScenesProvider
-	if c.CreodiasCatalog && entities.GetConstellation(area.SceneType.Constellation) == common.Sentinel2 {
+	if c.CreodiasCatalog && constellation == common.Sentinel2 {
 		sceneProviders = append(sceneProviders, &creodias.Provider{}) // Prefered provider for Sentinel2
 	}
-	if c.OndaCatalog {
-		sceneProviders = append(sceneProviders, &onda.Provider{})
+	if c.CopernicusCatalog {
+		sceneProviders = append(sceneProviders, &copernicus.Provider{})
 	}
-	sceneProviders = append(sceneProviders, &copernicus.Provider{})
+	if c.CreodiasCatalog {
+		sceneProviders = append(sceneProviders, &creodias.Provider{})
+	}
 	if c.OneAtlasCatalogUser != "" {
 		oneAtlasProvider, oneAtlasProviderCncl := oneatlas.NewOneAtlasProvider(ctx,
 			c.OneAtlasCatalogUser,
@@ -48,19 +50,23 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 			c.OneAtlasCatalogEndpoint,
 			c.OneAtlasOrderEndpoint,
 			c.OneAtlasAuthenticationEndpoint)
-		sceneProviders = append(sceneProviders, oneAtlasProvider)
-		defer oneAtlasProviderCncl()
-	}
-	if c.CreodiasCatalog && entities.GetConstellation(area.SceneType.Constellation) != common.Sentinel2 {
-		sceneProviders = append(sceneProviders, &creodias.Provider{})
+		if oneAtlasProvider.Supports(constellation) {
+			sceneProviders = append(sceneProviders, oneAtlasProvider)
+			defer oneAtlasProviderCncl()
+		} else {
+			oneAtlasProviderCncl()
+		}
 	}
 	if len(sceneProviders) == 0 {
-		return entities.Scenes{}, fmt.Errorf("no catalog is configured")
+		return entities.Scenes{}, fmt.Errorf("no catalog is configured for '%s'", area.SceneType.Constellation)
 	}
 
 	var err, e error
 	var scenes entities.Scenes
 	for _, sceneProvider := range sceneProviders {
+		if !sceneProvider.Supports(constellation) {
+			continue
+		}
 		scenes, e = sceneProvider.SearchScenes(ctx, area, aoi)
 		if err = service.MergeErrors(false, err, e); err == nil {
 			break

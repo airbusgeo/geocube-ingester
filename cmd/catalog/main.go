@@ -37,8 +37,8 @@ type config struct {
 	OneAtlasUsername      string
 	OneAtlasApikey        string
 	OneAtlasEndpoint      string
+	CopernicusCatalog     bool
 	CreodiasCatalog       bool
-	OndaCatalog           bool
 }
 
 func newAppConfig() (*config, error) {
@@ -57,8 +57,8 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
 	flag.StringVar(&config.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas account password (optional)")
 	flag.StringVar(&config.OneAtlasEndpoint, "oneatlas-endpoint", "", "oneatlas endpoint to search products from the catalogue")
+	flag.BoolVar(&config.CopernicusCatalog, "copernicus-catalog", false, "Use the copernicus catalog service (search data)")
 	flag.BoolVar(&config.CreodiasCatalog, "creodias-catalog", false, "Use the creodias catalog service (search data)")
-	flag.BoolVar(&config.OndaCatalog, "onda-catalog", false, "Use the onda catalog service (search data)")
 	flag.Parse()
 
 	if len(annotationsURLs) > 0 {
@@ -114,11 +114,11 @@ func run(ctx context.Context) error {
 		c.OneAtlasApikey = config.OneAtlasApikey
 		c.OneAtlasCatalogEndpoint = config.OneAtlasEndpoint
 
+		// Copernicus catalogue
+		c.CopernicusCatalog = config.CopernicusCatalog
+
 		// Creodias catalogue
 		c.CreodiasCatalog = config.CreodiasCatalog
-
-		// Onda catalogue
-		c.OndaCatalog = config.OndaCatalog
 	}
 
 	if config.Area != "" {

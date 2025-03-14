@@ -66,9 +66,7 @@ The Downloader service is currently able to download Sentinel 1 & 2 products fro
 
 - Peps
 - Copernicus (wip)
-- Onda
 - Creodias
-- Mundi
 - Local file system
 - GCS
 - Alaska Satellite Facility

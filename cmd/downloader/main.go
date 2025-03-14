@@ -70,15 +70,11 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.LocalProviderPath, "local-path", "", "local path where images are stored (optional). To configure a local path as a potential image Provider.")
 	flag.StringVar(&config.PepsUsername, "peps-username", "", "peps account username (optional). To configure PEPS as a potential image Provider.")
 	flag.StringVar(&config.PepsPassword, "peps-password", "", "peps account password (optional)")
-	flag.StringVar(&config.OndaUsername, "onda-username", "", "onda account username (optional). To configure ONDA as a potential image Provider.")
-	flag.StringVar(&config.OndaPassword, "onda-password", "", "onda account password (optional)")
-	flag.BoolVar(&config.OndaAllowOrder, "onda-allow-order", false, "allow onda to order offline product (optional)")
 	flag.StringVar(&config.ASFToken, "asf-token", "", "ASF token (optional). To configure Alaska Satellite Facility as a potential image Provider.")
 	flag.StringVar(&config.CopernicusUsername, "copernicus-username", "", "copernicus account username (optional). To configure Copernicus as a potential image Provider.")
 	flag.StringVar(&config.CopernicusPassword, "copernicus-password", "", "copernicus account password (optional)")
 	flag.StringVar(&config.CreodiasUsername, "creodias-username", "", "creodias account username (optional). To configure Creodias as a potential image Provider.")
 	flag.StringVar(&config.CreodiasPassword, "creodias-password", "", "creodias account password (optional)")
-	flag.StringVar(&config.MundiSeeedToken, "mundi-seeed-token", "", "mundi seeed-token (optional). To configure Mundi as a potential image Provider.")
 	flag.StringVar(&config.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
 	flag.StringVar(&config.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas apikey to use")
 	flag.StringVar(&config.OneAtlasDownloadEndpoint, "oneatlas-download-endpoint", "https://access.foundation.api.oneatlas.airbus.com/api/v1/items", "oneatlas download endpoint to use")
@@ -212,10 +208,6 @@ func run(ctx context.Context) error {
 		providerNames = append(providerNames, "PEPS ("+config.PepsUsername+")")
 		imageProviders = append(imageProviders, provider.NewPEPSDiasImageProvider(config.PepsUsername, config.PepsPassword))
 	}
-	if config.OndaUsername != "" {
-		providerNames = append(providerNames, "Onda ("+config.OndaUsername+")")
-		imageProviders = append(imageProviders, provider.NewONDADiasImageProvider(config.OndaUsername, config.OndaPassword, false))
-	}
 	if config.ASFToken != "" {
 		providerNames = append(providerNames, "ASF ("+config.ASFToken+")")
 		imageProviders = append(imageProviders, provider.NewASFImageProvider(config.ASFToken))
@@ -223,10 +215,6 @@ func run(ctx context.Context) error {
 	if config.CopernicusUsername != "" {
 		providerNames = append(providerNames, "Copernicus ("+config.CopernicusUsername+")")
 		imageProviders = append(imageProviders, provider.NewCopernicusImageProvider(config.CopernicusUsername, config.CopernicusPassword))
-	}
-	if config.MundiSeeedToken != "" {
-		providerNames = append(providerNames, "Mundi")
-		imageProviders = append(imageProviders, provider.NewMundiImageProvider(config.MundiSeeedToken))
 	}
 	if config.CreodiasUsername != "" {
 		providerNames = append(providerNames, "Creodias ("+config.CreodiasUsername+")")
@@ -245,11 +233,6 @@ func run(ctx context.Context) error {
 		imageProviders = append(imageProviders, oneatlasProvider)
 	}
 
-	// If everything else failed, try to order
-	if config.OndaUsername != "" && config.OndaAllowOrder {
-		providerNames = append(providerNames, "Onda ("+config.OndaUsername+")")
-		imageProviders = append(imageProviders, provider.NewONDADiasImageProvider(config.OndaUsername, config.OndaPassword, config.OndaAllowOrder))
-	}
 	if len(imageProviders) == 0 {
 		return fmt.Errorf("no image providers defined... ")
 	}

@@ -38,6 +38,7 @@ spec:
             - "--max-processor=800"
             - "--geocube-server=$(GEOCUBE_SERVER)"
             - "--geocube-apikey=$(GEOCUBE_CLIENTAPIKEY)"
+            - "--copernicus-catalog"
           imagePullPolicy: Always
           resources:
             requests:
@@ -73,10 +74,6 @@ spec:
               value: [Enter value]
             - name: PEPS_PASSWORD
               value: [Enter value]
-            - name: ONDA_USERNAME
-              value: [Enter value]
-            - name: ONDA_PASSWORD
-              value: [Enter value]
             - name: CREODIAS_USERNAME
               value: [Enter value]
             - name: CREODIAS_PASSWORD
@@ -84,8 +81,6 @@ spec:
             - name: COPERNICUS_USERNAME
               value: [Enter value]
             - name: COPERNICUS_PASSWORD
-              value: [Enter value]
-            - name: MUNDI_SEEED_TOKEN
               value: [Enter value]
             - name: GCS_PROVIDER_BUCKETS
               value: [Enter value]
@@ -96,14 +91,11 @@ spec:
             - "--storage-uri=$(STORAGE_URI)"
             - "--peps-username=$(PEPS_USERNAME)"
             - "--peps-password=$(PEPS_PASSWORD)"
-            - "--onda-username=$(ONDA_USERNAME)"
-            - "--onda-password=$(ONDA_PASSWORD)"
             - "--copernicus-username=$(COPERNICUS_USERNAME)"
             - "--copernicus-password=$(COPERNICUS_PASSWORD)"
             - "--creodias-username=$(CREODIAS_USERNAME)"
             - "--creodias-password=$(CREODIAS_PASSWORD)"
             - "--gs-provider-buckets=$(GCS_PROVIDER_BUCKETS)"
-            - "--mundi-seeed-token=$(MUNDI_SEEED_TOKEN)"
           image: {{DOWNLOADER_IMAGE}}
           imagePullPolicy: Always
           ports:

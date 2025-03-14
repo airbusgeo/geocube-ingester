@@ -31,6 +31,15 @@ const (
 type Provider struct {
 }
 
+func (p *Provider) Supports(c common.Constellation) bool {
+	switch c {
+	case common.Sentinel1:
+	case common.Sentinel2:
+		return true
+	}
+	return false
+}
+
 func (s *Provider) OpenSearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
 	// Construct Query
 	hostUrl := CopernicusQueryURL

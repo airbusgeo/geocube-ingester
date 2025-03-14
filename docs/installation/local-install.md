@@ -119,12 +119,6 @@ Usage of ./downloader:
     	name of the queue for downloader jobs (pgqueue or pubsub subscription)
   -local-path string
     	local path where images are stored (optional). To configure a local path as a potential image Provider.
-  -mundi-seeed-token string
-    	mundi seeed-token (optional). To configure Mundi as a potential image Provider.
-  -onda-password string
-    	onda account password (optional)
-  -onda-username string
-    	onda account username (optional). To configure ONDA as a potential image Provider.
   -oneatlas-apikey string
     	oneatlas apikey to use
   -oneatlas-auth-endpoint string

@@ -1,5 +1,7 @@
 # Catalogue
 
+NB: This documentation is for user that want to use the Catalogue. For documentation on how to implement a new catalogue, see [Developer-Guide/Catalogue](#developer-guide/catalog.md).
+
 Catalogue component makes an inventory of all the scenes (and bursts for S1 images) covering the AOI between startDate and endDate. 
 
 Some providers are implemented in order to list scenes and retrieve scenes metadata (Name, ID, etc.):
@@ -9,16 +11,21 @@ Some providers are implemented in order to list scenes and retrieve scenes metad
 - [OneAtlas](#oneatlas): PHR & SPOT scenes
 - [Creodias](#creodias), [GCS or AWS](#object-storage) and : for retrieving the Sentinel-1 annotations
 
+
 ## Sentinel constellations
 ### Copernicus
 
 Copernicus can be used to list the Sentinel products. It does not require authentication.
+
+Use the `--copernicus-catalog` flag to enable this catalogue.
 
 For more information see: [Copernicus OpenSearch API Documentation](https://documentation.dataspace.copernicus.eu/APIs/OpenSearch.html)  [Copernicus ODATA API Documentation](https://documentation.dataspace.copernicus.eu/APIs/OData.html)
 
 ### Creodias
 
 No authentication required.
+
+Use the `--creodias-catalog` flag to enable this catalogue.
 
 NB: Creodias is usually more reliable than Copernicus, but Sentinel-1 catalogue returns less information than the Copernicus' one.
 
@@ -27,6 +34,13 @@ For more information see: [Creodias API](https://creodias.eu/data-offer)
 ## Airbus constellations
 
 ### OneAtlas
+
+Use the following arguments to configure this catalogue:
+- `oneatlas-username`
+- `oneatlas-apikey`
+- `oneatlas-endpoint`
+- `oneatlas-order-endpoint`
+- `oneatlas-auth-endpoint`
 
 #### Account
 
