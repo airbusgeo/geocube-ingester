@@ -1,8 +1,8 @@
 module github.com/airbusgeo/geocube-ingester
 
-go 1.21
+go 1.23.0
 
-toolchain go1.22.1
+toolchain go1.24.1
 
 require (
 	cloud.google.com/go/pubsub v1.36.1
@@ -25,7 +25,7 @@ require (
 	github.com/onsi/gomega v1.27.6
 	github.com/paulsmith/gogeos v0.1.2
 	go.uber.org/zap v1.24.0
-	golang.org/x/sync v0.6.0
+	golang.org/x/sync v0.12.0
 	google.golang.org/api v0.176.0
 	google.golang.org/grpc v1.63.2
 )
@@ -116,15 +116,15 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/goleak v1.1.12 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
-	golang.org/x/mod v0.13.0 // indirect
-	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/mod v0.24.0 // indirect
+	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/oauth2 v0.19.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/term v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.14.0 // indirect
+	golang.org/x/tools v0.31.0 // indirect
 	google.golang.org/genproto v0.0.0-20240227224415-6ceb2ff114de // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240314234333-6e1732d8331c // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240415180920-8c6c420018be // indirect

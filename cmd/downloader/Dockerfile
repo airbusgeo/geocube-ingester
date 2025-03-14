@@ -5,7 +5,7 @@ ARG BASE_IMAGE=ubuntu:focal
 ARG UPDATE_SNAP
 
 
-FROM golang:1.21-bullseye AS builder
+FROM golang:1.23-bullseye AS builder
 
 ENV GOFLAGS=-mod=vendor
 WORKDIR /build
