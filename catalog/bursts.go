@@ -24,6 +24,9 @@ func sceneBurstsInventory(ctx context.Context, scene *entities.Scene, pareaAOI *
 	if err != nil {
 		return err
 	}
+	if scene.Data.TileMappings == nil {
+		scene.Data.TileMappings = map[string]common.TileMapping{}
+	}
 	// Check that burst AOI intersects area AOI
 	for _, burst := range bursts {
 		burstAOI, err := geos.FromWKT(burst.GeometryWKT)

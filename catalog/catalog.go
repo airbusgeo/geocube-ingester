@@ -104,6 +104,9 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 					},
 					GeometryWKT: scene.GeometryWKT,
 				})
+				if scene.Data.TileMappings == nil {
+					scene.Data.TileMappings = map[string]common.TileMapping{}
+				}
 				scene.Data.TileMappings[scene.SourceID] = common.TileMapping{}
 			}
 		} else {
@@ -143,6 +146,9 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 				},
 				GeometryWKT: scene.GeometryWKT,
 			})
+			if scene.Data.TileMappings == nil {
+				scene.Data.TileMappings = map[string]common.TileMapping{}
+			}
 			scene.Data.TileMappings[scene.SourceID] = common.TileMapping{}
 		}
 	}

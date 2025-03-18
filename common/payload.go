@@ -13,7 +13,7 @@ const (
 )
 
 const (
-	DownloadLinkMetadata = "downloadLink"
+	DownloadLinkMetadata = "download_link"
 )
 
 type TileMapping struct {
@@ -24,11 +24,11 @@ type TileMapping struct {
 type SceneAttrs struct {
 	UUID         string                 `json:"uuid"`
 	Date         time.Time              `json:"date"`
-	TileMappings map[string]TileMapping `json:"tiles"`
+	TileMappings map[string]TileMapping `json:"tiles,omitempty"`
 	GraphName    string                 `json:"graph_name"`
 	GraphConfig  map[string]string      `json:"graph_config"`
 	RecordID     string                 `json:"record_id"`
-	InstancesID  map[string]string      `json:"instances_id"`
+	InstancesID  map[string]string      `json:"instances_id,omitempty"`
 	Metadata     map[string]interface{} `json:"metadata"`
 	IsRetriable  bool                   `json:"is_retriable"`
 	StorageURI   string                 `json:"storage_uri"`

@@ -433,6 +433,9 @@ func (o orderErr) Error() string {
 }
 
 func GetAoiFromGeometry(scene common.Scene) (Aoi, error) {
+	if scene.Data.Metadata == nil {
+		return Aoi{}, fmt.Errorf("scene metadata is empty")
+	}
 	aoiGeometry, ok := scene.Data.Metadata["geometry"]
 	if !ok {
 		return Aoi{}, fmt.Errorf("failed to get geometry metadata")

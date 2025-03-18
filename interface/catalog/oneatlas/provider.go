@@ -249,6 +249,9 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 				sceneOrderStatus, ok := orderStatus[scene.Scene.Data.UUID]
 				if ok {
 					if strings.EqualFold(sceneOrderStatus.State, "delivered") {
+						if scene.Data.Metadata == nil {
+							scene.Data.Metadata = map[string]any{}
+						}
 						scene.Data.Metadata[common.DownloadLinkMetadata] = sceneOrderStatus.DownloadLink
 					}
 					continue

@@ -198,6 +198,9 @@ func indexTile(ctx context.Context, gcclient *geocube.Client, instancesID map[st
 	}
 
 	// Get instance ID
+	if instancesID == nil {
+		return fmt.Errorf("indexTile: layer %s not found in InstancesID", file.Layer)
+	}
 	instanceID, ok := instancesID[string(file.Layer)]
 	if !ok {
 		return fmt.Errorf("indexTile: layer %s not found in InstancesID", file.Layer)

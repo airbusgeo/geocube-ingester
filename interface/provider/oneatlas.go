@@ -46,6 +46,9 @@ func (o *OneAtlasProvider) Download(ctx context.Context, scene common.Scene, loc
 	default:
 		return fmt.Errorf("OneAtlasProvider: constellation not supported: %s", sceneName)
 	}
+	if scene.Data.Metadata == nil {
+		return fmt.Errorf("OneAtlasProvider: unable to retrieve download Link: scene metadata is empty")
+	}
 
 	downloadLink, ok := scene.Data.Metadata[common.DownloadLinkMetadata]
 	if !ok || downloadLink == "" {

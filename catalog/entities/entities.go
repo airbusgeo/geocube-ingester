@@ -24,24 +24,24 @@ type TileLite struct {
 // Tile defined a tile (i.e. burst/granule...) for the catalog
 type Tile struct {
 	TileLite
-	ID          int
-	Data        common.TileAttrs
-	AnxTime     int
-	GeometryWKT string
-	Previous    *TileLite
-	Reference   *TileLite
-	Ingested    bool
+	ID          int              `json:"id"`
+	Data        common.TileAttrs `json:"data"`
+	AnxTime     int              `json:"anx_time"`
+	GeometryWKT string           `json:"wkt"`
+	Previous    *TileLite        `json:"previous"`
+	Reference   *TileLite        `json:"reference"`
+	Ingested    bool             `json:"-"`
 }
 
 // Scene is a specialisation of common.Scene for the catalog
 type Scene struct {
 	common.Scene
-	ProductName string // SceneName without the product discriminator (to remove double entries)
-	Tags        map[string]string
-	GeometryWKT string
-	Tiles       []*Tile
-	Ingested    bool // This scene has already been ingested
-	OwnRecord   bool // The record has been created for this scene
+	ProductName string            `json:"-"` // SceneName without the product discriminator (to remove double entries)
+	Tags        map[string]string `json:"tags"`
+	GeometryWKT string            `json:"wkt"`
+	Tiles       []*Tile           `json:"tiles,omitempty"`
+	Ingested    bool              `json:"-"` // This scene has already been ingested
+	OwnRecord   bool              `json:"-"` // The record has been created for this scene
 }
 
 type SceneType struct {

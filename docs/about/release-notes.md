@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.1.0
+
+### Warning
+- catalog/scenes and catalog/tiles: fields are low case
+
+### Functionalities
+
+### Bug fixes
+
+### Optimization
+- catalog/scenes catalog/tiles: remove unused or empty fields in the JSON file exported + fields are low case
+
 ## 1.0.3beta
 
 ### Functionalities
