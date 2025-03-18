@@ -2,10 +2,12 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/airbusgeo/geocube-ingester/common"
 )
@@ -29,16 +31,20 @@ func NewLocalImageProvider(path string) *LocalImageProvider {
 func (ip *LocalImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	// Retrieve date of the scene from name
 	sceneName := scene.SourceID
+	var srcZip string
 	date, err := common.GetDateFromProductId(sceneName)
-	if err != nil {
+	var verr *time.ParseError
+	if err != nil && !errors.As(err, &verr) {
 		return fmt.Errorf("LocalImageProvider: %w", err)
+	} else if err != nil {
+		srcZip = path.Join(ip.path, sceneName+".zip")
+	} else {
+		// Create the list of subfolders
+		folders := strings.Split(date.Format("2006-01-02"), "-")
+		srcZip = path.Join(ip.path, folders[0], folders[1], folders[2], sceneName+".zip")
 	}
 
-	// Create the list of subfolders
-	folders := strings.Split(date.Format("2006-01-02"), "-")
-
 	// Unarchive file
-	srcZip := path.Join(ip.path, folders[0], folders[1], folders[2], sceneName+".zip")
 	if _, err := os.Stat(srcZip); err != nil {
 		if os.IsNotExist(err) {
 			return ErrProductNotFound{srcZip}

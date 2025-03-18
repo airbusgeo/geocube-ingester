@@ -40,7 +40,7 @@ func GetDateFromProductId(sceneName string) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, err
 	}
-	return time.Parse("20060102T150405", fmt.Sprintf("%s%s%sT%s%s%s", format["YEAR"], format["MONTH"], format["DAY"], format["HOUR"], format["MINUTE"], format["SECOND"]))
+	return time.Parse("20060102", fmt.Sprintf("%s%s%s", format["YEAR"], format["MONTH"], format["DAY"]))
 }
 
 func Info(sceneName string) (map[string]string, error) {

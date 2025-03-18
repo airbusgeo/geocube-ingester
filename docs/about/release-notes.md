@@ -8,6 +8,7 @@
 ### Functionalities
 
 ### Bug fixes
+- LocalProvider does not require that a date is included in the product name
 
 ### Optimization
 - catalog/scenes catalog/tiles: remove unused or empty fields in the JSON file exported + fields are low case
