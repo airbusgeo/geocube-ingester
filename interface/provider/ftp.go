@@ -78,43 +78,47 @@ func (ip *FTPImageProvider) Download(ctx context.Context, scene common.Scene, lo
 	if ip.tls {
 		ftpOption = append(ftpOption, ftp.DialWithTLS(&tls.Config{InsecureSkipVerify: true}))
 	}
-	c, err := ftp.Dial(ip.hote, ftpOption...)
+	ftpConnexion, err := ftp.Dial(ip.hote, ftpOption...)
 	if err != nil {
 		return fmt.Errorf("FTPImageProvider.Dial: %w", err)
 	}
 
-	if err = c.Login(ip.user, ip.pword); err != nil {
+	if err = ftpConnexion.Login(ip.user, ip.pword); err != nil {
 		return fmt.Errorf("FTPImageProvider.Login: %w", err)
 	}
-	defer c.Quit()
+	defer ftpConnexion.Quit()
 
 	// Get file size
-	s, _ := c.FileSize(path)
+	fileSize, _ := ftpConnexion.FileSize(path)
 
 	// Get file stream
-	r, err := c.Retr(path)
+	ftpReader, err := ftpConnexion.Retr(path)
 	if err != nil {
 		return fmt.Errorf("FTPImageProvider.Retr: %w", err)
 	}
-	defer r.Close()
+	defer ftpReader.Close()
 
 	// Download to local file
-	localZip := sceneFilePath(localDir, scene.SourceID, service.ExtensionZIP)
-	destFile, err := os.Create(localZip)
+	ext := service.GetExt(path)
+	localFile := sceneFilePath(localDir, scene.SourceID, ext)
+	destFile, err := os.Create(localFile)
 	if err != nil {
 		return fmt.Errorf("FTPImageProvider.Create: %w", err)
 	}
 	defer destFile.Close()
-	defer os.Remove(localZip)
 
-	_, err = io.Copy(destFile, io.TeeReader(r, &WriteCounter{Progress: NewProgress(ctx, "Ftp", s, 5)}))
+	_, err = io.Copy(destFile, io.TeeReader(ftpReader, &WriteCounter{Progress: NewProgress(ctx, "Ftp", fileSize, 5)}))
 	if err != nil {
+		os.Remove(localFile)
 		return fmt.Errorf("FTPImageProvider.Copy: %w", err)
 	}
 
 	// Unarchive
-	if err := unarchive(ctx, localZip, localDir); err != nil {
-		return service.MakeTemporary(fmt.Errorf("FTPImageProvider.Unarchive: %w", err))
+	if ext == service.ExtensionZIP {
+		defer os.Remove(localFile)
+		if err := unarchive(ctx, localFile, localDir); err != nil {
+			return service.MakeTemporary(fmt.Errorf("FTPImageProvider.Unarchive: %w", err))
+		}
 	}
 	return nil
 }

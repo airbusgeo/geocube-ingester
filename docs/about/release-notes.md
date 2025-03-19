@@ -19,6 +19,7 @@ To fix incoherences or potential limitation in JSON graphs :
 
 ### Bug fixes
 - LocalProvider does not require that a date is included in the product name
+- GS/FTP: do not try to unzip the downloaded file if the extension is not "zip"
 
 ### Optimization
 - catalog/scenes catalog/tiles: remove unused or empty fields in the JSON file exported + fields are low case

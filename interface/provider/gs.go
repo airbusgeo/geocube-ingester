@@ -110,6 +110,7 @@ func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, loc
 
 	for _, bucket := range buckets {
 		url := common.FormatBrackets(bucket, format, map[string]string{"AREA": scene.AOI})
+		ext := service.GetExt(url)
 
 		e := func() error {
 			if strings.Contains(url, "*") {
@@ -117,11 +118,11 @@ func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, loc
 					return fmt.Errorf("GSImageProvider: %w", err)
 				}
 			}
-			if filepath.Ext(url) == "."+string(service.ExtensionZIP) {
+			if ext == service.ExtensionZIP {
 				if err := ip.downloadZip(ctx, url, localDir); err != nil {
 					return fmt.Errorf("GSImageProvider[%s].%w", url, err)
 				}
-			} else if files, err := ip.downloadDirectory(ctx, url, filepath.Join(localDir, sceneName+".SAFE")); err != nil {
+			} else if files, err := ip.downloadDirectory(ctx, url, filepath.Join(localDir, service.WithExt(sceneName, ext))); err != nil {
 				return fmt.Errorf("GSImageProvider[%s].%w", url, err)
 			} else if len(files) == 0 {
 				return fmt.Errorf("GSImageProvider[%s]: not found", url)
