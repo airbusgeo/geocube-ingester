@@ -12,6 +12,7 @@
 
 ### Optimization
 - catalog/scenes catalog/tiles: remove unused or empty fields in the JSON file exported + fields are low case
+- Storage: Create zip archive with BestSpeed
 
 ## 1.0.3beta
 

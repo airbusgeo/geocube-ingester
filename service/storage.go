@@ -1,6 +1,7 @@
 package service
 
 import (
+	"compress/flate"
 	"context"
 	"errors"
 	"fmt"
@@ -128,7 +129,9 @@ func (ss *StorageStrategy) SaveLayer(ctx context.Context, tile common.Tile, laye
 		}
 		// Zip
 		dst := withExt(src, ExtensionZIP)
-		if err := archiver.NewZip().Archive(folders, dst); err != nil {
+		zipper := archiver.NewZip()
+		zipper.CompressionLevel = flate.BestSpeed
+		if err := zipper.Archive(folders, dst); err != nil {
 			return "", fmt.Errorf("SaveLayer.Archive: %w", err)
 		}
 		defer os.Remove(dst)
