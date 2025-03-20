@@ -5,6 +5,15 @@
 ### Warning
 - catalog/scenes and catalog/tiles: fields are low case
 
+#### Outdated graphs
+To fix incoherences or potential limitation in JSON graphs :
+- Layer "product" is replaced by "__product__"
+- Extension "all" is replaced by "*"
+- When importing with extension "zip", the file is not unzipped (use Extension "*" to unzip the file)
+- When importing with extension "*", "SAFE" or "dim", the unzip folder is ensured to have the name <layer>.<Extension> (or just <layer> for the former case).
+
+> Be sure to update the processing graphs, otherwise the behaviour will be undefined.
+
 ### Functionalities
 - Downloader: add a new provider from URL (use --url-provider)
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	gstorage "cloud.google.com/go/storage"
@@ -21,7 +22,8 @@ type Layer string
 
 // List of available layers
 const (
-	Product Layer = "product"
+	Product     Layer = "__product__"     // Special value, that will be replaced by the SourceID of the Scene
+	Annotations Layer = "__annotations__" // Special value, that will be replaced by the SourceID of the Scene + "_annotations" suffix
 
 	LayerPreprocessed  Layer = "preprocessed"
 	LayerCoregistrated Layer = "coregistred"
@@ -39,15 +41,17 @@ const (
 // Extension of a layer
 type Extension string
 
-// List of supported extension
+// Some supported extensions
 const (
+	NoExtension    Extension = "" // The layer has no extension
 	ExtensionGTiff Extension = "tif"
-	// The following extensions are exported as zip file
-	ExtensionZIP       Extension = "zip"
-	ExtensionSAFE      Extension = "SAFE"
+	ExtensionZIP   Extension = "zip"
+	// The following extensions are directories, thus, they are stored as a zip file (see service.storeAsZip() function)
+	// Using those extensions ensures that the stored file will be unzipped in a directory named <layer>.<Extension>
+	ExtensionSAFE      Extension = "SAFE" // Sentinel product
 	ExtensionDIMAP     Extension = "dim"
 	ExtensionDIMAPData Extension = "data"
-	ExtensionAll       Extension = "all"
+	ExtensionAll       Extension = "*" // The content of the whole working directory (e.g. useful to export all the downloaded files as one zip file). Replaced by NoExtension in the directory name
 )
 
 // ErrFileNotFound is an error returned by ImportLayer or DeleteLayer
@@ -67,10 +71,18 @@ func isErrNotFound(err error) bool {
 
 // LayerFileName returns the name of the file given the tile, the layer and the extension
 func LayerFileName(tile common.Tile, layer Layer, ext Extension) string {
-	if layer == Product {
-		return fmt.Sprintf("%s.%s", tile.Scene.SourceID, ext)
+	if ext == NoExtension || ext == ExtensionAll {
+		ext = ""
+	} else {
+		ext = "." + ext
 	}
-	return fmt.Sprintf("%s_%s_%s.%s", tile.Scene.Data.Date.Format("20060102"), tile.SourceID, layer, ext)
+	switch layer {
+	case Product:
+		return fmt.Sprintf("%s%s", tile.Scene.SourceID, ext)
+	case Annotations:
+		return fmt.Sprintf("%s_annotations.%s", tile.Scene.SourceID, ext)
+	}
+	return fmt.Sprintf("%s_%s_%s%s", tile.Scene.Data.Date.Format("20060102"), tile.SourceID, layer, ext)
 }
 
 // Storage is a service to store and retrieve file from storage
@@ -114,21 +126,20 @@ func (ss *StorageStrategy) SaveLayer(ctx context.Context, tile common.Tile, laye
 		folders := []string{src}
 		switch ext {
 		case ExtensionDIMAP:
-			folders = append(folders, withExt(src, ExtensionDIMAPData))
+			folders = append(folders, WithExt(src, ExtensionDIMAPData))
 		case ExtensionAll:
-			if _, err := os.Stat(src); err != nil {
-				files, err := os.ReadDir(localdir)
-				if err != nil {
-					return "", fmt.Errorf("SaveLayer.Archive: %w", err)
-				}
-				folders = folders[:0]
-				for _, f := range files {
-					folders = append(folders, path.Join(localdir, f.Name()))
-				}
+			// Zip the content of the localdir.
+			files, err := os.ReadDir(localdir)
+			if err != nil {
+				return "", fmt.Errorf("SaveLayer.Archive: %w", err)
+			}
+			folders = folders[:0]
+			for _, f := range files {
+				folders = append(folders, path.Join(localdir, f.Name()))
 			}
 		}
 		// Zip
-		dst := withExt(src, ExtensionZIP)
+		dst := WithExt(src, ExtensionZIP)
 		zipper := archiver.NewZip()
 		zipper.CompressionLevel = flate.BestSpeed
 		if err := zipper.Archive(folders, dst); err != nil {
@@ -157,31 +168,49 @@ func (ss *StorageStrategy) SaveLayer(ctx context.Context, tile common.Tile, laye
 
 // ImportLayer implements Storage
 func (ss *StorageStrategy) ImportLayer(ctx context.Context, tile common.Tile, layer Layer, ext Extension, localdir string) error {
-	oriext := ext
+	targetExt := ext
 	if storedAsZip(ext) {
 		ext = ExtensionZIP
 	}
 
 	layerFileName := LayerFileName(tile, layer, ext)
-	src := ss.getPath(tile, layerFileName)
-	dst := path.Join(localdir, layerFileName)
-	if err := ss.storage.DownloadToFile(ctx, src, dst); err != nil {
+	srcFile := ss.getPath(tile, layerFileName)
+	dstFile := path.Join(localdir, layerFileName)
+	if err := ss.storage.DownloadToFile(ctx, srcFile, dstFile); err != nil {
 		if isErrNotFound(err) {
-			return ErrFileNotFound{src}
+			return ErrFileNotFound{srcFile}
 		}
-		return fmt.Errorf("ImportLayer.DownloadToFile from %s: %w", src, err)
+		return fmt.Errorf("ImportLayer.DownloadToFile from %s: %w", srcFile, err)
 	}
 
-	if ext == ExtensionZIP {
-		zip := archiver.Zip{OverwriteExisting: true, MkdirAll: true}
-		dstDir := path.Dir(dst)
-		if oriext == ExtensionAll {
-			dstDir = path.Join(dstDir, LayerFileName(tile, layer, oriext))
+	if ext == ExtensionZIP && targetExt != ExtensionZIP {
+		defer os.Remove(dstFile)
+		layerFileName = LayerFileName(tile, layer, targetExt)
+		dstDir := path.Join(localdir, layerFileName)
+		tmpDir, err := os.MkdirTemp(localdir, "sampledir")
+		if err != nil {
+			return fmt.Errorf("ImportLayer.MkdirTemp: %w", err)
 		}
-		if err := zip.Unarchive(dst, dstDir); err != nil {
+		defer os.RemoveAll(tmpDir)
+		zip := archiver.Zip{OverwriteExisting: true, MkdirAll: true}
+		if err := zip.Unarchive(dstFile, tmpDir); err != nil {
 			return fmt.Errorf("ImportLayer.Unarchive: %w", err)
 		}
-		os.Remove(dst)
+
+		// Check if tmpDir has a layerFileName folder, otherwise, rename it
+		if _, err = os.Stat(path.Join(tmpDir, layerFileName)); err == nil {
+			tmpDir = path.Join(tmpDir, layerFileName)
+			if targetExt == ExtensionDIMAP {
+				if err := os.Rename(WithExt(tmpDir, ExtensionDIMAPData), WithExt(dstDir, ExtensionDIMAPData)); err != nil && !errors.Is(err, os.ErrNotExist) {
+					return fmt.Errorf("ImportLayer.RenameDimap: %w", err)
+				}
+			}
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("ImportLayer.Stat: %w", err)
+		}
+		if err := os.Rename(tmpDir, dstDir); err != nil {
+			return fmt.Errorf("ImportLayer.Rename: %w", err)
+		}
 	}
 
 	return nil
@@ -221,10 +250,14 @@ func storedAsZip(ext Extension) bool {
 	return false
 }
 
-func withExt(filepath string, ext Extension) string {
-	return filepath[:len(filepath)-len(getExt(filepath))] + string(ext)
+func WithExt(filePath string, ext Extension) string {
+	filePath = strings.TrimSuffix(filePath, filepath.Ext(filePath))
+	if ext != "" {
+		return fmt.Sprintf("%s.%s", filePath, string(ext))
+	}
+	return filePath
 }
 
-func getExt(filepath string) Extension {
-	return Extension(path.Ext(filepath)[1:])
+func GetExt(filePath string) Extension {
+	return Extension(path.Ext(filePath)[1:])
 }

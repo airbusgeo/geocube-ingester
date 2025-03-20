@@ -9,8 +9,8 @@
   "out_files": [
    [
     {
-     "layer": "product",
-     "extension": "all",
+     "layer": "__product__",
+     "extension": "*",
      "action": "to_create",
      "condition": "pass"
     }

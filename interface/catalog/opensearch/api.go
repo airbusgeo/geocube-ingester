@@ -179,7 +179,7 @@ func Parse(area *entities.AreaToIngest, hits []Hits) (entities.Scenes, error) {
 		// Create scene
 		scenes[i] = &entities.Scene{
 			Scene: common.Scene{
-				SourceID: rawscene.Properties.Identifier[:len(rawscene.Properties.Identifier)-len(".SAFE")],
+				SourceID: strings.TrimSuffix(rawscene.Properties.Identifier, ".SAFE"),
 				Data: common.SceneAttrs{
 					UUID:         rawscene.Uuid,
 					Date:         date,

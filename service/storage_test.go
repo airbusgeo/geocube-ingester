@@ -24,10 +24,10 @@ func initLocalDirs() (string, string, string, error) {
 }
 
 func createFiles(dir, name string) {
-	os.WriteFile(path.Join(dir, name+"dim"), []byte("test"), 0644)
-	os.Mkdir(path.Join(dir, name+"data"), 0755)
-	os.WriteFile(path.Join(dir, name+"data", "data"), []byte("test"), 0644)
-	os.WriteFile(path.Join(dir, name+"tif"), []byte("test"), 0644)
+	os.WriteFile(path.Join(dir, name+".dim"), []byte("test"), 0644)
+	os.Mkdir(path.Join(dir, name+".data"), 0755)
+	os.WriteFile(path.Join(dir, name+".data", "data"), []byte("test"), 0644)
+	os.WriteFile(path.Join(dir, name+".tif"), []byte("test"), 0644)
 }
 
 func TestLocalStorage(t *testing.T) {

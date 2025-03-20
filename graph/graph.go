@@ -21,16 +21,18 @@ import (
 )
 
 const (
-	burstSwath   = "swath"
-	tileNumber   = "number"
-	burstCohDate = "cohdate" // Date of the reference burst if different from previous date or date of the burst
-	sceneName    = "scene"
-	sceneDate    = "date"
+	// Keys for ArgTile
+	keyBurstSwath    = "swath"
+	keyTileNumber    = "number"
+	keyBurstCohDate  = "cohdate" // Date of the reference burst if different from previous date or date of the burst
+	keySceneName     = "scene"
+	keySceneDate     = "date"
+	keyConstellation = "constellation"
 
-	python  = "python"
-	snap    = "snap"
-	command = "cmd"
-	docker  = "docker"
+	pythonEngine  = "python"
+	snapEngine    = "snap"
+	commandEngine = "cmd"
+	dockerEngine  = "docker"
 
 	snapDateFormat = "02Jan2006"
 )
@@ -317,16 +319,16 @@ func NewProcessingGraph(ctx context.Context, steps []ProcessingStep, infiles [3]
 	snapRequired, dockerRequired := false, false
 	for i, step := range steps {
 		switch step.Engine {
-		case snap:
+		case snapEngine:
 			snapRequired = true
 			fallthrough
-		case python, command:
+		case pythonEngine, commandEngine:
 			cmd, err := getFile(ctx, graphPath, step.Command, true)
 			if err != nil {
 				return nil, fmt.Errorf("NewProcessingGraph: Command not found: %s (%w)", step.Command, err)
 			}
 			steps[i].Command = cmd
-		case docker:
+		case dockerEngine:
 			dockerRequired = true
 		}
 	}
@@ -512,16 +514,16 @@ func newS1PreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 	steps := []ProcessingStep{
 		// Extract burst from image and preprocess
 		{
-			Engine:    snap,
-			Command:   path.Join(snap, "S1_SLC_BurstSplit_AO_CAL.xml"),
+			Engine:    snapEngine,
+			Command:   path.Join(snapEngine, "S1_SLC_BurstSplit_AO_CAL.xml"),
 			Condition: pass,
 
 			Args: map[string]Arg{
-				"input":  ArgTile(sceneName),
+				"input":  ArgTile(keySceneName),
 				"output": ArgOut{service.LayerPreprocessed, service.ExtensionDIMAP},
-				"swath":  ArgTile(burstSwath),
+				"swath":  ArgTile(keyBurstSwath),
 				"polar":  ArgFixed("\"VV VH\""),
-				"burst":  ArgTile(tileNumber),
+				"burst":  ArgTile(keyTileNumber),
 			},
 		},
 	}
@@ -558,8 +560,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 	steps := []ProcessingStep{
 		// Coregistration with ref burst
 		{
-			Engine:    snap,
-			Command:   path.Join(snap, "S1_SLC_BkG.xml"),
+			Engine:    snapEngine,
+			Command:   path.Join(snapEngine, "S1_SLC_BkG.xml"),
 			Condition: pass,
 
 			Args: map[string]Arg{
@@ -576,8 +578,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 
 		// Extraction of coregistred slave
 		{
-			Engine:    snap,
-			Command:   path.Join(snap, "S1_SLC_SlvExtract.xml"),
+			Engine:    snapEngine,
+			Command:   path.Join(snapEngine, "S1_SLC_SlvExtract.xml"),
 			Condition: condDiffT0T1,
 
 			Args: map[string]Arg{
@@ -588,8 +590,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 
 		// Backscatter computation
 		{
-			Engine:    snap,
-			Command:   path.Join(snap, "S1_SLC_Deb_BetaSigma_ML_TC_RNKELL.xml"),
+			Engine:    snapEngine,
+			Command:   path.Join(snapEngine, "S1_SLC_Deb_BetaSigma_ML_TC_RNKELL.xml"),
 			Condition: pass,
 
 			Args: map[string]Arg{
@@ -609,14 +611,14 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 				"grid_align":        ArgFixed("true"),
 				"band":              ArgFixed("Sigma0"),
 				"trig":              ArgFixed("sin"),
-				"swath":             ArgTile(burstSwath),
-				"img_suffix":        ArgTile(sceneDate),
+				"swath":             ArgTile(keyBurstSwath),
+				"img_suffix":        ArgTile(keySceneDate),
 			},
 		},
 
 		{
-			Engine:    python,
-			Command:   path.Join(python, "erodeMask.py"),
+			Engine:    pythonEngine,
+			Command:   path.Join(pythonEngine, "erodeMask.py"),
 			Condition: pass,
 
 			Args: map[string]Arg{
@@ -628,8 +630,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 
 		{
-			Engine:    command,
-			Command:   path.Join(python, "convert.py"),
+			Engine:    commandEngine,
+			Command:   path.Join(pythonEngine, "convert.py"),
 			Condition: pass,
 
 			Args: map[string]Arg{
@@ -641,8 +643,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 
 		{
-			Engine:    python,
-			Command:   path.Join(python, "erodeMask.py"),
+			Engine:    pythonEngine,
+			Command:   path.Join(pythonEngine, "erodeMask.py"),
 			Condition: pass,
 
 			Args: map[string]Arg{
@@ -654,8 +656,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 
 		{
-			Engine:    command,
-			Command:   path.Join(python, "convert.py"),
+			Engine:    commandEngine,
+			Command:   path.Join(pythonEngine, "convert.py"),
 			Condition: pass,
 
 			Args: map[string]Arg{
@@ -668,8 +670,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 
 		// Coregistration with prev burst
 		{
-			Engine:    snap,
-			Command:   path.Join(snap, "S1_SLC_BkG.xml"),
+			Engine:    snapEngine,
+			Command:   path.Join(snapEngine, "S1_SLC_BkG.xml"),
 			Condition: condDiffT1T2,
 
 			Args: map[string]Arg{
@@ -686,8 +688,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 
 		// Coherence computation
 		{
-			Engine:    snap,
-			Command:   path.Join(snap, "S1_SLC_Coh_BSel_Deb_ML_TC.xml"),
+			Engine:    snapEngine,
+			Command:   path.Join(snapEngine, "S1_SLC_Coh_BSel_Deb_ML_TC.xml"),
 			Condition: condDiffT0T1,
 
 			Args: map[string]Arg{
@@ -696,7 +698,7 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 				"outputVH":          ArgOut{service.LayerCoherenceVH, service.ExtensionGTiff},
 				"coherence_range":   ArgConfig("coherence_range"),
 				"coherence_azimuth": ArgConfig("coherence_azimuth"),
-				"sel_date":          ArgTile(burstCohDate),
+				"sel_date":          ArgTile(keyBurstCohDate),
 				"range_multilook":   ArgConfig("terrain_correction_range"),
 				"azimuth_multilook": ArgConfig("terrain_correction_azimuth"),
 				"dem_name":          ArgConfig("dem_name"),
@@ -711,8 +713,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 			},
 		},
 		{
-			Engine:    python,
-			Command:   path.Join(python, "erodeMask.py"),
+			Engine:    pythonEngine,
+			Command:   path.Join(pythonEngine, "erodeMask.py"),
 			Condition: condDiffT0T1,
 
 			Args: map[string]Arg{
@@ -724,8 +726,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 
 		{
-			Engine:    command,
-			Command:   path.Join(python, "convert.py"),
+			Engine:    commandEngine,
+			Command:   path.Join(pythonEngine, "convert.py"),
 			Condition: condDiffT0T1,
 
 			Args: map[string]Arg{
@@ -737,8 +739,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 
 		{
-			Engine:    python,
-			Command:   path.Join(python, "erodeMask.py"),
+			Engine:    pythonEngine,
+			Command:   path.Join(pythonEngine, "erodeMask.py"),
 			Condition: condDiffT0T1,
 
 			Args: map[string]Arg{
@@ -750,8 +752,8 @@ func newS1BsCohGraph(ctx context.Context) (*ProcessingGraph, error) {
 		},
 
 		{
-			Engine:    command,
-			Command:   path.Join(python, "convert.py"),
+			Engine:    commandEngine,
+			Command:   path.Join(pythonEngine, "convert.py"),
 			Condition: condDiffT0T1,
 
 			Args: map[string]Arg{
@@ -791,8 +793,8 @@ func newS1CoregExtractGraph(ctx context.Context) (*ProcessingGraph, error) {
 	steps := []ProcessingStep{
 		// Coregistration with ref burst
 		{
-			Engine:    snap,
-			Command:   path.Join(snap, "S1_SLC_BkG.xml"),
+			Engine:    snapEngine,
+			Command:   path.Join(snapEngine, "S1_SLC_BkG.xml"),
 			Condition: condDiffT0T1,
 
 			Args: map[string]Arg{
@@ -809,8 +811,8 @@ func newS1CoregExtractGraph(ctx context.Context) (*ProcessingGraph, error) {
 
 		// Extraction of coregistred slave
 		{
-			Engine:    snap,
-			Command:   path.Join(snap, "S1_SLC_SlvExtract.xml"),
+			Engine:    snapEngine,
+			Command:   path.Join(snapEngine, "S1_SLC_SlvExtract.xml"),
 			Condition: condDiffT0T1,
 
 			Args: map[string]Arg{
@@ -844,8 +846,8 @@ func newS1CleanGraph(ctx context.Context) (*ProcessingGraph, error) {
 func newPhrPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 	steps := []ProcessingStep{
 		{
-			Engine:    python,
-			Command:   path.Join(python, "extract_dimap.py"),
+			Engine:    pythonEngine,
+			Command:   path.Join(pythonEngine, "extract_dimap.py"),
 			Condition: pass,
 
 			Args: map[string]Arg{
@@ -878,8 +880,8 @@ func newPhrPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 func newSpotPreProcessingGraph(ctx context.Context) (*ProcessingGraph, error) {
 	steps := []ProcessingStep{
 		{
-			Engine:    python,
-			Command:   path.Join(python, "extract_dimap.py"),
+			Engine:    pythonEngine,
+			Command:   path.Join(pythonEngine, "extract_dimap.py"),
 			Condition: pass,
 
 			Args: map[string]Arg{
@@ -1025,24 +1027,24 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 		// Create command
 		var cmd *exec.Cmd
 		switch step.Engine {
-		case snap:
+		case snapEngine:
 			cmd = exec.Command(g.opts.snapPath, args...)
 			filter = &snapFilter
 
-		case python:
+		case pythonEngine:
 			if interpreter, err := getInterpreter(step.Command); err != nil || !strings.Contains(interpreter, "python") {
 				args = append([]string{step.Command}, args...)
-				cmd = exec.Command(python, args...)
+				cmd = exec.Command(pythonEngine, args...)
 			} else {
 				cmd = exec.Command(step.Command, args...)
 			}
 			filter = &pythonFilter
 
-		case command:
+		case commandEngine:
 			cmd = exec.Command(step.Command, args...)
 			filter = &cmdFilter
 
-		case docker:
+		case dockerEngine:
 			var envs []string
 
 			// host envs
@@ -1058,7 +1060,7 @@ func (g *ProcessingGraph) Process(ctx context.Context, config GraphConfig, graph
 		}
 
 		// Exec graph
-		if step.Engine != docker {
+		if step.Engine != dockerEngine {
 			log.Logger(ctx).Sugar().Debug(cmdToString(cmd))
 			if err := log.Exec(ctx, cmd, log.StdoutLevel(zapcore.DebugLevel), log.StdoutFilter(filter), log.StderrFilter(filter)); err != nil {
 				// Error handling
@@ -1266,7 +1268,7 @@ func (step ProcessingStep) formatArgs(config GraphConfig, tiles []common.Tile) (
 
 	var args []string
 	switch step.Engine {
-	case snap:
+	case snapEngine:
 		// Graph path and Standard args
 		args = []string{step.Command,
 			"-x",
@@ -1283,7 +1285,7 @@ func (step ProcessingStep) formatArgs(config GraphConfig, tiles []common.Tile) (
 			// Append arg
 			args = append(args, fmt.Sprintf("-P%s=%s", param, value))
 		}
-	case python, command, docker:
+	case pythonEngine, commandEngine, dockerEngine:
 		// Add args
 		for param, arg := range step.Args {
 			value, err := formatArgs(arg, config, tiles)
@@ -1320,20 +1322,22 @@ func formatArgs(arg Arg, config GraphConfig, tiles []common.Tile) (string, error
 	// Specific args from tile
 	case ArgTile:
 		switch key {
-		case burstSwath:
+		case keyBurstSwath:
 			valstr = tiles[0].Data.SwathID
-		case sceneDate:
+		case keySceneDate:
 			valstr = tiles[0].Scene.Data.Date.Format(snapDateFormat)
-		case burstCohDate:
+		case keyBurstCohDate:
 			if tiles[1].Scene.SourceID == tiles[2].Scene.SourceID {
 				valstr = tiles[0].Scene.Data.Date.Format(snapDateFormat)
 			} else {
 				valstr = tiles[2].Scene.Data.Date.Format(snapDateFormat)
 			}
-		case tileNumber:
+		case keyTileNumber:
 			valstr = fmt.Sprintf("%d", tiles[0].Data.TileNr)
-		case sceneName:
+		case keySceneName:
 			valstr = tiles[0].Scene.SourceID
+		case keyConstellation:
+			valstr = common.GetConstellationFromProductId(tiles[0].Scene.SourceID).String()
 		default:
 			return "", fmt.Errorf("key '%s' not found in tile", key)
 		}
