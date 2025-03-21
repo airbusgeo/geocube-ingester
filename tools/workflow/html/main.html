@@ -190,7 +190,7 @@
                 if (type_id != null && value != "0") {
                   value = formatLink("load" + type_id, value, "'" + status.toUpperCase() + "'")
                   if (status == "retry"){
-                    value += "<div id=\"" + "aoi" + aoi +"\"> (" + formatLink("retryAOI", "retry all scenes and tiles", "") + ")</div>"
+                    value += "<div id=\"" + "aoi" + aoi +"\"> (" + formatLink("retryAOI", "retry all scenes and tiles", "") + " - " + formatLink("failAOI", "FAIL all scenes and tiles", "") + ")</div>"
                   }
                 }
                 break;
@@ -330,6 +330,12 @@
     
     function retryScene(id){
       putAction("retry", "scene", id, "#scene"+id)
+    }
+
+    function failAOI(){
+      if (confirm("Are you sure to mark all the scenes of the AOI " + $('#aoi').val() + " as failed ?")){
+        putAction("fail", "aoi", $('#aoi').val())
+      }
     }
 
     function failScene(id){

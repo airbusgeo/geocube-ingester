@@ -20,6 +20,7 @@ nav:
         - 'Catalogue service': user-guide/catalog.md
         - 'Provider': user-guide/providers.md
     - 'Developer guide':
+        - 'API Reference': developer-guide/api-reference.md
         - 'Interfaces': developer-guide/interfaces.md
         - 'Sensor': developer-guide/sensors.md
         - 'Catalogue': developer-guide/catalog.md

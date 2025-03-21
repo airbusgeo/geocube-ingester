@@ -45,6 +45,8 @@ func (wf *Workflow) NewRouter() *mux.Router {
 	r.HandleFunc("/aoi/{aoi}/leaftiles", wf.ListLeafTilesHandler).Methods("GET")
 	r.HandleFunc("/aoi/{aoi}/retry", wf.RetryAOIHandler).Methods("PUT")
 	r.HandleFunc("/aoi/{aoi}/retry/{force}", wf.RetryAOIHandler).Methods("PUT")
+	r.HandleFunc("/aoi/{aoi}/fail", wf.FailAOIHandler).Methods("PUT")
+	r.HandleFunc("/aoi/{aoi}/fail/{force}", wf.FailAOIHandler).Methods("PUT")
 	return r
 }
 
@@ -557,18 +559,30 @@ func (wf *Workflow) ListLeafTilesHandler(w http.ResponseWriter, req *http.Reques
 func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	aoiID := mux.Vars(req)["aoi"]
+	force := mux.Vars(req)["force"] == "force"
+	wf.UpdateAOIHandler(ctx, aoiID, common.StatusPENDING, force, w)
+}
+
+// FailAOIHandler fails all the scenes and tiles with the status 'FAILED' (and also 'PENDING' if force=true)
+func (wf *Workflow) FailAOIHandler(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	aoiID := mux.Vars(req)["aoi"]
+	force := mux.Vars(req)["force"] == "force"
+	wf.UpdateAOIHandler(ctx, aoiID, common.StatusFAILED, force, w)
+}
+
+func (wf *Workflow) UpdateAOIHandler(ctx context.Context, aoiID string, status common.Status, force bool, w http.ResponseWriter) {
 	ss, err := wf.Scenes(ctx, aoiID, "", 0, -1)
 	if errors.As(err, &db.ErrNotFound{}) {
 		w.WriteHeader(404)
 		return
 	}
 	if err != nil {
-		log.Logger(ctx).Sugar().Warnf("wf.scenes: %v", err)
+		log.Logger(ctx).Sugar().Warnf("wf.UpdateAOIHandler[%s].Scenes: %v", status, err)
 		w.WriteHeader(500)
 		fmt.Fprintf(w, "%v", err)
 		return
 	}
-	force := mux.Vars(req)["force"] == "force"
 	nbScenes := 0
 	emptyMessage := ""
 	var errs error
@@ -576,7 +590,7 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 	// Retry scenes
 	for _, scene := range ss {
 		if force || scene.Status == common.StatusRETRY {
-			done, err := wf.UpdateSceneStatus(ctx, scene.ID, common.StatusPENDING, &emptyMessage, force)
+			done, err := wf.UpdateSceneStatus(ctx, scene.ID, status, &emptyMessage, force)
 			if err != nil {
 				errs = service.MergeErrors(true, errs, err)
 			} else if done {
@@ -598,7 +612,7 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 				}
 				for _, tile := range tiles {
 					if force || tile.Status == common.StatusRETRY {
-						done, err := wf.UpdateTileStatus(ctx, tile.ID, common.StatusPENDING, &emptyMessage, force)
+						done, err := wf.UpdateTileStatus(ctx, tile.ID, status, &emptyMessage, force)
 						if err != nil {
 							errs = service.MergeErrors(true, errs, err)
 						} else if done {
@@ -615,7 +629,7 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 			errs = service.MergeErrors(true, errs, err)
 		} else {
 			for _, tile := range tiles {
-				done, err := wf.UpdateTileStatus(ctx, tile.ID, common.StatusPENDING, &emptyMessage, force)
+				done, err := wf.UpdateTileStatus(ctx, tile.ID, status, &emptyMessage, force)
 				if err != nil {
 					errs = service.MergeErrors(true, errs, err)
 				} else if done {
@@ -625,7 +639,7 @@ func (wf *Workflow) RetryAOIHandler(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	if errs != nil {
-		log.Logger(ctx).Sugar().Warnf("wf.retryaoihandler.%v", errs)
+		log.Logger(ctx).Sugar().Warnf("wf.UpdateAOIHandler[%v].%v", status, errs)
 		w.WriteHeader(500)
 		fmt.Fprintf(w, "%v", errs)
 		return

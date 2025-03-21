@@ -4,13 +4,29 @@ To monitor an ingestion, the workflow server provides several endpoints.
 
 ## Endpoints
 
+### Health Check
+
+- `GET /`: Health check endpoint, returns "ingester ok"
+
 ### AOI
 
-- `GET /aoi/`: List all the AOIS
-- `POST /aoi/{aoi}`: create a new AOI
-- `POST /aoi/{aoi}/scene`: add a new scene and its tiles to the graph of dependencies
-- `PUT /aoi/{aoi}/retry`: retry all the scenes and tiles of the AOI (iif Status=RETRY)
-- `GET /aoi/{aoi}`: overview of the workload for an AOI
+- `GET /aoi/`: List all the AOIs
+- `POST /aoi/{aoi}`: Create a new AOI
+- `GET /aoi/{aoi}`: Overview of the workload for an AOI
+- `DELETE /aoi/{aoi}`: Delete an AOI and all its associated scenes and tiles
+- `POST /aoi/{aoi}/scene`: Add a new scene and its tiles to the graph of dependencies
+- `PUT /aoi/{aoi}/retry`: Retry all the scenes and tiles of the AOI (only if Status=RETRY)
+- `PUT /aoi/{aoi}/retry/force`: Retry all the scenes and tiles of the AOI (force retry regardless of status)
+- `PUT /aoi/{aoi}/fail`: Fail all the scenes and tiles of the AOI (only if Status=RETRY)
+- `PUT /aoi/{aoi}/fail/force`: Fail all the scenes and tiles of the AOI (force fail regardless of status)
+- `GET /aoi/{aoi}/scenes`: List all scenes of an AOI
+- `GET /aoi/{aoi}/scenes/{status}`: List scenes of an AOI filtered by status
+- `GET /aoi/{aoi}/tiles/{status}`: List tiles of an AOI filtered by status
+- `GET /aoi/{aoi}/dot`: Pretty display of the workflow as a DOT graph
+- `GET /aoi/{aoi}/roottiles`: List root tiles of an AOI
+- `GET /aoi/{aoi}/leaftiles`: List leaf tiles of an AOI
+
+Example output for `GET /aoi/{aoi}`:
 
 ```
 Scenes:
@@ -33,19 +49,15 @@ Root tiles : 46
   To:   2022-10-12
 ```
 
-- `GET /aoi/{aoi}/dot`: Pretty display of the workflow
-
-Ex:
+Example DOT graph output:
 
 ![Dot Graph Ingestion](./ingestion-dot.png)
 
 ### Scenes
 
-Monitoring endpoints concerning Scenes are returned in GeoJSON Format.
+Scene endpoints return data in GeoJSON Format, containing geometry, product tags, and payload information.
 
-We can found a lot of information such as geometry, product tags and payload information.
-
-- `GET /aoi/{aoi}/scenes`: list Scenes of an AOI
+- `GET /aoi/{aoi}/scenes`: List scenes of an AOI
 
 Ex:
 
@@ -130,19 +142,20 @@ Ex:
 ]
 ```
 
-- `GET /aoi/{aoi}/scenes/{status}`: get Scenes of an AOI filtered by Status
-- `GET /scene/{scene}`: get Scene using its id
+- `GET /aoi/{aoi}/scenes/{status}`: Get scenes of an AOI filtered by status
+- `GET /scene/{scene}`: Get scene using its id
+- `GET /scene/{scene}/tiles`: Get tiles of a scene (GeoJSON Format)
 
-- `PUT /scene/{scene}/retry`: retry the scene (if scene.Status=RETRY)
-- `PUT /scene/{scene}/fail`: tag the scene and all its tiles as failed and update the graph of dependencies (if scene.Status=RETRY if /force is not stated)
+- `PUT /scene/{scene}/data`: Update scene data
+- `PUT /scene/{scene}/retry`: Retry the scene (only if scene.Status=RETRY)
+- `PUT /scene/{scene}/fail`: Tag the scene and all its tiles as failed and update the graph of dependencies (only if scene.Status=RETRY if /force is not stated)
+- `PUT /scene/{scene}/force/{status}`: Force set scene status to specified status
 
-### Tiles 
+### Tiles
 
-Monitoring endpoints concerning Tiles are returned in GeoJSON Format.
+Tile endpoints return data in GeoJSON Format, containing geometry, product tags, and payload information.
 
-We can found a lot of information such as geometry, product tags and payload information.
-
-- `GET /scene/{scene}/tiles`: get tiles of Scene (GeoJSON Format)
+- `GET /scene/{scene}/tiles`: Get tiles of a scene
 
 Ex:
 
@@ -181,11 +194,13 @@ Ex:
 ]
 ```
 
-- `GET /tile/{tile}`: get Tile using id
-- `GET /aoi/{aoi}/tiles/{status}`: get Tiles of an AOI filtered by Status
+- `GET /tile/{tile}`: Get tile using id
+- `GET /aoi/{aoi}/tiles/{status}`: Get tiles of an AOI filtered by status
 
-- `PUT /tile/{tile}/retry`: retry the tile (iif tile.Status=RETRY)
-- `PUT /tile/{tile}/fail`: tag the tile as failed and update the graph of dependencies (iif tile.Status=RETRY if /force is not stated)
+- `PUT /tile/{tile}/data`: Update tile data
+- `PUT /tile/{tile}/retry`: Retry the tile (only if tile.Status=RETRY)
+- `PUT /tile/{tile}/fail`: Tag the tile as failed and update the graph of dependencies (only if tile.Status=RETRY if /force is not stated)
+- `PUT /tile/{tile}/force/{status}`: Force set tile status to specified status
 
 
 ## User-interface
