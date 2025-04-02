@@ -215,7 +215,10 @@ func (c Catalog) PostAOIHandler(w http.ResponseWriter, req *http.Request) {
 	// Try to load tiles
 	if tiles, err = loadScenes(w, req, tilesJSONField, true); errors.As(err, &EmptyError{}) {
 		// Or try to load scenes
-		scenes, err = loadScenes(w, req, scenesJSONField, true)
+		if scenes, err = loadScenes(w, req, scenesJSONField, true); errors.As(err, &EmptyError{}) {
+			// Or do scene inventory
+			scenes, err = c.DoScenesInventory(ctx, area)
+		}
 	}
 
 	t := time.Now()

@@ -51,6 +51,7 @@ To fix incoherences or potential limitation in JSON graphs :
 - Processor.index: add more time before retry
 - ingestScenes might delete records that are used somewhere else
 - ingestScenes with more scenes than endDate/startDate
+- POST /catalog/aoi without scenes or tiles
 
 ### Optimization
 - catalog.ScenesToIngest: list all records at once, instead of one by one
