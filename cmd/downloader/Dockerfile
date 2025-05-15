@@ -1,11 +1,11 @@
 # Light docker to download images
 # Change BASE_IMAGE=s1tbx:8.0 (for example) to add SNAP S1toolbox
-ARG BASE_IMAGE=ubuntu:focal
+ARG BASE_IMAGE=ubuntu:noble
 # If SNAP is used as a base image, UPDATE_SNAP=1 will update the modules
 ARG UPDATE_SNAP
 
 
-FROM golang:1.23-bullseye AS builder
+FROM golang:1.24-bookworm AS builder
 
 ENV GOFLAGS=-mod=vendor
 WORKDIR /build

@@ -1,4 +1,4 @@
-FROM golang:1.23 AS builder
+FROM golang:1.24-bookworm AS builder
 
 RUN apt update && apt install -y --no-install-recommends libgeos++-dev \
     && rm -rf /var/lib/apt/lists/* \

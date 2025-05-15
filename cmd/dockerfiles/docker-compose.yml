@@ -16,7 +16,7 @@ services:
       context: ../..
       dockerfile: ./cmd/downloader/Dockerfile
       args:
-        BASE_IMAGE: mundialis/esa-snap:ubuntu
+        BASE_IMAGE: ubuntu:noble
     image: geocube-ingester-downloader:$INGESTER_VERSION
     command: --pgq-connection=postgresql://postgres:1235@localhost:8002/postgres?sslmode=disable --job-queue=ingester-downloader --event-queue=ingester-events --workdir=$STORAGE_URI/tmp --storage-uri=$STORAGE_URI --local-path=$STORAGE_URI --copernicus-username=$COPERNICUS_USERNAME --copernicus-password=$COPERNICUS_PASSWORD --peps-username=$PEPS_USERNAME --peps-password=$PEPS_PASSWORD --creodias-username=$CREODIAS_USERNAME --creodias-password=$CREODIAS_PASSWORD --gs-provider-buckets=$GS_BUCKET
     network_mode: "host"
@@ -31,7 +31,7 @@ services:
       context: ../..
       dockerfile: ./cmd/processor/Dockerfile
       args:
-        BASE_IMAGE: mundialis/esa-snap:ubuntu
+        BASE_IMAGE: ubuntu:noble
     image: geocube-ingester-processor:$INGESTER_VERSION
     command: --pgq-connection=postgresql://postgres:1235@localhost:8002/postgres?sslmode=disable --job-queue=ingester-processor --event-queue=ingester-events --storage-uri=$STORAGE_URI --geocube-server=$GEOCUBE_HOST:$GEOCUBE_PORT --geocube-insecure=$GEOCUBE_INSECURE --geocube-apikey=$GEOCUBE_APIKEY
     network_mode: "host"
