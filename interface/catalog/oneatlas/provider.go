@@ -153,15 +153,15 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 				downloadURL = link.Href
 			}
 		}
-
-		metadata := make(map[string]interface{})
-		metadata[common.DownloadLinkMetadata] = downloadURL
 		g, err := p.computeGeometryFromAOI(*intersectGeometry)
 		if err != nil {
 			return entities.Scenes{}, fmt.Errorf("failed to compute geometry from intersect geometry: %w", err)
+ 		}
+		metadata := map[string]interface{}{
+			common.DownloadLinkMetadata: downloadURL,
+			"geometry":                  *g,
+			common.UUIDMetadata:         id,
 		}
-
-		metadata["geometry"] = *g
 		for featureKey, featureValue := range feature.Properties {
 			metadata[featureKey] = featureValue
 		}
@@ -170,7 +170,6 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 			Scene: common.Scene{
 				SourceID: parentIdentifier,
 				Data: common.SceneAttrs{
-					UUID:         id,
 					Date:         processingDate,
 					TileMappings: map[string]common.TileMapping{},
 					Metadata:     metadata,
@@ -201,7 +200,7 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 				ProductType:           productType,
 				RadiometricProcessing: "BASIC16",
 				Aoi:                   aoi,
-				ID:                    newScene.Data.UUID,
+				ID:                    id,
 				ImageFormat:           "image/geotiff",
 			})
 		}
@@ -232,7 +231,11 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		case err == shared.ErrOrderNotFound:
 			for _, scene := range scenes {
 				for _, d := range price.Deliveries {
-					if strings.EqualFold(d.ID, scene.Scene.Data.UUID) {
+					uuid, ok := scene.Scene.Data.Metadata[common.UUIDMetadata].(string)
+					if !ok {
+						return entities.Scenes{}, fmt.Errorf("failed to get scene uuid in metadata for %s", scene.SourceID)
+					}
+					if strings.EqualFold(d.ID, uuid) {
 						globalAmount += d.Amount
 						scene.Tags["EstimatedCost"] = fmt.Sprintf("%d", d.Amount)
 						scene.Tags["amountUnit"] = d.AmountUnit
@@ -245,7 +248,11 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 			return entities.Scenes{}, fmt.Errorf("failed to get status order: %w", err)
 		default:
 			for _, scene := range scenes {
-				sceneOrderStatus, ok := orderStatus[scene.Scene.Data.UUID]
+				uuid, ok := scene.Scene.Data.Metadata[common.UUIDMetadata].(string)
+				if !ok {
+					return entities.Scenes{}, fmt.Errorf("failed to get scene uuid in metadata for %s", scene.SourceID)
+				}
+				sceneOrderStatus, ok := orderStatus[uuid]
 				if ok {
 					if strings.EqualFold(sceneOrderStatus.State, "delivered") {
 						if scene.Data.Metadata == nil {
@@ -257,7 +264,7 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 				}
 
 				for _, d := range price.Deliveries {
-					if strings.EqualFold(d.ID, scene.Scene.Data.UUID) {
+					if strings.EqualFold(d.ID, uuid) {
 						globalAmount += d.Amount
 						scene.Tags["estimatedCost"] = fmt.Sprintf("%d", d.Amount)
 						scene.Tags["amountUnit"] = d.AmountUnit

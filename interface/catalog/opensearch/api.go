@@ -176,9 +176,11 @@ func Parse(area *entities.AreaToIngest, hits []Hits) (entities.Scenes, error) {
 			Scene: common.Scene{
 				SourceID: strings.TrimSuffix(rawscene.Properties.Identifier, ".SAFE"),
 				Data: common.SceneAttrs{
-					UUID:         rawscene.Uuid,
 					Date:         date,
 					TileMappings: map[string]common.TileMapping{},
+					Metadata: map[string]interface{}{
+						common.UUIDMetadata: rawscene.Uuid,
+					},
 				},
 			},
 			Tags: map[string]string{

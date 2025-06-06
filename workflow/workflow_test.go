@@ -19,7 +19,6 @@ var _ = Describe("Workflow", func() {
 			SourceID: "S1B_IW_SLC__1SDV_20180806T170022_20180806T170050_012145_0165D7_27D6",
 			AOI:      aoi,
 			Data: common.SceneAttrs{
-				UUID: "05a23a04-82fa-46e0-b9a9-2c25912a305c",
 				Date: time.Date(2019, 8, 25, 17, 1, 13, 0, time.Local),
 				TileMappings: map[string]common.TileMapping{
 					"A44_IW1_8951": {SwathID: "IW1", TileNr: 4},
@@ -54,7 +53,6 @@ var _ = Describe("Workflow", func() {
 			SourceID: "S1B_IW_SLC__1SDV_20190825T170029_20190825T170057_017745_02163A_DA7E",
 			AOI:      aoi,
 			Data: common.SceneAttrs{
-				UUID: "05a23a04-82fa-46e0-b9a9-2c25912a305c",
 				Date: time.Date(2019, 8, 31, 17, 1, 13, 0, time.Local),
 				TileMappings: map[string]common.TileMapping{
 					"A44_IW1_8951": {SwathID: "IW1", TileNr: 4},
@@ -88,7 +86,6 @@ var _ = Describe("Workflow", func() {
 			SourceID: "S1A_IW_SLC__1SDV_20190831T170113_20190831T170140_028816_0343BD_C4B2",
 			AOI:      aoi,
 			Data: common.SceneAttrs{
-				UUID: "05a23a04-82fa-46e0-b9a9-2c25912a305c",
 				Date: time.Date(2019, 9, 5, 17, 1, 13, 0, time.Local),
 				TileMappings: map[string]common.TileMapping{
 					"A44_IW1_8951": {SwathID: "IW1", TileNr: 4},

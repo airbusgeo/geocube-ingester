@@ -124,6 +124,10 @@ func (o *OneAtlasProvider) sendOrderRequest(scene common.Scene) (string, error) 
 	if err != nil {
 		return "", fmt.Errorf("failed convert geometry to aoi: %w", err)
 	}
+	uuid, ok := scene.Data.Metadata[common.UUIDMetadata].(string)
+	if !ok {
+		return "", fmt.Errorf("failed to get scene uuid: %s", scene.SourceID)
+	}
 
 	orderRequest := shared.OrderRequest{
 		Kind: "order.data.product",
@@ -131,7 +135,9 @@ func (o *OneAtlasProvider) sendOrderRequest(scene common.Scene) (string, error) 
 			CrsCode:               "urn:ogc:def:crs:EPSG::4326",
 			ProductType:           "bundle",
 			RadiometricProcessing: "BASIC16",
-			Aoi:                   aoi, ID: scene.Data.UUID, ImageFormat: "image/geotiff"}},
+			Aoi:                   aoi,
+			ID:                    uuid,
+			ImageFormat:           "image/geotiff"}},
 	}
 
 	status, err := o.orderManager.GetStatus(orderRequest)
@@ -159,18 +165,18 @@ func (o *OneAtlasProvider) sendOrderRequest(scene common.Scene) (string, error) 
 		// do nothing
 	}
 
-	orderStatus := status[scene.Data.UUID]
+	orderStatus := status[uuid]
 	switch orderStatus.State {
 	case "error", "failed":
-		return "", fmt.Errorf("order failed for scene: %s: %v", scene.Data.UUID, orderStatus.Infos)
+		return "", fmt.Errorf("order failed for scene: %s: %v", uuid, orderStatus.Infos)
 	case "delivered":
 		return orderStatus.DownloadLink, nil
 	case "ordered":
-		return "", service.MakeTemporary(fmt.Errorf("order for scene %s is still in progress", scene.Data.UUID))
+		return "", service.MakeTemporary(fmt.Errorf("order for scene %s is still in progress", uuid))
 	case "processing":
-		return "", service.MakeTemporary(fmt.Errorf("order for scene %s is still in progress", scene.Data.UUID))
+		return "", service.MakeTemporary(fmt.Errorf("order for scene %s is still in progress", uuid))
 	case "rejected":
-		return "", fmt.Errorf("order for scene %s is rejected: %v", scene.Data.UUID, orderStatus.Infos)
+		return "", fmt.Errorf("order for scene %s is rejected: %v", uuid, orderStatus.Infos)
 	default:
 		return "", fmt.Errorf("failed to interpret status: %v", orderStatus)
 	}

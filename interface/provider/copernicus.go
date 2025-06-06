@@ -72,11 +72,14 @@ func NewCopernicusImageProvider(user, pword string) *CopernicusImageProvider {
 // Download implements ImageProvider
 func (ip *CopernicusImageProvider) Download(ctx context.Context, scene common.Scene, localDir string) error {
 	sceneName := scene.SourceID
-	sceneUUID := scene.Data.UUID
 	switch common.GetConstellationFromProductId(sceneName) {
 	case common.Sentinel1, common.Sentinel2:
 	default:
 		return fmt.Errorf("CopernicusImageProvider: constellation not supported")
+	}
+	sceneUUID, ok := scene.Data.Metadata[common.UUIDMetadata]
+	if !ok {
+		return fmt.Errorf("CopernicusImageProvider: uuid not found in metadata")
 	}
 
 	url := fmt.Sprintf(copernicusDownloadProduct, sceneUUID)
