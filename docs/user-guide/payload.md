@@ -29,6 +29,9 @@ The payload is a GeoJSON (all fields are mandatory unless otherwise stated):
 - `is_retriable` (optional): define if the processing or download is retriable if a fatal error occurs (or if retry_count is over)
 - `retry_count` (optional): define the number of time a processing or download is retried if a transient error occurs
 - `storage_uri` (optional): define a custom storage
+- `page`, `limit` (optional): query the n-th `page` (0-based) of the catalog and return `limit` scenes at most.
+
+> Using `page`, `limit`, the number of scenes returned might be less than `limit` **even if** it's not the last page. Check `properties["next"]` for another page (value `true`/`false`)
 
 ## Parameters to request the catalogue to find the products
 

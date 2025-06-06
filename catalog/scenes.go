@@ -112,6 +112,15 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 		return entities.Scenes{}, fmt.Errorf("ScenesInventory.%w", err)
 	}
 
+	if scenes.Properties == nil {
+		scenes.Properties = map[string]string{}
+	}
+	if area.Limit > 0 && scenesCount == area.Limit {
+		scenes.Properties["next"] = "true"
+	} else {
+		scenes.Properties["next"] = "false"
+	}
+
 	log.Logger(ctx).Sugar().Debugf("%d scenes found (%d filtered out)", len(scenes.Scenes), scenesCount-len(scenes.Scenes))
 
 	return scenes, nil

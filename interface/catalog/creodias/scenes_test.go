@@ -10,7 +10,7 @@ import (
 	"github.com/paulsmith/gogeos/geos"
 )
 
-func query(t *testing.T, area *entities.AreaToIngest, aoi geos.Geometry, page, limit, expected int) {
+func query(t *testing.T, area *entities.AreaToIngest, aoi geos.Geometry, page, limit, expected int, next bool) {
 	ctx := context.Background()
 	area.Page = page
 	area.Limit = limit
@@ -21,6 +21,9 @@ func query(t *testing.T, area *entities.AreaToIngest, aoi geos.Geometry, page, l
 	}
 	if len(scenes.Scenes) != expected {
 		t.Errorf("Expecting %d hits got %d", expected, len(scenes.Scenes))
+	}
+	if (next && scenes.Properties["next"] == "false") || (!next && scenes.Properties["next"] == "true") {
+		t.Errorf("Expecting next=%v hits got %s", next, scenes.Properties["next"])
 	}
 }
 
@@ -46,9 +49,9 @@ func TestQueryCreodias(t *testing.T) {
 		},
 	}
 
-	query(t, &area, *geom, 0, 7, 6)
-	query(t, &area, *geom, 0, 3, 3)
-	query(t, &area, *geom, 1, 6, 0)
-	query(t, &area, *geom, 1, 4, 2)
-	query(t, &area, *geom, 1, 2, 2)
+	query(t, &area, *geom, 0, 7, 6, false)
+	query(t, &area, *geom, 0, 3, 3, false)
+	query(t, &area, *geom, 1, 6, 0, false)
+	query(t, &area, *geom, 1, 4, 2, false)
+	query(t, &area, *geom, 1, 2, 2, true)
 }
