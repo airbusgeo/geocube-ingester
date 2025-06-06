@@ -13,8 +13,12 @@ import (
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/interface/shared"
 	"github.com/airbusgeo/geocube-ingester/service"
+	"github.com/airbusgeo/geocube-ingester/service/geometry"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/araddon/dateparse"
+	"github.com/go-spatial/geom"
+	"github.com/go-spatial/geom/encoding/geojson"
+	"github.com/go-spatial/geom/encoding/wkt"
 	"github.com/paulsmith/gogeos/geos"
 )
 
@@ -124,7 +128,7 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 			continue
 		}
 
-		intersectGeometry, err := p.GetIntersectGeometry(feature.Geometry, aoi)
+		intersectGeometry, err := p.getIntersectGeometry(feature.Geometry.Geometry, aoi)
 		if err != nil {
 			return entities.Scenes{}, fmt.Errorf("failed to get geometry intersection: %w", err)
 		}
@@ -153,13 +157,14 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 				downloadURL = link.Href
 			}
 		}
-		g, err := p.computeGeometryFromAOI(*intersectGeometry)
+
+		g, err := geometry.GeosToGeom(intersectGeometry)
 		if err != nil {
 			return entities.Scenes{}, fmt.Errorf("failed to compute geometry from intersect geometry: %w", err)
- 		}
+		}
 		metadata := map[string]interface{}{
 			common.DownloadLinkMetadata: downloadURL,
-			"geometry":                  *g,
+			"geometry":                  &geojson.Geometry{Geometry: g},
 			common.UUIDMetadata:         id,
 		}
 		for featureKey, featureValue := range feature.Properties {
@@ -281,7 +286,12 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 }
 
 func (p *provider) buildCatalogParameters(area *entities.AreaToIngest, aoi geos.Geometry) (*catalogRequestParameter, error) {
-	g, err := p.computeGeometryFromAOI(aoi)
+	convexHullGeometry, err := aoi.ConvexHull()
+	if err != nil {
+		return nil, err
+	}
+
+	g, err := geometry.GeosToGeom(convexHullGeometry)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +329,7 @@ func (p *provider) buildCatalogParameters(area *entities.AreaToIngest, aoi geos.
 		IncidenceAngle:  incidenceAngle,
 		Workspace:       workspace,
 		Relation:        relation,
-		Geometry:        g,
+		Geometry:        geojson.Geometry{Geometry: g},
 	}, nil
 }
 
@@ -396,80 +406,8 @@ func (p *provider) isSceneAlreadyAdded(sourceID, productName string, sceneList [
 	return false
 }
 
-func (p *provider) computeGeometryFromAOI(g geos.Geometry) (*geometry, error) {
-	convexHullGeometry, err := g.ConvexHull()
-	if err != nil {
-		return nil, err
-	}
-
-	// get number of polygons
-	numPolygons, err := convexHullGeometry.NGeometry()
-	if err != nil {
-		return nil, err
-	}
-
-	if numPolygons != 1 {
-		return nil, fmt.Errorf("multiple polygon is not supported")
-	}
-
-	coords := make([][][2]float64, 0)
-	polygon, err := convexHullGeometry.Geometry(0)
-	if err != nil {
-		return nil, err
-	}
-
-	// get shell
-	shell, err := polygon.Shell()
-	if err != nil {
-		return nil, err
-	}
-
-	// append shell coords
-	shellCoords, err := p.getCoords(shell)
-	if err != nil {
-		return nil, err
-	}
-	coords = append(coords, shellCoords)
-
-	// get holes
-	holes, err := polygon.Holes()
-	if err != nil {
-		return nil, err
-	}
-
-	// append holes coords
-	for _, hole := range holes {
-		holeCoords, err := p.getCoords(hole)
-		if err != nil {
-			return nil, err
-		}
-		coords = append(coords, holeCoords)
-	}
-
-	return &geometry{
-		Type:        "Polygon",
-		Coordinates: coords,
-	}, nil
-}
-
-func (p *provider) getCoords(ring *geos.Geometry) ([][2]float64, error) {
-	// get coords of the ring
-	ringCoords, err := ring.Coords()
-	if err != nil {
-		return nil, err
-	}
-
-	// fill coords array
-	coords := make([][2]float64, 0)
-	for _, coord := range ringCoords {
-		coords = append(coords, [2]float64{coord.X, coord.Y})
-	}
-
-	return coords, nil
-}
-
-func (p *provider) GetIntersectGeometry(g *geometry, aoi geos.Geometry) (*geos.Geometry, error) {
-	wkt, err := p.encodeWKTPolygonGeometry(g)
+func (p *provider) getIntersectGeometry(g geom.Geometry, aoi geos.Geometry) (*geos.Geometry, error) {
+	wkt, err := wkt.EncodeString(g)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode WKT polygon: %w", err)
 	}
@@ -485,22 +423,4 @@ func (p *provider) GetIntersectGeometry(g *geometry, aoi geos.Geometry) (*geos.G
 	}
 
 	return intersectGeom, nil
-}
-
-func (p *provider) encodeWKTPolygonGeometry(g *geometry) (string, error) {
-	var wkt strings.Builder
-
-	wkt.WriteString("POLYGON(")
-	for _, ring := range g.Coordinates {
-		wkt.WriteString("(")
-		var coords []string
-		for _, pt := range ring {
-			coords = append(coords, fmt.Sprintf("%f %f", pt[0], pt[1]))
-		}
-		wkt.WriteString(strings.Join(coords, ","))
-		wkt.WriteString(")")
-	}
-	wkt.WriteString(")")
-
-	return wkt.String(), nil
 }

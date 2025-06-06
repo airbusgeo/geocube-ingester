@@ -5,22 +5,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+
+	"github.com/go-spatial/geom/encoding/geojson"
 )
 
 type catalogRequestParameter struct {
-	Constellation   string    `json:"constellation,omitempty"`
-	ItemsPerPage    int       `json:"itemsPerPage,omitempty"`
-	StartPage       int       `json:"startPage,omitempty"`
-	ProcessingLevel string    `json:"processingLevel,omitempty"`
-	ProductType     string    `json:"productType,omitempty"`
-	SortBy          string    `json:"sortBy,omitempty"`
-	AcquisitionDate string    `json:"acquisitionDate,omitempty"`
-	Platform        string    `json:"platform,omitempty"`
-	CloudCover      string    `json:"cloudCover,omitempty"`
-	IncidenceAngle  string    `json:"incidenceAngle,omitempty"`
-	Workspace       string    `json:"workspace,omitempty"`
-	Relation        string    `json:"relation,omitempty"`
-	Geometry        *geometry `json:"geometry,omitempty"`
+	Constellation   string           `json:"constellation,omitempty"`
+	ItemsPerPage    int              `json:"itemsPerPage,omitempty"`
+	StartPage       int              `json:"startPage,omitempty"`
+	ProcessingLevel string           `json:"processingLevel,omitempty"`
+	ProductType     string           `json:"productType,omitempty"`
+	SortBy          string           `json:"sortBy,omitempty"`
+	AcquisitionDate string           `json:"acquisitionDate,omitempty"`
+	Platform        string           `json:"platform,omitempty"`
+	CloudCover      string           `json:"cloudCover,omitempty"`
+	IncidenceAngle  string           `json:"incidenceAngle,omitempty"`
+	Workspace       string           `json:"workspace,omitempty"`
+	Relation        string           `json:"relation,omitempty"`
+	Geometry        geojson.Geometry `json:"geometry,omitempty"`
 }
 
 type catalogResponse struct {
@@ -31,15 +33,10 @@ type catalogResponse struct {
 	Type         string `json:"type"`
 	Features     []struct {
 		Links      *links                 `json:"_links"`
-		Geometry   *geometry              `json:"geometry"`
+		Geometry   *geojson.Geometry      `json:"geometry"`
 		Properties map[string]interface{} `json:"properties"`
 		Type       string                 `json:"type"`
 	} `json:"features"`
-}
-
-type geometry struct {
-	Coordinates [][][2]float64 `json:"coordinates"`
-	Type        string         `json:"type"`
 }
 
 type links map[string][]link
