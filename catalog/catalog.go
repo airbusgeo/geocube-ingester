@@ -182,8 +182,10 @@ func (c *Catalog) DeletePendingRecords(ctx context.Context, scenes entities.Scen
 			ids = append(ids, s.Data.RecordID)
 		}
 	}
-	if _, e := c.GeocubeClient.DeleteRecords(ctx, ids); e != nil {
-		log.Logger(ctx).Sugar().Warnf("Catalog.IngestScenes : unable to delete unused records (%v): %v", ids, e)
+	if len(ids) > 0 {
+		if _, e := c.GeocubeClient.DeleteRecords(ctx, ids); e != nil {
+			log.Logger(ctx).Sugar().Warnf("Catalog.IngestScenes : unable to delete unused records (%v): %v", ids, e)
+		}
 	}
 }
 

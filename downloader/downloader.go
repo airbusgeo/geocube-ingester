@@ -27,7 +27,7 @@ func ProcessScene(ctx context.Context, imageProviders []provider.ImageProvider, 
 		return service.MakeTemporary(fmt.Errorf("chdir: %w", err))
 	}
 
-    // Custom storage
+	// Custom storage
 	if scene.Data.StorageURI != "" {
 		var err error
 		storageService, err = service.NewStorageStrategy(ctx, scene.Data.StorageURI)

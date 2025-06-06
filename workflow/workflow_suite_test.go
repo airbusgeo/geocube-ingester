@@ -3,7 +3,7 @@ package workflow_test
 import (
 	"context"
 	"database/sql"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -31,7 +31,7 @@ var sceneQueue = MokePublisher{}
 var tileQueue = MokePublisher{}
 
 func loadSQLFile(db *sql.DB, sqlFile string) error {
-	file, err := ioutil.ReadFile(sqlFile)
+	file, err := os.ReadFile(sqlFile)
 	if err != nil {
 		return err
 	}

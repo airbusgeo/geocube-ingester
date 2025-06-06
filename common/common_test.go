@@ -17,7 +17,7 @@ func TestInfo(t *testing.T) {
 		t.Errorf("too short file name")
 	}
 	if format, err := Info("S2B_MSIL1C_20190108T104429_N0207_R008_T32UNF_20190108T124859.SAFE"); err != nil {
-		t.Errorf(err.Error())
+		t.Error(err.Error())
 	} else {
 		checkKeyValue(t, format, "MISSION_ID", "S2B")
 		checkKeyValue(t, format, "PRODUCT_LEVEL", "L1C")
@@ -41,7 +41,7 @@ func TestInfo(t *testing.T) {
 		t.Errorf("too short file name")
 	}
 	if format, err := Info("S1A_IW_SLC__1SDV_20190115T170106_20190115T170133_025491_02D361_7F7C"); err != nil {
-		t.Errorf(err.Error())
+		t.Error(err.Error())
 	} else {
 		checkKeyValue(t, format, "MISSION_ID", "S1A")
 		checkKeyValue(t, format, "MODE", "IW")

@@ -21,6 +21,7 @@ import (
 	"github.com/airbusgeo/geocube-ingester/common"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog"
 	"github.com/airbusgeo/geocube-ingester/service"
+	"github.com/airbusgeo/geocube-ingester/service/geometry"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/go-spatial/geom"
 	"github.com/go-spatial/geom/encoding/wkt"
@@ -172,7 +173,21 @@ func (c *Catalog) ScenesToIngest(ctx context.Context, area entities.AreaToIngest
 	}
 	instances := area.InstancesID()
 
-	recordsList, err := c.GeocubeClient.ListRecords(ctx, "", area.RecordTags, geocube.AOI{},
+	// Get Union of scenes AOIs
+	var wkts []string
+	for _, scene := range scenes.Scenes {
+		wkts = append(wkts, scene.GeometryWKT)
+	}
+	wktAoi, err := geometry.WKTUnion(wkts, geometry.TOLERANCE_GEOG)
+	if err != nil {
+		return nil, fmt.Errorf("scenesToIngest.%w", err)
+	}
+	geocubeAOI, err := wktToGeocubeAOI(wktAoi)
+	if err != nil {
+		return nil, fmt.Errorf("scenesToIngest.%w", err)
+	}
+
+	recordsList, err := c.GeocubeClient.ListRecords(ctx, "", area.RecordTags, geocubeAOI,
 		slices.MinFunc(scenes.Scenes, func(s1, s2 *entities.Scene) int { return s1.Data.Date.Compare(s2.Data.Date) }).Data.Date,
 		slices.MaxFunc(scenes.Scenes, func(s1, s2 *entities.Scene) int { return s1.Data.Date.Compare(s2.Data.Date) }).Data.Date,
 		0, 0, false)
