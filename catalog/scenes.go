@@ -274,10 +274,10 @@ func refineInventory(area *entities.AreaToIngest, scenes []*entities.Scene, aoi 
 	if scenes, err = removeOutsideAOI(scenes, aoi); err != nil {
 		return nil, fmt.Errorf("refineInventory.%w", err)
 	}
-	if scenes, err = handleEquatorCrossing(scenes); err != nil {
-		return nil, fmt.Errorf("refineInventory.%w", err)
-	}
 	if common.GetConstellationFromString(area.SceneType.Constellation) == common.Sentinel1 {
+		if scenes, err = handleEquatorCrossing(scenes); err != nil {
+			return nil, fmt.Errorf("refineInventory.%w", err)
+		}
 		if err = handleNonContinuousSwath(scenes); err != nil {
 			return nil, fmt.Errorf("refineInventory.%w", err)
 		}
