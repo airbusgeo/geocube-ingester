@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	neturl "net/url"
+	"time"
 
 	geocube "github.com/airbusgeo/geocube-client-go/client"
 	"github.com/airbusgeo/geocube-ingester/service/log"
@@ -67,24 +68,25 @@ func (ss StringSet) Exists(s string) bool {
 	return ok
 }
 
-// GetBodyRetry: simple GET with N retry in case of temporary errors
-func GetBodyRetry(url string, nbTries int) ([]byte, error) {
+// GetBodyRetry: simple GET with N retries in case of temporary errors
+func GetBodyRetry(url string, nbRetries int) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("NewRequest: %w", err)
 	}
-	return GetBodyRetryReq(req, nbTries)
+	return GetBodyRetryReq(req, nbRetries)
 }
 
-// GetBodyRetry: simple GET with N retry in case of temporary errors
-func GetBodyRetryReq(req *http.Request, nbTries int) ([]byte, error) {
+// GetBodyRetry: simple GET with N retries in case of temporary errors
+func GetBodyRetryReq(req *http.Request, nbRetries int) ([]byte, error) {
 	var e *neturl.Error
 	var body []byte
 	var err error
 	var resp *http.Response
 
 	client := &http.Client{}
-	for ; nbTries > 0; nbTries-- {
+	for i := range nbRetries + 1 {
+		time.Sleep(((1 << i) - 1) * time.Second) // Exponential backoff, starting at 0
 		resp, err = client.Do(req)
 		if err != nil {
 			if !errors.As(err, &e) || !e.Temporary() {
