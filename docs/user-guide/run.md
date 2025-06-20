@@ -1,20 +1,27 @@
 # Run a payload
 
-The [payload](payload.md) will be used to:
-1. List available scenes corresponding to the criterias (Catalogue)
-2. Configure the downloading and pre-processing of the scenes (Downloader)
-3. Configure the processing of the scenes (Processor)
-4. Index the output products (Processor)
+
+## Workflow steps
+
+1. Catalogue generates a list of scenes matching with `geometry`, `start_time`, `end_time` and `scene_type` filter.
+2. Catalogue generates a list of tiles for every scene (For Sentinel1: Burst = Tiles, for other constellation Scenes = Tiles)
+
+Then, the ingestion can starts:
+
+3. Catalogue checks Geocube parameters validity (ie. `layers` JSON block which is reference Geocube variables and instances to use: must be existed)
+4. Catalogue creates associated records. If a record already exists (including the `record_tags`), it is reused.
+5. Workflow is started, Downloader will start one job per Scene. After that, Processor will start also one job per Scene/Tile.
+
 
 ## List the available scenes
 
 The first step of the ingestion is to list the scenes available on the AOI at the given dates.
 The ingester will query the scenes from the external catalogues configured in the Catalogue Service.
 
-The Catalogue service has the following endpoint that take a payload in input
+The Catalogue service has the endpoint `/catalog/scenes` (`GET` or `POST`) that takes a payload in input
 
 ```shell
-curl -F "area=@{payloadFile}" -H {token} {workflow_server}/catalog/scenes
+curl -F "area=@{payloadFile}" -H "Authorization: Bearer {token}" {workflow_server}/catalog/scenes
 ```
 
 > NB: This request supports page/limit parameters to limit the query if the area or the date interval is big : `/catalog/scenes?page={page}&limit={limit}`.
@@ -69,27 +76,30 @@ Example:
 
 ## List the available tiles
 
-This endpoint can be useful to control how the scenes will be divided into tiles (for Sentinel-1 bursts for example).
+If the scenes are to be divided in tiles (Sentinel-1 bursts for example), the endpoint `/catalog/tiles` will do it.
 
 ```shell
-curl -F "area=@{payloadFile}" -H {token} {workflow_server}/catalog/tiles
+curl -F "area=@{payloadFile}" -H "Authorization: Bearer {token}" {workflow_server}/catalog/tiles
 ```
 
-## Start the ingestion (download and processing)
+## Start the ingestion
+
+The endpoint `catalog/aoi` (`POST`) lists the availables scenes and tiles then starts the ingestion of a `payload`.
+
+```shell
+curl -F "area=@{payloadFile}" -H "Authorization: Bearer {token}" {workflow_server}/catalog/aoi
+```
+
+If the scenes or the tiles are already available (from a call of `/catalog/scenes` or `/catalog/tiles`), the results can be sent to the end point, preventing the ingester to call the catalogue again. It's highly recommended to do so, by listing the scenes first and checking the results (optionaly editing them).
 
 From a list of tiles:
 ```shell
-curl -F "area=@{payloadFile}" -F "tiles=@outputs/tiles.json" -H {token} {workflow_server}/catalog/aoi
+curl -F "area=@{payloadFile}" -F "tiles=@outputs/tiles.json" -H "Authorization: Bearer {token}" {workflow_server}/catalog/aoi
 ```
 Example of tiles.json: [here](monitoring.md#tiles)
 
 From a list of scenes:
 ```shell
-curl -F "area=@{payloadFile}" -F "scenes=@outputs/scenes.json" -H {token} {workflow_server}/catalog/aoi
+curl -F "area=@{payloadFile}" -F "scenes=@outputs/scenes.json" -H "Authorization: Bearer {token}" {workflow_server}/catalog/aoi
 ```
 Example of scenes.json: [here](monitoring.md#scenes).
-
-From the payload only:
-```shell
-curl -F "area=@{payloadFile}" -H {token} {workflow_server}/catalog/aoi
-```

@@ -4,11 +4,10 @@ NB: This documentation is for developer that want to implement a new Catalogue P
 
 ## Add a new Catalogue
 
-1. For a new constellation/satellite: in file `catalog/catalog.go`, adapt `DoTilesInventory` method in order to be able to interpret the new constellation (otherwise no update needed).
-2. In file `catalog/scenes.go`, add newProvider instantiation in `ScenesInventory()` method.
-3. For a new constellation/satellite: in file `catalog/entities/entities.go` add the constellation name and adapt `GetConstellation` method in order to manage the new constellation (otherwise no update needed).
-4. Add configuration parameters (credentials, endpoint) in `cmd/catalog/main.go`.
-5. Implement new catalog in `interface/catalog` following the interface:
+1. In file `catalog/scenes.go`, add newProvider instantiation in `ScenesInventory()` method.
+2. For a new constellation/satellite: in file `catalog/common/naming.go` add the constellation name and modify `GetConstellationFromString` method.
+3. Add configuration parameters (credentials, endpoint) in `cmd/catalog/main.go` and  `cmd/workflow/main.go`.
+4. Implement new catalog in `interface/catalog` following the interface:
 
 ```go
 type ScenesProvider interface {
@@ -18,6 +17,10 @@ type ScenesProvider interface {
 ```
 
 `SearchScenes` method returns a list of available scenes
+
+5. Update the documentation:
+   1. [docs/user-guide/catalog.md](../user-guide/catalog.md) to describe the new catalogue and explain how to configure it.
+   2. [docs/user-guide/payload.md](../user-guide/payload.md) to describe the specific parameters to set in the payload-file to request this catalogue.
 
 
 

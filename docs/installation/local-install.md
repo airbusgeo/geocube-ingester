@@ -3,12 +3,12 @@
 ## Environment of development
 |   Name     | Version  |     link                                          |
 |:----------:|:--------:|:-------------------------------------------------:|
-|   Golang   | >= 1.16  |      https://golang.org/doc/install               |
-|    GDAL    |  >= 3.2  |             https://gdal.org                      |
+|   Golang   | >= 1.23  |      https://golang.org/doc/install               |
+|    GDAL    |  >= 3.8  |             https://gdal.org                      |
 |   Python   |  >= 3.7  |    https://www.python.org/downloads/              |
-| PostgreSQL |  >= 11   |   https://www.postgresql.org/download/            |
+| PostgreSQL |  >= 15   |   https://www.postgresql.org/download/            |
 |   Docker   |    NC    | https://docs.docker.com/engine/install/           |
-|  ESA SNAP  |  >=8.0   | https://step.esa.int/main/download/snap-download/ |
+| (ESA SNAP) |  >=8.0   | https://step.esa.int/main/download/snap-download/ |
 
 
 ## Build and run Go application
@@ -63,9 +63,6 @@ Build application:
 
 ```bash
 $ go build
-$ ls -l
--rwxrwxr-x 1 user user 17063376 juin  11 15:45 downloader
--rw-rw-r-- 1 user user    11214 juin   9 16:09 main.go
 ```
 
 Downloader needs the path of the local install of ESA SNAP and the `graph` folder (at the root of geocube-ingester).

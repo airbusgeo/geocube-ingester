@@ -16,6 +16,7 @@ To fix incoherences or potential limitation in JSON graphs :
 
 ### Functionalities
 - Downloader: add a new provider from URL (use --url-provider)
+- Add Documentation "how to add a new sensor"
 
 ### Bug fixes
 - LocalProvider does not require that a date is included in the product name

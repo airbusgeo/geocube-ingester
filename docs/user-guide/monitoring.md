@@ -6,6 +6,7 @@ To monitor an ingestion, the workflow server provides several endpoints.
 
 ### AOI
 
+- `GET /aoi/`: List all the AOIS
 - `POST /aoi/{aoi}`: create a new AOI
 - `POST /aoi/{aoi}/scene`: add a new scene and its tiles to the graph of dependencies
 - `PUT /aoi/{aoi}/retry`: retry all the scenes and tiles of the AOI (iif Status=RETRY)

@@ -21,6 +21,7 @@ nav:
         - 'Provider': user-guide/providers.md
     - 'Developer guide':
         - 'Interfaces': developer-guide/interfaces.md
+        - 'Sensor': developer-guide/sensors.md
         - 'Catalogue': developer-guide/catalog.md
         - 'Provider': developer-guide/providers.md
     - 'About':

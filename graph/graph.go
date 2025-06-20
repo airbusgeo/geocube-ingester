@@ -295,18 +295,18 @@ func getFile(ctx context.Context, workdir, file string, makeExecutable bool) (st
 
 	localpath, err := os.CreateTemp(workdir, path.Base(file))
 	if err != nil {
-		return "", fmt.Errorf("getFile[%s]: %w", path.Join(workdir, path.Base(file)), err)
+		return "", fmt.Errorf("getFile[%s]: %w", file, err)
 	}
 	localpath.Close()
 	if err = uri.DownloadToFile(ctx, localpath.Name()); err != nil {
-		return "", fmt.Errorf("getFile[%s].%w", localpath.Name(), err)
+		return "", fmt.Errorf("getFile[%s].%w", file, err)
 	}
 	if makeExecutable {
 		if _, err := getInterpreter(localpath.Name()); err != nil {
 			log.Logger(ctx).Sugar().Debugf("No interpreter found for %s", localpath.Name())
 		} else {
 			if err = os.Chmod(localpath.Name(), 0700); err != nil {
-				return "", fmt.Errorf("getFile[%s].%w", localpath.Name(), err)
+				return "", fmt.Errorf("getFile[%s].%w", file, err)
 			}
 		}
 	}

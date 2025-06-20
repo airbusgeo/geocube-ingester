@@ -2,6 +2,12 @@
 
 The input of the ingester is a payload. It contains an AOI, a date interval, parameters defining the raw products, parameters defining the processing and parameters defining the products to be ingested in the Geocube.
 
+The payload will be used to:
+1. List available scenes corresponding to the criterias ([Catalogue](catalog.md))
+2. Configure the downloading and pre-processing of the scenes (Downloader)
+3. Configure the processing of the scenes (Processor)
+4. Index the output products (Processor)
+
 The payload is a GeoJSON (all fields are mandatory unless otherwise stated):
 
 - AOI according to GeoJSON standards (`type`, `features`, `geometry`, `coordinates`...)
@@ -9,7 +15,7 @@ The payload is a GeoJSON (all fields are mandatory unless otherwise stated):
 - `start_time`, `end_time`: date interval
 
 - `scene_type`: describing the type of the products to be downloaded
-  - `constellation`: Name of the Satellite Constellation (currently supported : sentinel1, sentinel2)
+  - `constellation`: Name of the Satellite Constellation (see [currently supported](catalog.md))
   - `parameters`: (optional) specific parameters to filter the results (see [Catalogue API guide](#catalogue-apis))
 - `scene_graph_name`: name of the graph (or "CopyProductToStorage") that will be used just after downloading the scene (see [Processing Graphs](graph.md))
 - `tile_graph_name`: name of the graph (or "Pass") that will be used to process each tile (output of the downloader) (see [Processing Graphs](graph.md))
@@ -32,11 +38,11 @@ The `scene_type` defines the `consellation` and the `parameters` depends on the 
 
 ### Copernicus
 
-Copernicus available parameters: 	`productType`,`platformname`,`polarisationmode`,`sensoroperationalmode`, `cloudcoverpercentage`, `relativeorbitnumber` and `filename`
+Available `scene_type/parameters`: 	`productType`,`platformname`,`polarisationmode`,`sensoroperationalmode`, `cloudcoverpercentage`, `relativeorbitnumber` and `filename`
 
 ### OneAtlas
 
-OneAtlas available parameters: 	`productType`,`platform`,`processingLevel`,`cloudCover`, `incidenceAngle`, `workspace` and `relation`
+Available `scene_type/parameters`: 	`productType`,`platform`,`processingLevel`,`cloudCover`, `incidenceAngle`, `workspace` and `relation`
 
 > NB: To use other parameters or mix different kind of imagery. You need to group all your images in the same workspace (via OneAtlas) and reference only `workspace` in payload ingestion.
 

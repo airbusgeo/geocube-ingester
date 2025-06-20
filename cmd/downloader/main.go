@@ -272,7 +272,7 @@ func run(ctx context.Context) error {
 				jobStarted = time.Time{}
 			}()
 			ctx = log.With(ctx, "msgID", msg.ID)
-			log.Logger(log.With(ctx, "body", string(msg.Data))).Sugar().Debugf("message %s try %d", msg.ID, msg.TryCount)
+			log.Logger(log.With(ctx, "body", string(msg.Data))).Sugar().Debugf("message '%s' try %d", msg.ID, msg.TryCount)
 			scene := common.Scene{}
 			message := ""
 

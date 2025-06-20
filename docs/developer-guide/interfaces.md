@@ -65,14 +65,7 @@ To download images from data-storages, the ingester has the current interface:
 
 ### Current Implementations
 
-The Downloader service is currently able to download Sentinel 1 & 2 products from:
-
-- Peps
-- Copernicus (wip)
-- Creodias
-- Local file system
-- GCS
-- Alaska Satellite Facility
+The Downloader service is currently able to download products from different provider listed [here](../user-guide/providers.md).
 
 Depending on the provider, the user may need credentials. Please refer to the API documentation of the provider.
 
@@ -86,10 +79,7 @@ To be able to list the scenes available over an AOI, the Ingester has an interfa
 
 ### Current implementations
 
-The Ingester is currently able to connect to the following catalogues:
-
-- Copernicus for sentinel1 & 2 scenes
-- GCS for bursts annotations of an archive stored in GCS
+The Ingester is currently able to connect to the catalogues defined [here](../user-guide/catalog.md)
 
 
 ### Add a new catalogue

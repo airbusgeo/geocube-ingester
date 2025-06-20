@@ -2,11 +2,11 @@
 
 > NB: This documentation is for user that want to use the Catalogue. For documentation on how to implement a new catalogue, see [Developer-Guide/Catalogue](#developer-guide/catalog.md).
 
-Catalogue component makes an inventory of all the scenes (and bursts for S1 images) covering the AOI between startDate and endDate. 
+The Catalogue component makes an inventory of all the scenes (and bursts for S1 images) covering the AOI between startDate and endDate, depending on user-defined criteria. The results, including the product metadata, are formated in a standard way, following the GeoJSON standard and ready to be ingested.
 
 See [payload](payload.md) to create a payload.
 
-Some providers are implemented in order to list available products/scenes and retrieve products/scenes metadata (Name, ID, etc.):
+List of implemented catalogues :
 
 - [Copernicus](#copernicus): sentinel1 & 2 scenes
 - [Creodias](#creodias): sentinel1 & 2 scenes
@@ -18,6 +18,11 @@ Some providers are implemented in order to list available products/scenes and re
 ### Sentinel constellations
 #### Copernicus
 
+Supported constellations:
+
+- `sentinel1`
+- `sentinel2`
+
 Copernicus can be used to list the Sentinel products. It does not require authentication.
 
 Use the `--copernicus-catalog` flag to enable this catalogue.
@@ -25,6 +30,11 @@ Use the `--copernicus-catalog` flag to enable this catalogue.
 For more information see: [Copernicus OpenSearch API Documentation](https://documentation.dataspace.copernicus.eu/APIs/OpenSearch.html)  [Copernicus ODATA API Documentation](https://documentation.dataspace.copernicus.eu/APIs/OData.html)
 
 #### Creodias
+
+Supported constellations:
+
+- `sentinel1`
+- `sentinel2`
 
 No authentication required.
 
@@ -37,6 +47,12 @@ For more information see: [Creodias API](https://creodias.eu/data-offer)
 ### Airbus constellations
 
 #### OneAtlas
+
+Supported constellations:
+
+- `spot`
+- `pleiades`/`phr`
+
 
 Use the following arguments to configure this catalogue:
 - `oneatlas-username`
@@ -65,27 +81,15 @@ Catalog provides an estimated cost of a potential processing order (available in
 
 To list the bursts of a Sentinel-1 product without downloading the file, the catalogue has to download the annotation file included in the .SAFE file. 
 
-#### Creodias
-
-Creodias offers a service to get annotation files without downloading the whole product. Nevertheless, it's not always available on offline products.
-
 #### Object storage
 
 Local storage, GCS or AWS can be used to retrieve burst annotations from archives (.SAFE.zip) stored in a user bucket.
 
 User account must have the appropriate rights to access the bucket (`-annotations-urls`).
 
-## Workflow steps
-
-1. Catalogue will generate list of scenes matching with `geometry`, `start_time`, `end_time` and `scene_type` filter.
-2. Catalogue will generate list of tiles for every scene (For Sentinel1: Burst = Tiles, for other constellation Scenes = Tiles)
-3. Catalogue will check Geocube parameters validity (ie. `layers` JSON block which is reference Geocube variables and instances to use: must be existed)
-4. Catalogue will create associated records. If record already exists, reuse the records (`record_tags` is use)
-5. Workflow is started, Downloader will start one job per Scenes. After that, Processor will start also one job per Scenes/Tiles.
-
 ## Outputs
 
-Returns list of Scenes with associated Tiles to download and eventually pre-process.
+It returns a list of Scenes with associated Tiles, ready to be ingested.
 
 
 

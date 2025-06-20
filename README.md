@@ -3,7 +3,7 @@
 Geocube-Ingester is an example of automatic and parallel ingester for the [Geocube](https://github.com/airbusgeo/geocube).
 It is provided either as a generic framework for Geocube ingestion or as an example to develop new ingesters.
 
-It currently supports Sentinel-1 and Sentinel-2, computes Coherence, Backscatter and raw S2 bands. It can be enriched with user-defined SNAP-Processing graphs, python script or commands.
+It currently supports Sentinel-1, Sentinel-2, Landsat, Airbus constellation, computes Coherence, Backscatter and raw S2 bands. It can be enriched with user-defined SNAP-Processing graphs, python script or commands.
 
 Interfaces are provided to add new sources of data or new satellites. See the documentation.
 
