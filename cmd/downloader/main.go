@@ -77,7 +77,7 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.CopernicusPassword, "copernicus-password", "", "copernicus account password (optional)")
 	flag.StringVar(&config.CreodiasUsername, "creodias-username", "", "creodias account username (optional). To configure Creodias as a potential image Provider.")
 	flag.StringVar(&config.CreodiasPassword, "creodias-password", "", "creodias account password (optional)")
-	flag.StringVar(&config.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
+	flag.StringVar(&config.OneAtlasUsername, "oneatlas-username", "APIKEY", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
 	flag.StringVar(&config.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas apikey to use")
 	flag.StringVar(&config.OneAtlasDownloadEndpoint, "oneatlas-download-endpoint", "https://access.foundation.api.oneatlas.airbus.com/api/v1/items", "oneatlas download endpoint to use")
 	flag.StringVar(&config.OneAtlasOrderEndpoint, "oneatlas-order-endpoint", "https://data.api.oneatlas.airbus.com", "oneatlas order endpoint to use")
@@ -225,7 +225,7 @@ func run(ctx context.Context) error {
 		providerNames = append(providerNames, "Creodias ("+config.CreodiasUsername+")")
 		imageProviders = append(imageProviders, provider.NewCreoDiasImageProvider(config.CreodiasUsername, config.CreodiasPassword))
 	}
-	if config.OneAtlasUsername != "" {
+	if config.OneAtlasUsername != "" && config.OneAtlasApikey != "" {
 		oneatlasProvider, cncl := provider.NewOneAtlasProvider(ctx,
 			config.OneAtlasUsername,
 			config.OneAtlasApikey,

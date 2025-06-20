@@ -41,15 +41,38 @@ The `scene_type` defines the `consellation` and the `parameters` depends on the 
 
 ### Copernicus
 
-Available `scene_type/parameters`: 	`productType`,`platformname`,`polarisationmode`,`sensoroperationalmode`, `cloudcoverpercentage`, `relativeorbitnumber` and `filename`
+Available `scene_type/parameters`:
+
+- `platformname`: e.g. `SENTINEL-1`, `SENTINEL-2`
+-	`productType`: e.g. `SLC`, `S2MSI1C`
+- `filename`
+
+For Sentinel-1 only:
+
+- `polarisationmode`: default `VV VH`
+- `sensoroperationalmode`: default `IW`
+- `relativeorbitnumber`
+  
+For optical only:
+
+- `cloudcoverpercentage`: format `[min TO max]`
 
 ### OneAtlas
 
-Available `scene_type/parameters`: 	`productType`,`platform`,`processingLevel`,`cloudCover`, `incidenceAngle`, `workspace` and `relation`
+OneAtlas available parameters: 
+
+- `platform`: e.g. `PHR1B`
+- `acquisitionIdentifier`: e.g. `ACQ_PNEO4_02426805581362`
+- `productType`: e.g. `bundle`
+- `processingLevel`
+- `cloudCover`: e.g. `[0,10]`
+- `incidenceAngle`
+- `workspace`
+- `relation`
 
 > NB: To use other parameters or mix different kind of imagery. You need to group all your images in the same workspace (via OneAtlas) and reference only `workspace` in payload ingestion.
 
-For more information see: [OneAtlas API guide](https://www.geoapi-airbusds.com/api-catalog/oneatlas-data/index.html#tag/Search)
+For more information see: [OneAtlas API guide](https://api.oneatlas.airbus.com/guides/oneatlas-data/g-search/)
 
 ## Parameters to download and process the products
 

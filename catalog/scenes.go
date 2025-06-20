@@ -44,7 +44,7 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 	if c.CreodiasCatalog {
 		sceneProviders = append(sceneProviders, &creodias.Provider{})
 	}
-	if c.OneAtlasCatalogUser != "" {
+	if c.OneAtlasCatalogUser != "" && c.OneAtlasApikey != "" {
 		oneAtlasProvider, oneAtlasProviderCncl := oneatlas.NewOneAtlasProvider(ctx,
 			c.OneAtlasCatalogUser,
 			c.OneAtlasApikey,

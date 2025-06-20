@@ -12,6 +12,7 @@ import (
 
 	"github.com/airbusgeo/geocube-ingester/catalog"
 	"github.com/airbusgeo/geocube-ingester/common"
+	"github.com/airbusgeo/geocube-ingester/interface/catalog/oneatlas"
 	"github.com/airbusgeo/geocube-ingester/interface/database/pg"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
@@ -91,11 +92,11 @@ func newAppConfig() (*config, error) {
 
 	// Providers
 	flag.StringVar(&annotationsURLs, "annotations-urls", "", "URL (local/gs/aws) containing S1-scenes (as zip) to read annotations without downloading the whole file (optional, contains identifiers between brackets that will be replaced by those of the scene. E.g: gs://bucket/{DATE}/{SCENE}.zip), several urls are coma separated")
-	flag.StringVar(&config.CatalogConfig.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
-	flag.StringVar(&config.CatalogConfig.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas account apikey (to generate an api key for your account: https://account.foundation.oneatlas.airbus.com/api-keys)")
-	flag.StringVar(&config.CatalogConfig.OneAtlasEndpoint, "oneatlas-endpoint", "https://search.foundation.api.oneatlas.airbus.com/api/v2/opensearch", "oneatlas endpoint to search products from the catalogue")
-	flag.StringVar(&config.CatalogConfig.OneAtlasOrderEndpoint, "oneatlas-order-endpoint", "https://data.api.oneatlas.airbus.com", "oneatlas order endpoint to estimate processing price")
-	flag.StringVar(&config.CatalogConfig.OneAtlasAuthenticationEndpoint, "oneatlas-auth-endpoint", "https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token", "oneatlas order endpoint to use")
+	flag.StringVar(&config.CatalogConfig.OneAtlasUsername, "oneatlas-username", "APIKEY", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
+	flag.StringVar(&config.CatalogConfig.OneAtlasApikey, "oneatlas-apikey", "", fmt.Sprintf("oneatlas account apikey (to generate an api key for your account: %s)", oneatlas.OneAtlasCreateApiKeyEndpoint))
+	flag.StringVar(&config.CatalogConfig.OneAtlasEndpoint, "oneatlas-endpoint", oneatlas.OneAtlasSearchEndpoint, "oneatlas endpoint to search products from the catalogue")
+	flag.StringVar(&config.CatalogConfig.OneAtlasOrderEndpoint, "oneatlas-order-endpoint", oneatlas.OneAtlasOrderEndpoint, "oneatlas order endpoint to estimate processing price")
+	flag.StringVar(&config.CatalogConfig.OneAtlasAuthenticationEndpoint, "oneatlas-auth-endpoint", oneatlas.OneAtlasAuthenticationEndpoint, "oneatlas order endpoint to use")
 	flag.BoolVar(&config.CatalogConfig.CopernicusCatalog, "copernicus-catalog", false, "Use the Copernicus catalog service (search data)")
 	flag.BoolVar(&config.CatalogConfig.CreodiasCatalog, "creodias-catalog", false, "Use the creodias catalog service (search data)")
 

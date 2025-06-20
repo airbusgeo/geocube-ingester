@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"maps"
 
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -22,22 +24,30 @@ import (
 	"github.com/paulsmith/gogeos/geos"
 )
 
+const (
+	OneAtlasCatalogLimit           = 200
+	OneAtlasCreateApiKeyEndpoint   = "https://account.foundation.oneatlas.airbus.com/api-keys"
+	OneAtlasAuthenticationEndpoint = "https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token"
+	OneAtlasOrderEndpoint          = "https://data.api.oneatlas.airbus.com"
+	OneAtlasSearchEndpoint         = "https://search.foundation.api.oneatlas.airbus.com/api/v2/opensearch"
+)
+
 type provider struct {
-	username     string
-	password     string
-	endpoint     string
-	client       *http.Client
-	orderManager shared.OrderManager
+	username       string
+	password       string
+	searchEndpoint string
+	orderManager   shared.OrderManager
+	limit          int
 }
 
-func NewOneAtlasProvider(ctx context.Context, username, apikey, endpoint, orderEndpoint, authenticationEndpoint string) (*provider, context.CancelFunc) {
+func NewOneAtlasProvider(ctx context.Context, username, apikey, searchEndpoint, orderEndpoint, authenticationEndpoint string) (*provider, context.CancelFunc) {
 	orderManager, cncl := shared.NewOrderManager(ctx, orderEndpoint, authenticationEndpoint, apikey)
 	return &provider{
-		username:     username,
-		password:     apikey,
-		endpoint:     endpoint,
-		client:       &http.Client{},
-		orderManager: orderManager,
+		username:       username,
+		password:       apikey,
+		searchEndpoint: searchEndpoint,
+		orderManager:   orderManager,
+		limit:          OneAtlasCatalogLimit,
 	}, cncl
 }
 func (p *provider) Supports(c common.Constellation) bool {
@@ -51,97 +61,90 @@ func (p *provider) Supports(c common.Constellation) bool {
 func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
 	catalogRequestParameter, err := p.buildCatalogParameters(area, aoi)
 	if err != nil {
-		return entities.Scenes{}, err
+		return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas].%w", err)
 	}
 
-	catalogResponse, err := p.queryCatalog(ctx, catalogRequestParameter)
+	catalogResponse, err := p.queryCatalog(ctx, catalogRequestParameter, area.Page, area.Limit)
 	if err != nil {
-		return entities.Scenes{}, err
+		return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas].%w", err)
 	}
 
 	scenes := make([]*entities.Scene, 0)
 	orderProducts := make([]shared.Product, 0)
 	for _, feature := range catalogResponse.Features {
-		// Check for required elements
-		requiredElements := []string{"platform", "processingDate", "parentIdentifier", "acquisitionIdentifier", "id", "acquisitionDate", "productType"}
-		for _, elem := range requiredElements {
-			if _, ok := feature.Properties[elem]; !ok {
-				return entities.Scenes{}, fmt.Errorf("OneAtlas.searchScenes: Missing element " + elem + " in results")
+		uuid, ok := feature.Properties["id"].(string)
+		if !ok {
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed to parse id: %v", feature.Properties["id"])
+		}
+
+		var identifier string
+		for _, elem := range []string{"sourceIdentifier", "acquisitionIdentifier", "parentIdentifier"} {
+			if identifier, ok = feature.Properties[elem].(string); ok {
+				break
 			}
 		}
-
-		id, ok := feature.Properties["id"].(string)
-		if !ok {
-			return entities.Scenes{}, fmt.Errorf("failed to parse id: %v", feature.Properties["id"])
+		if identifier == "" {
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed to find identifier")
 		}
-
 		parentIdentifier, ok := feature.Properties["parentIdentifier"].(string)
 		if !ok {
-			return entities.Scenes{}, fmt.Errorf("failed to parse parentIdentifier: %v", feature.Properties["parentIdentifier"])
-		}
-
-		acquisitionIdentifier, ok := feature.Properties["acquisitionIdentifier"].(string)
-		if !ok {
-			acquisitionIdentifier, ok = feature.Properties["parentIdentifier"].(string)
-			if !ok {
-				return entities.Scenes{}, fmt.Errorf("failed to parse acquisitionIdentifier: %v", feature.Properties["acquisitionIdentifier"])
-			}
+			parentIdentifier = identifier
 		}
 
 		processingDateStr, ok := feature.Properties["processingDate"].(string)
 		if !ok {
-			return entities.Scenes{}, fmt.Errorf("failed to parse processingDate: %v", feature.Properties["processingDate"])
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed to parse processingDate: %v", feature.Properties["processingDate"])
 		}
 		processingDate, err := dateparse.ParseAny(processingDateStr)
 		if err != nil {
-			return entities.Scenes{}, fmt.Errorf("failed parse processingDate as time")
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed parse processingDate as time: %s", processingDateStr)
 		}
 
 		acquisitionDateStr, ok := feature.Properties["acquisitionDate"].(string)
 		if !ok {
-			return entities.Scenes{}, fmt.Errorf("failed to parse acquisitionDate: %v", feature.Properties["acquisitionDate"])
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed to parse acquisitionDate: %v", feature.Properties["acquisitionDate"])
 		}
 
 		acquisitionDate, err := dateparse.ParseAny(acquisitionDateStr)
 		if err != nil {
-			return entities.Scenes{}, fmt.Errorf("failed parse acquisitionDate as time")
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed parse acquisitionDate as time: %s", acquisitionDateStr)
 		}
 
 		productType, ok := feature.Properties["productType"].(string)
 		if !ok {
-			return entities.Scenes{}, fmt.Errorf("failed to parse productType: %v", feature.Properties["productType"])
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed to parse productType: %v", feature.Properties["productType"])
 		}
 
 		constellation, ok := feature.Properties["constellation"].(string)
 		if !ok {
-			return entities.Scenes{}, fmt.Errorf("failed to parse constellation: %v", feature.Properties["constellation"])
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed to parse constellation: %v", feature.Properties["constellation"])
 		}
 
 		platform, ok := feature.Properties["platform"].(string)
 		if !ok {
-			return entities.Scenes{}, fmt.Errorf("failed to parse platform: %v", feature.Properties["platform"])
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed to parse platform: %v", feature.Properties["platform"])
 		}
 
-		cloudcover, _ := feature.Properties["cloudcover"].(string)
+		cloudcover := fmt.Sprintf("%v", feature.Properties["cloudCover"])
 
-		if p.isSceneAlreadyAdded(parentIdentifier, acquisitionIdentifier, scenes) {
+		if p.isSceneAlreadyAdded(identifier, identifier, scenes) {
 			continue
 		}
 
 		intersectGeometry, err := p.getIntersectGeometry(feature.Geometry.Geometry, aoi)
 		if err != nil {
-			return entities.Scenes{}, fmt.Errorf("failed to get geometry intersection: %w", err)
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed to get geometry intersection: %w", err)
 		}
 		if empty, err := intersectGeometry.IsEmpty(); err != nil {
-			return entities.Scenes{}, fmt.Errorf("failed to get geometry intersection: %w", err)
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed to get geometry intersection: %w", err)
 		} else if empty {
-			log.Logger(ctx).Sugar().Debugf("Empty intersection with %s", acquisitionIdentifier)
+			log.Logger(ctx).Sugar().Debugf("Empty intersection with %s", identifier)
 			continue
 		}
 		if area, err := intersectGeometry.Area(); err != nil {
-			return entities.Scenes{}, fmt.Errorf("failed to get geometry intersection: %w", err)
+			return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas]: failed to get geometry intersection: %w", err)
 		} else if area < 0.00001 {
-			log.Logger(ctx).Sugar().Debugf("Too small intersection with %s (area=%fdeg²)", acquisitionIdentifier, area)
+			log.Logger(ctx).Sugar().Debugf("Too small intersection with %s (area=%fdeg²)", identifier, area)
 			continue
 		}
 
@@ -155,6 +158,7 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		for _, link := range downloadLinks {
 			if strings.EqualFold(link.Name, "download") && strings.EqualFold(link.Type, "http") {
 				downloadURL = link.Href
+				break
 			}
 		}
 
@@ -165,11 +169,9 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		metadata := map[string]interface{}{
 			common.DownloadLinkMetadata: downloadURL,
 			"geometry":                  &geojson.Geometry{Geometry: g},
-			common.UUIDMetadata:         id,
+			common.UUIDMetadata:         uuid,
 		}
-		for featureKey, featureValue := range feature.Properties {
-			metadata[featureKey] = featureValue
-		}
+		maps.Copy(metadata, feature.Properties)
 
 		newScene := &entities.Scene{
 			Scene: common.Scene{
@@ -180,10 +182,10 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 					Metadata:     metadata,
 				},
 			},
-			ProductName: acquisitionIdentifier,
+			ProductName: identifier,
 			Tags: map[string]string{
-				common.TagSourceID:             parentIdentifier,
-				common.TagUUID:                 id,
+				common.TagSourceID:             identifier,
+				common.TagUUID:                 uuid,
 				common.TagIngestionDate:        acquisitionDate.String(),
 				common.TagProductType:          productType,
 				common.TagConstellation:        constellation,
@@ -205,7 +207,7 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 				ProductType:           productType,
 				RadiometricProcessing: "BASIC16",
 				Aoi:                   aoi,
-				ID:                    id,
+				ID:                    uuid,
 				ImageFormat:           "image/geotiff",
 			})
 		}
@@ -286,6 +288,10 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 }
 
 func (p *provider) buildCatalogParameters(area *entities.AreaToIngest, aoi geos.Geometry) (*catalogRequestParameter, error) {
+	constellation := common.GetConstellationFromString(area.SceneType.Constellation)
+	if !p.Supports(constellation) {
+		return nil, fmt.Errorf("OneAtlas: constellation not supported: " + area.SceneType.Constellation)
+	}
 	convexHullGeometry, err := aoi.ConvexHull()
 	if err != nil {
 		return nil, err
@@ -303,72 +309,57 @@ func (p *provider) buildCatalogParameters(area *entities.AreaToIngest, aoi geos.
 		acquisitionDate = fmt.Sprintf("[%s,%s]", startDate, endDate)
 	}
 
-	constellation := common.GetConstellationFromString(area.SceneType.Constellation)
-	if constellation != common.PHR && constellation != common.SPOT {
-		return nil, fmt.Errorf("OneAtlas: constellation not supported: " + area.SceneType.Constellation)
-	}
-
 	productType := area.SceneType.Parameters["productType"]
 	platform := area.SceneType.Parameters["platform"]
 	processingLevel := area.SceneType.Parameters["processingLevel"]
-	cloudCover := area.SceneType.Parameters["cloudCover"]
+	cloudCover := strings.ReplaceAll(area.SceneType.Parameters["cloudCover"], " ", "")
 	incidenceAngle := area.SceneType.Parameters["incidenceAngle"]
 	workspace := area.SceneType.Parameters["workspace"]
 	relation := area.SceneType.Parameters["relation"]
+	acquisitionIdentifier := area.SceneType.Parameters["acquisitionIdentifier"]
 
 	return &catalogRequestParameter{
-		Constellation:   constellation.String(),
-		ItemsPerPage:    200,
-		StartPage:       1,
-		ProcessingLevel: processingLevel,
-		ProductType:     productType,
-		SortBy:          "acquisitionDate",
-		AcquisitionDate: acquisitionDate,
-		Platform:        platform,
-		CloudCover:      cloudCover,
-		IncidenceAngle:  incidenceAngle,
-		Workspace:       workspace,
-		Relation:        relation,
-		Geometry:        geojson.Geometry{Geometry: g},
+		Constellation:         constellation.String(),
+		AcquisitionIdentifier: acquisitionIdentifier,
+		ItemsPerPage:          area.Limit,
+		StartPage:             area.Page + 1,
+		ProcessingLevel:       processingLevel,
+		ProductType:           productType,
+		SortBy:                "acquisitionDate",
+		AcquisitionDate:       acquisitionDate,
+		Platform:              platform,
+		CloudCover:            cloudCover,
+		IncidenceAngle:        incidenceAngle,
+		Workspace:             workspace,
+		Relation:              relation,
+		Geometry:              geojson.Geometry{Geometry: g},
 	}, nil
 }
 
-func (p *provider) queryCatalog(_ context.Context, catalogRequestParameter *catalogRequestParameter) (*catalogResponse, error) {
+func (p *provider) queryCatalog(ctx context.Context, catalogRequestParameter *catalogRequestParameter, page, limit int) (*catalogResponse, error) {
 	var completeCatalogResponse catalogResponse
+	totalPages := "?"
 
-	nbPage := 0
-	for {
+	for _, queryParams := range service.ComputePagesToQuery(page, limit, p.limit) {
+		log.Logger(ctx).Sugar().Debugf("[OneAtlas] Search page %d/%s", queryParams.Page+1, totalPages)
+		catalogRequestParameter.StartPage = queryParams.Page + 1
+		catalogRequestParameter.ItemsPerPage = queryParams.Limit
 		b, err := json.Marshal(catalogRequestParameter)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("queryCatalog: %w", err)
 		}
 
-		request, err := http.NewRequest(http.MethodPost, p.endpoint, bytes.NewReader(b))
+		request, err := http.NewRequest(http.MethodPost, p.searchEndpoint, bytes.NewReader(b))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("queryCatalog: %w", err)
 		}
 
 		request.Header.Add("Content-Type", "application/json")
 		request.SetBasicAuth(p.username, p.password)
 
-		resp, err := p.client.Do(request)
+		bodyResponse, err := service.GetBodyRetryReq(request, 3)
 		if err != nil {
-			return nil, err
-		}
-
-		//noinspection GoDeferInLoop
-		defer resp.Body.Close()
-
-		if resp.StatusCode != 200 {
-			if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-				return nil, fmt.Errorf(resp.Status)
-			}
-			return nil, service.MakeTemporary(fmt.Errorf(resp.Status))
-		}
-
-		bodyResponse, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("queryCatalog.%w", err)
 		}
 
 		c := catalogResponse{}
@@ -381,14 +372,12 @@ func (p *provider) queryCatalog(_ context.Context, catalogRequestParameter *cata
 		completeCatalogResponse.StartIndex = c.StartIndex
 		completeCatalogResponse.TotalResults = c.TotalResults
 		completeCatalogResponse.Type = c.Type
+		c.Features = service.QueryGetResult(&queryParams, c.Features)
 		completeCatalogResponse.Features = append(completeCatalogResponse.Features, c.Features...)
 
-		if c.ItemsPerPage != 0 {
-			nbPage = c.TotalResults/c.ItemsPerPage + 1
-		}
-		if catalogRequestParameter.StartPage < nbPage {
-			catalogRequestParameter.StartPage++
-		} else {
+		nbPages := c.TotalResults/c.ItemsPerPage + 1
+		totalPages = strconv.Itoa(nbPages)
+		if catalogRequestParameter.StartPage == nbPages || len(completeCatalogResponse.Features) == limit {
 			break
 		}
 	}

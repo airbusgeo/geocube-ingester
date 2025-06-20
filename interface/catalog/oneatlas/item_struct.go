@@ -10,19 +10,20 @@ import (
 )
 
 type catalogRequestParameter struct {
-	Constellation   string           `json:"constellation,omitempty"`
-	ItemsPerPage    int              `json:"itemsPerPage,omitempty"`
-	StartPage       int              `json:"startPage,omitempty"`
-	ProcessingLevel string           `json:"processingLevel,omitempty"`
-	ProductType     string           `json:"productType,omitempty"`
-	SortBy          string           `json:"sortBy,omitempty"`
-	AcquisitionDate string           `json:"acquisitionDate,omitempty"`
-	Platform        string           `json:"platform,omitempty"`
-	CloudCover      string           `json:"cloudCover,omitempty"`
-	IncidenceAngle  string           `json:"incidenceAngle,omitempty"`
-	Workspace       string           `json:"workspace,omitempty"`
-	Relation        string           `json:"relation,omitempty"`
-	Geometry        geojson.Geometry `json:"geometry,omitempty"`
+	Constellation         string           `json:"constellation,omitempty"`
+	AcquisitionIdentifier string           `json:"acquisitionIdentifier,omitempty"`
+	ItemsPerPage          int              `json:"itemsPerPage,omitempty"`
+	StartPage             int              `json:"startPage,omitempty"`
+	ProcessingLevel       string           `json:"processingLevel,omitempty"`
+	ProductType           string           `json:"productType,omitempty"`
+	SortBy                string           `json:"sortBy,omitempty"`
+	AcquisitionDate       string           `json:"acquisitionDate,omitempty"`
+	Platform              string           `json:"platform,omitempty"`
+	CloudCover            string           `json:"cloudCover,omitempty"`
+	IncidenceAngle        string           `json:"incidenceAngle,omitempty"`
+	Workspace             string           `json:"workspace,omitempty"`
+	Relation              string           `json:"relation,omitempty"`
+	Geometry              geojson.Geometry `json:"geometry,omitempty"`
 }
 
 type catalogResponse struct {

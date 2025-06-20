@@ -16,6 +16,7 @@ import (
 	"github.com/airbusgeo/geocube-ingester/catalog"
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/geocube-ingester/common"
+	"github.com/airbusgeo/geocube-ingester/interface/catalog/oneatlas"
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 	"github.com/google/uuid"
@@ -54,9 +55,9 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.WorkflowServer, "workflow-server", "", "address of workflow server")
 	flag.StringVar(&config.WorkflowToken, "workflow-token", "", "address of workflow server")
 	flag.StringVar(&config.ProcessingDir, "workdir", "", "working directory to store intermediate results (could be empty or temporary)")
-	flag.StringVar(&config.OneAtlasUsername, "oneatlas-username", "", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
+	flag.StringVar(&config.OneAtlasUsername, "oneatlas-username", "APIKEY", "oneatlas account username (optional). To configure Oneatlas as a potential image Provider.")
 	flag.StringVar(&config.OneAtlasApikey, "oneatlas-apikey", "", "oneatlas account password (optional)")
-	flag.StringVar(&config.OneAtlasEndpoint, "oneatlas-endpoint", "", "oneatlas endpoint to search products from the catalogue")
+	flag.StringVar(&config.OneAtlasEndpoint, "oneatlas-endpoint", oneatlas.OneAtlasSearchEndpoint, "oneatlas endpoint to search products from the catalogue")
 	flag.BoolVar(&config.CopernicusCatalog, "copernicus-catalog", false, "Use the copernicus catalog service (search data)")
 	flag.BoolVar(&config.CreodiasCatalog, "creodias-catalog", false, "Use the creodias catalog service (search data)")
 	flag.Parse()
