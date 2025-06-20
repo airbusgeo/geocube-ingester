@@ -38,8 +38,7 @@ func NewOneAtlasProvider(ctx context.Context, username, apikey, endpoint, orderE
 }
 func (p *provider) Supports(c common.Constellation) bool {
 	switch c {
-	case common.PHR:
-	case common.SPOT:
+	case common.PHR, common.SPOT:
 		return true
 	}
 	return false
