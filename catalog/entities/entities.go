@@ -3,7 +3,6 @@ package entities
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -75,25 +74,10 @@ type AreaToIngest struct {
 	StorageURI      string            `json:"storage_uri"` // If empty, use the default storage uri of the ingester
 }
 
-// GetConstellation returns the constellation from the user input
-func GetConstellation(constellation string) common.Constellation {
-	switch strings.ToLower(constellation) {
-	case "sentinel1", "sentinel-1":
-		return common.Sentinel1
-	case "sentinel2", "sentinel-2":
-		return common.Sentinel2
-	case "phr":
-		return common.PHR
-	case "spot":
-		return common.SPOT
-	}
-	return common.GetConstellationFromProductId(constellation)
-}
-
 // AutoFill fills ProductName, Satellite, Constellation
 func (s *Scene) AutoFill() {
 	var constellation, satellite string
-	switch GetConstellation(s.SourceID) {
+	switch common.GetConstellationFromProductId(s.SourceID) {
 	case common.Sentinel1:
 		constellation = "SENTINEL1"
 		satellite = constellation + s.SourceID[2:3]

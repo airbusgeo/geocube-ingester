@@ -286,7 +286,7 @@ func (p *provider) buildCatalogParameters(area *entities.AreaToIngest, aoi geos.
 		acquisitionDate = fmt.Sprintf("[%s,%s]", startDate, endDate)
 	}
 
-	constellation := entities.GetConstellation(area.SceneType.Constellation)
+	constellation := common.GetConstellationFromString(area.SceneType.Constellation)
 	if constellation != common.PHR && constellation != common.SPOT {
 		return nil, fmt.Errorf("OneAtlas: constellation not supported: " + area.SceneType.Constellation)
 	}

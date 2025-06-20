@@ -102,7 +102,7 @@ func loadScenes(w http.ResponseWriter, req *http.Request, field string, ignore_e
 func (c *Catalog) FindTiles(ctx context.Context, area catalog.AreaToIngest, scenes catalog.Scenes) (int, error) {
 	var rootLeafTiles []common.Tile
 	var err error
-	switch catalog.GetConstellation(area.SceneType.Constellation) {
+	switch common.GetConstellationFromString(area.SceneType.Constellation) {
 	case common.Sentinel1:
 		if c.Workflow == nil {
 			return 0, fmt.Errorf("FindTiles: WorkflowServer is not defined")

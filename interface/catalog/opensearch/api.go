@@ -52,7 +52,7 @@ func ConstructQuery(ctx context.Context, area *entities.AreaToIngest, aoi geos.G
 
 	// Construct Query
 	parametersMap := map[string]string{}
-	switch entities.GetConstellation(area.SceneType.Constellation) {
+	switch common.GetConstellationFromString(area.SceneType.Constellation) {
 	case common.Sentinel1:
 		parametersMap[mapKey["producttype"]] = "SLC"
 		parametersMap[mapKey["polarisationmode"]] = "VV%26VH"
@@ -197,7 +197,7 @@ func Parse(area *entities.AreaToIngest, hits []Hits) (entities.Scenes, error) {
 		scenes[i].AutoFill()
 
 		// Optional tags
-		switch entities.GetConstellation(area.SceneType.Constellation) {
+		switch common.GetConstellationFromString(area.SceneType.Constellation) {
 		case common.Sentinel1:
 			scenes[i].Tags[common.TagPolarisationMode] = rawscene.Properties.Polarisation
 			scenes[i].Tags[common.TagSliceNumber] = "undefined"

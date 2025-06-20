@@ -19,6 +19,21 @@ const (
 	SPOT                    // DS_SPOT7_201806232333174_XXX_XXX_XXX_XXX_XXXXXXX_XXXXX
 )
 
+// GetConstellation returns the constellation from the user input
+func GetConstellationFromString(input string) Constellation {
+	switch strings.ToLower(input) {
+	case "sentinel1", "sentinel-1":
+		return Sentinel1
+	case "sentinel2", "sentinel-2":
+		return Sentinel2
+	case "phr", "pleiades":
+		return PHR
+	case "spot":
+		return SPOT
+	}
+	return GetConstellationFromProductId(input)
+}
+
 func GetConstellationFromProductId(sceneName string) Constellation {
 	if strings.HasPrefix(sceneName, "S1") {
 		return Sentinel1
@@ -148,7 +163,7 @@ func Info(sceneName string) (map[string]string, error) {
 			"LATITUDE":   sceneName[46:49],
 		}, nil
 	}
-	return nil, fmt.Errorf("GSImageProvider: constellation not supported")
+	return nil, fmt.Errorf("Info: constellation not supported")
 }
 
 /**

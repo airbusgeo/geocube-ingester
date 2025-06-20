@@ -44,7 +44,7 @@ func (p *Provider) Supports(c common.Constellation) bool {
 func (s *Provider) OpenSearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
 	// Construct Query
 	hostUrl := CopernicusQueryURL
-	switch entities.GetConstellation(area.SceneType.Constellation) {
+	switch common.GetConstellationFromString(area.SceneType.Constellation) {
 	case common.Sentinel1:
 		hostUrl = Sentinel1QueryURL
 	case common.Sentinel2:
@@ -86,7 +86,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 
 	// Default values
 	parametersMap := map[string]string{}
-	switch entities.GetConstellation(area.SceneType.Constellation) {
+	switch common.GetConstellationFromString(area.SceneType.Constellation) {
 	case common.Sentinel1:
 		parametersMap[mapKey["platformname"]] = "SENTINEL-1"
 		parametersMap[mapKey["producttype"]] = "SLC"
@@ -194,7 +194,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		scenes[i].AutoFill()
 
 		// Optional tags
-		switch entities.GetConstellation(area.SceneType.Constellation) {
+		switch common.GetConstellationFromString(area.SceneType.Constellation) {
 		case common.Sentinel1:
 			scenes[i].Tags[common.TagPolarisationMode] = rawscene.AttributesMap["polarisationChannels"]
 			scenes[i].Tags[common.TagSliceNumber] = rawscene.AttributesMap["sliceNumber"]

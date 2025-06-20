@@ -32,7 +32,7 @@ import (
 // The scenes are retrieved from different providers
 func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
 	// Search
-	constellation := entities.GetConstellation(area.SceneType.Constellation)
+	constellation := common.GetConstellationFromString(area.SceneType.Constellation)
 	var sceneProviders []catalog.ScenesProvider
 	if c.CreodiasCatalog && constellation == common.Sentinel2 {
 		sceneProviders = append(sceneProviders, &creodias.Provider{}) // Prefered provider for Sentinel2
@@ -137,7 +137,7 @@ func (c *Catalog) IngestedScenesInventoryFromTiles(ctx context.Context, tiles []
 			Ingested: true,
 			Data:     tile.Data,
 		}
-		if entities.GetConstellation(scene.SourceID) == common.Sentinel1 {
+		if common.GetConstellationFromString(scene.SourceID) == common.Sentinel1 {
 			tile.AnxTime, _ = strconv.Atoi(strings.Split(tile.SourceID, "_")[2])
 		}
 		scene.Tiles = append(scene.Tiles, tile)
@@ -268,7 +268,7 @@ func refineInventory(area *entities.AreaToIngest, scenes []*entities.Scene, aoi 
 	if scenes, err = handleEquatorCrossing(scenes); err != nil {
 		return nil, fmt.Errorf("refineInventory.%w", err)
 	}
-	if entities.GetConstellation(area.SceneType.Constellation) == common.Sentinel1 {
+	if common.GetConstellationFromString(area.SceneType.Constellation) == common.Sentinel1 {
 		if err = handleNonContinuousSwath(scenes); err != nil {
 			return nil, fmt.Errorf("refineInventory.%w", err)
 		}
