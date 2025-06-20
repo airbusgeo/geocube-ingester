@@ -50,6 +50,8 @@ type config struct {
 	MundiSeeedToken                   string
 	GSProviderBuckets                 []string
 	FTPPath, FTPUsername, FTPPassword string
+	LandsatAwsAccessKeyId             string
+	LandsatAwsSecretAccessKey         string
 
 	WithDockerEngine bool
 	Docker           graph.DockerConfig
@@ -82,6 +84,8 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.OneAtlasDownloadEndpoint, "oneatlas-download-endpoint", "https://access.foundation.api.oneatlas.airbus.com/api/v1/items", "oneatlas download endpoint to use")
 	flag.StringVar(&config.OneAtlasOrderEndpoint, "oneatlas-order-endpoint", "https://data.api.oneatlas.airbus.com", "oneatlas order endpoint to use")
 	flag.StringVar(&config.OneAtlasAuthenticationEndpoint, "oneatlas-auth-endpoint", "https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token", "oneatlas order endpoint to use")
+	flag.StringVar(&config.LandsatAwsAccessKeyId, "landsat-aws-access-key-id", "", "Landsat AWS access key id (optional). To configure Landsat AWS as a potential image Provider")
+	flag.StringVar(&config.LandsatAwsSecretAccessKey, "landsat-aws-secret-access-key", "", "Landsat AWS secret access key (optional). Required in addition to Landsat AWS access key id.")
 	gsProviderBuckets := flag.String("gs-provider-buckets", "", `Google Storage buckets. List of "constellation:bucket" comma-separated (optional). To configure GS as a potential image Provider.
 	bucket can contain several {IDENTIFIER} than will be replaced according to the sceneName.
 	IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
@@ -236,6 +240,10 @@ func run(ctx context.Context) error {
 		defer cncl()
 		providerNames = append(providerNames, oneatlasProvider.Name()+" ("+config.OneAtlasUsername+")")
 		imageProviders = append(imageProviders, oneatlasProvider)
+	}
+	if config.LandsatAwsAccessKeyId != "" && config.LandsatAwsSecretAccessKey != "" {
+		providerNames = append(providerNames, "Landsat AWS ("+config.LandsatAwsAccessKeyId+")")
+		imageProviders = append(imageProviders, provider.NewLandsatAwsImageProvider(config.LandsatAwsAccessKeyId, config.LandsatAwsSecretAccessKey))
 	}
 
 	if len(imageProviders) == 0 {

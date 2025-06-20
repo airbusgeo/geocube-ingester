@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -17,6 +18,7 @@ const (
 	Sentinel2               // MMM_MSIXXX_YYYYMMDDTHHMMSS_Nxxyy_ROOO_Txxxxx_<Product Discriminator>.SAFE or MMM_CCCC_FFFFDDDDDD_ssss_YYYYMMDDTHHMMSS_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS.SAFE
 	PHR                     // DS_PHR1B_201706161037358_XXX_XX_XXXXXXX_XXXX_XXXXX
 	SPOT                    // DS_SPOT7_201806232333174_XXX_XXX_XXX_XXX_XXXXXXX_XXXXX
+	Landsat89               // LXSS_LLLL_PPPRRR_YYYYMMDD_yyyymmdd_CX_TX
 )
 
 // GetConstellation returns the constellation from the user input
@@ -26,6 +28,8 @@ func GetConstellationFromString(input string) Constellation {
 		return Sentinel1
 	case "sentinel2", "sentinel-2":
 		return Sentinel2
+	case "landsat89":
+		return Landsat89
 	case "phr", "pleiades":
 		return PHR
 	case "spot":
@@ -46,6 +50,9 @@ func GetConstellationFromProductId(sceneName string) Constellation {
 	}
 	if strings.HasPrefix(sceneName, "DS_SPOT") {
 		return SPOT
+	}
+	if regexp.MustCompile("^L[OTC]0[89]").MatchString(sceneName) {
+		return Landsat89
 	}
 	return Unknown
 }
@@ -161,6 +168,29 @@ func Info(sceneName string) (map[string]string, error) {
 			"SECOND":     sceneName[21:23],
 			"LONGITUDE":  sceneName[41:46],
 			"LATITUDE":   sceneName[46:49],
+		}, nil
+	case Landsat89:
+		// LC09_L1GT_166003_20250603_20250603_02_T2
+		if len(sceneName) < len("LXSS_LLLL_PPPRRR_YYYYMMDD_yyyymmdd_CX_TX") {
+			return nil, fmt.Errorf("invalid Landsat8/9 file name: " + sceneName)
+		}
+		collectionChar := sceneName[1:2]
+		sensorCollection := "oli-tirs"
+		if collectionChar == "O" {
+			sensorCollection = "oli"
+		} else if collectionChar == "T" {
+			sensorCollection = "tirs"
+		}
+
+		return map[string]string{
+			"MISSION_ID": sceneName[0:1] + sceneName[2:4],
+			"DATE":       sceneName[17:25],
+			"YEAR":       sceneName[17:21],
+			"MONTH":      sceneName[21:23],
+			"DAY":        sceneName[23:25],
+			"COLLECTION": sensorCollection,
+			"PATH":       sceneName[10:13],
+			"ROW":        sceneName[13:16],
 		}, nil
 	}
 	return nil, fmt.Errorf("Info: constellation not supported")

@@ -10,6 +10,7 @@ Providers are implemented in order to download scenes. They are called one by on
 - [Local](providers.md#local-directory): any scenes stored locally
 - [OneAtlas](providers.md#oneatlas): Airbus scenes (SPOT, Pleiades, PNEO)
 - [ASF](providers.md#asf): sentinel1 & 2 scenes
+- [Landsat AWS](providers.md#landsat-aws): Landsat 8&9
 
 The scenes to be downloaded are sent to the Downloader Service, then the tiles to be processed are sent to the Processor Service.
 
@@ -86,6 +87,11 @@ Asf uses `https://datapool.asf.alaska.edu/SLC/S{MISSION_VERSION}/{SCENE}.zip` fo
 [ASF Documentation](https://asf.alaska.edu/data-sets/sar-data-sets/sentinel-1/sentinel-1-documents-tools/)
  
 
+## Landsat AWS
 
+AWS credentials are needed (pay-on-request):
+- `--landsat-aws-access-key-id`: Landsat AWS access key id
+- `--landsat-aws-secret-access-key`: Landsat AWS secret access key
 
+[Landsat AWS](https://registry.opendata.aws/usgs-landsat/)
 

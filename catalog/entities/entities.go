@@ -86,6 +86,10 @@ func (s *Scene) AutoFill() {
 		constellation = "SENTINEL2"
 		satellite = constellation + s.SourceID[2:3]
 		s.ProductName = s.SourceID[0:26] + "_NXXYY" + s.SourceID[32:]
+	case common.Landsat89:
+		constellation = "LANDSAT"
+		satellite = constellation + s.SourceID[2:4]
+		s.ProductName = s.SourceID
 	default:
 		return
 	}

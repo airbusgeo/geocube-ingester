@@ -14,6 +14,7 @@ import (
 
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/copernicus"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/creodias"
+	"github.com/airbusgeo/geocube-ingester/interface/catalog/landsataws"
 	"github.com/airbusgeo/geocube-ingester/interface/catalog/oneatlas"
 
 	geocube "github.com/airbusgeo/geocube-client-go/client"
@@ -43,6 +44,9 @@ func (c *Catalog) ScenesInventory(ctx context.Context, area *entities.AreaToInge
 	}
 	if c.CreodiasCatalog {
 		sceneProviders = append(sceneProviders, &creodias.Provider{})
+	}
+	if c.LandsatAwsCatalog {
+		sceneProviders = append(sceneProviders, &landsataws.Provider{})
 	}
 	if c.OneAtlasCatalogUser != "" && c.OneAtlasApikey != "" {
 		oneAtlasProvider, oneAtlasProviderCncl := oneatlas.NewOneAtlasProvider(ctx,

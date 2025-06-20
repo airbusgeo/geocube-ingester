@@ -10,8 +10,9 @@ List of implemented catalogues :
 
 - [Copernicus](#copernicus): sentinel1 & 2 scenes
 - [Creodias](#creodias): sentinel1 & 2 scenes
+- [Landsat AWS](#landsat-aws): Landsat 8 & 9
 - [OneAtlas](#oneatlas): PHR & SPOT scenes
-- [Creodias](#creodias), [GCS or AWS](#object-storage) and : for retrieving the Sentinel-1 annotations
+- [GCS or AWS](#object-storage) : to retrieve the Sentinel-1 annotations
 
 
 ## Constellations
@@ -43,6 +44,20 @@ Use the `--creodias-catalog` flag to enable this catalogue.
 > NB: Creodias is usually more reliable than Copernicus, but Sentinel-1 catalogue returns less information than the Copernicus' one.
 
 For more information see: [Creodias API](https://creodias.eu/data-offer)
+
+### USGS constellations
+#### Landsat AWS
+
+Supported constellations:
+
+- `landsat89`
+
+It uses the STAC interface to list the Landsat products available on AWS.
+
+No authentication required.
+
+Use the `--landsat-aws-catalog` flag to enable this catalogue.
+For more information see: [USGS Landsat](https://registry.opendata.aws/usgs-landsat/)
 
 ### Airbus constellations
 
@@ -91,5 +106,30 @@ User account must have the appropriate rights to access the bucket (`-annotation
 
 It returns a list of Scenes with associated Tiles, ready to be ingested.
 
+For each scene, metadata provided by the catalogue are added to the tags of the `record` definining the scene:
 
+	- `sourceID`: Name of the product
+	- `uuid`: Universally unique identifier in the catalogue (if exists)
+	- `productType`: Type of the product, containing the sensor and the level of processing (e.g. `S2MSIL1C` for Sentinel2, `LC_C2_L1TP` for Landsat)
+	- `ingestionDate`: Date-time of acquisition
+	- `constellation`
+	- `satellite`
+	- `orbit`: Absolute orbits is the number of orbits taken from the beginning of the mission.
+	- `orbitDirection`
+	- `relativeOrbit`:  Relative orbit tells you where you are in the repeating orbit-cycle.
+	- `downloadURL` (if provided)
+	- `sunAzimuth`, `sunElevation`
+	- `incidenceAngle`, `incidenceAzimuth`
+
+For optical products:
+
+	- `cloudCoverPercentage`
+	- `landCloudCoverPercentage`: only clouds covering land
+
+For SAR products:
+
+	- `polarisationMode`
+	- `sliceNumber` (Sentinel1)
+	- `lastRelativeOrbit` (Sentinel1)
+	- `lastOrbit` (Sentinel1)
 

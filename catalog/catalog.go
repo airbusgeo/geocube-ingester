@@ -22,6 +22,7 @@ type Catalog struct {
 	Workflow                       WorkflowManager
 	CopernicusCatalog              bool
 	CreodiasCatalog                bool
+	LandsatAwsCatalog              bool
 	OneAtlasCatalogUser            string
 	OneAtlasApikey                 string
 	OneAtlasCatalogEndpoint        string
@@ -139,7 +140,7 @@ func (c *Catalog) DoTilesInventory(ctx context.Context, area entities.AreaToInge
 			runtime.KeepAlive(aoi)
 		}
 
-	case common.Sentinel2, common.SPOT, common.PHR:
+	case common.Sentinel2, common.SPOT, common.PHR, common.Landsat89:
 		for _, scene := range scenes.Scenes {
 			scene.Tiles = append(scene.Tiles, &entities.Tile{
 				TileLite: entities.TileLite{

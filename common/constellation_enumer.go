@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-const _ConstellationName = "UnknownSentinel1Sentinel2PHRSPOT"
+const _ConstellationName = "UnknownSentinel1Sentinel2PHRSPOTLandsat89"
 
-var _ConstellationIndex = [...]uint8{0, 7, 16, 25, 28, 32}
+var _ConstellationIndex = [...]uint8{0, 7, 16, 25, 28, 32, 41}
 
-const _ConstellationLowerName = "unknownsentinel1sentinel2phrspot"
+const _ConstellationLowerName = "unknownsentinel1sentinel2phrspotlandsat89"
 
 func (i Constellation) String() string {
 	if i < 0 || i >= Constellation(len(_ConstellationIndex)-1) {
@@ -30,9 +30,10 @@ func _ConstellationNoOp() {
 	_ = x[Sentinel2-(2)]
 	_ = x[PHR-(3)]
 	_ = x[SPOT-(4)]
+	_ = x[Landsat89-(5)]
 }
 
-var _ConstellationValues = []Constellation{Unknown, Sentinel1, Sentinel2, PHR, SPOT}
+var _ConstellationValues = []Constellation{Unknown, Sentinel1, Sentinel2, PHR, SPOT, Landsat89}
 
 var _ConstellationNameToValueMap = map[string]Constellation{
 	_ConstellationName[0:7]:        Unknown,
@@ -45,6 +46,8 @@ var _ConstellationNameToValueMap = map[string]Constellation{
 	_ConstellationLowerName[25:28]: PHR,
 	_ConstellationName[28:32]:      SPOT,
 	_ConstellationLowerName[28:32]: SPOT,
+	_ConstellationName[32:41]:      Landsat89,
+	_ConstellationLowerName[32:41]: Landsat89,
 }
 
 var _ConstellationNames = []string{
@@ -53,6 +56,7 @@ var _ConstellationNames = []string{
 	_ConstellationName[16:25],
 	_ConstellationName[25:28],
 	_ConstellationName[28:32],
+	_ConstellationName[32:41],
 }
 
 // ConstellationString retrieves an enum value from the enum constants string name.

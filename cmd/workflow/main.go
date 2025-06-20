@@ -45,6 +45,7 @@ type catalogConfig struct {
 	OneAtlasAuthenticationEndpoint string
 	CopernicusCatalog              bool
 	CreodiasCatalog                bool
+	LandsatAwsCatalog              bool
 }
 
 type config struct {
@@ -99,6 +100,7 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.CatalogConfig.OneAtlasAuthenticationEndpoint, "oneatlas-auth-endpoint", oneatlas.OneAtlasAuthenticationEndpoint, "oneatlas order endpoint to use")
 	flag.BoolVar(&config.CatalogConfig.CopernicusCatalog, "copernicus-catalog", false, "Use the Copernicus catalog service (search data)")
 	flag.BoolVar(&config.CatalogConfig.CreodiasCatalog, "creodias-catalog", false, "Use the creodias catalog service (search data)")
+	flag.BoolVar(&config.CatalogConfig.LandsatAwsCatalog, "landsat-aws-catalog", false, "Use the Landsat AWS catalog service (search data)")
 
 	flag.Parse()
 
@@ -247,6 +249,9 @@ func run(ctx context.Context) error {
 
 		// Creodias Catalogue
 		catalog.CreodiasCatalog = config.CatalogConfig.CreodiasCatalog
+
+		// Landsat AWS catalogue
+		catalog.LandsatAwsCatalog = config.CatalogConfig.LandsatAwsCatalog
 
 		// OneAtlas
 		catalog.OneAtlasCatalogUser = config.CatalogConfig.OneAtlasUsername

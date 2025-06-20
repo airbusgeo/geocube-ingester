@@ -57,6 +57,12 @@ For optical only:
 
 - `cloudcoverpercentage`: format `[min TO max]`
 
+### Landsat
+
+Available `scene_type/parameters`:
+
+- `cloudcoverpercentage`: format `[min TO max]`
+
 ### OneAtlas
 
 OneAtlas available parameters: 
