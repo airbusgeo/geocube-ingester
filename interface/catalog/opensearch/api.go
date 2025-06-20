@@ -100,22 +100,20 @@ func ConstructQuery(ctx context.Context, area *entities.AreaToIngest, aoi geos.G
 
 	// Append time
 	//parameters = append(parameters, fmt.Sprintf("ContentDate/Start gt %v and ContentDate/Start lt%v", area.StartTime, area.EndTime))
-	parameters = append(parameters, fmt.Sprintf("startDate=%s&completionDate=%s", area.StartTime.Format("2006-01-02"), area.EndTime.Format("2006-01-02")))
+	parameters = append(parameters, fmt.Sprintf("startDate=%s&completionDate=%s", area.StartTime.Format("2006-01-02T15:04:05.999Z"), area.EndTime.Format("2006-01-02T15:04:05.999Z")))
 
 	return strings.Join(parameters, "&"), nil
 }
 
-func Query(ctx context.Context, query string, config Config, page, limit int) ([]Hits, error) {
+func Query(ctx context.Context, query string, config Config, page, limit, catalogLimit int) ([]Hits, error) {
 	var rawscenes []Hits
 	totalPages := "?"
 
-	pageLimit, rows := service.PageLimitRows(page, limit, 1000)
-
-	for nextPage := true; nextPage && page < pageLimit; page += 1 {
-		log.Logger(ctx).Sugar().Debugf("[%s] Search page %d/%s", config.Provider, page, totalPages)
+	for _, queryParams := range service.ComputePagesToQuery(page, limit, catalogLimit) {
+		log.Logger(ctx).Sugar().Debugf("[%s] Search page %d/%s", config.Provider, queryParams.Page, totalPages)
 
 		// Load results
-		url := config.BaseUrl + query + fmt.Sprintf("&maxRecords=%d&page=%d", rows, page+1)
+		url := config.BaseUrl + query + fmt.Sprintf("&maxRecords=%d&page=%d", queryParams.Limit, queryParams.Page+1)
 		jsonResults, err := service.GetBodyRetry(url, 3)
 		if err != nil {
 			return nil, fmt.Errorf("query.getBodyRetry: %w", err)
@@ -144,23 +142,20 @@ func Query(ctx context.Context, query string, config Config, page, limit int) ([
 		}
 
 		// Merge the results
-		rawscenes = append(rawscenes, results.Hits...)
+		rawscenes = append(rawscenes, service.QueryGetResult(&queryParams, results.Hits)...)
 
 		// Is there a next page ?
-		nextPage = false
-		if len(results.Properties.Links) > 0 {
-			for _, link := range results.Properties.Links {
-				if strings.ToLower(link.Rel) == "next" && link.Href != "" {
-					nextPage = true
-				}
+		nextPage := false
+		for _, link := range results.Properties.Links {
+			if strings.ToLower(link.Rel) == "next" && link.Href != "" {
+				nextPage = true
 			}
-		} else {
-			nextPage = page*rows < results.Properties.TotalResults
 		}
 
-		if nextPage {
-			totalPages = strconv.Itoa(results.Properties.TotalResults/rows + 1)
+		if !nextPage || len(rawscenes) == limit {
+			break
 		}
+		totalPages = strconv.Itoa(results.Properties.TotalResults/queryParams.Limit + 1)
 	}
 
 	return rawscenes, nil

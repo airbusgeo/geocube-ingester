@@ -24,7 +24,7 @@ The Catalogue service has the endpoint `/catalog/scenes` (`GET` or `POST`) that 
 curl -F "area=@{payloadFile}" -H "Authorization: Bearer {token}" {workflow_server}/catalog/scenes
 ```
 
-> NB: This request supports page/limit parameters to limit the query if the area or the date interval is big : `/catalog/scenes?page={page}&limit={limit}`.
+> NB: This request supports (0-based) page/limit parameters to limit the query if the area or the date interval is big : `/catalog/scenes?page={page}&limit={limit}`.
 A limit of 1000 scenes is appropriate.
 
 This request returns a geojson file containing a list of features. Each feature is a product and has the following properties:

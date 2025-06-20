@@ -18,7 +18,12 @@ import (
 	"github.com/paulsmith/gogeos/geos"
 )
 
+const (
+	CreodiasPageLimit = 1000
+)
+
 type Provider struct {
+	Limit int
 }
 
 func (p *Provider) Supports(c common.Constellation) bool {
@@ -30,6 +35,9 @@ func (p *Provider) Supports(c common.Constellation) bool {
 }
 
 func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
+	if s.Limit == 0 {
+		s.Limit = CreodiasPageLimit
+	}
 	// Construct Query
 	mapKey := map[string]string{
 		//"constellation":         "Collection/Name eq '%%s'",
@@ -106,7 +114,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 
 	// Append time
 	//parameters = append(parameters, fmt.Sprintf("ContentDate/Start gt %v and ContentDate/Start lt%v", area.StartTime, area.EndTime))
-	parameters = append(parameters, fmt.Sprintf("startDate=%s&completionDate=%s", area.StartTime.Format("2006-01-02"), area.EndTime.Format("2006-01-02")))
+	parameters = append(parameters, fmt.Sprintf("startDate=%s&completionDate=%s", area.StartTime.Format("2006-01-02T15:04:05.99Z"), area.EndTime.Format("2006-01-02T15:04:05.99Z")))
 
 	// Execute query
 	rawscenes, err := s.queryCreodias(ctx, hostUrl, strings.Join(parameters, "&"), area.Page, area.Limit)
@@ -180,14 +188,12 @@ func (s *Provider) queryCreodias(ctx context.Context, baseurl string, query stri
 	var rawscenes []creodiasHits
 	totalPages := "?"
 
-	pageLimit, rows := service.PageLimitRows(page, limit, 1000)
-
-	for nextPage := true; nextPage && (page < pageLimit); page += 1 {
-		log.Logger(ctx).Sugar().Debugf("[Creodias] Search page %d/%s", page, totalPages)
+	for _, queryParams := range service.ComputePagesToQuery(page, limit, s.Limit) {
+		log.Logger(ctx).Sugar().Debugf("[Creodias] Search page %d/%s", queryParams.Page, totalPages)
 
 		// Load results
 		//url := baseurl + query + fmt.Sprintf("&$top=%d&$skip=%d", rows, index)
-		url := baseurl + query + fmt.Sprintf("&maxRecords=%d&page=%d", rows, page+1)
+		url := baseurl + query + fmt.Sprintf("&maxRecords=%d&page=%d", queryParams.Limit, queryParams.Page+1)
 		jsonResults, err := service.GetBodyRetry(url, 3)
 		if err != nil {
 			return nil, fmt.Errorf("queryCreodias.getBodyRetry: %w", err)
@@ -198,6 +204,10 @@ func (s *Provider) queryCreodias(ctx context.Context, baseurl string, query stri
 			Status     int `json:"status"`
 			Properties struct {
 				TotalResults int `json:"totalResults"`
+				Links        []struct {
+					Rel  string `json:"rel"`
+					Href string `json:"href"`
+				} `json:"links"`
 			} `json:"properties"`
 			Hits []creodiasHits `json:"features"`
 		}{}
@@ -212,14 +222,20 @@ func (s *Provider) queryCreodias(ctx context.Context, baseurl string, query stri
 		}
 
 		// Merge the results
-		rawscenes = append(rawscenes, results.Hits...)
+		rawscenes = append(rawscenes, service.QueryGetResult(&queryParams, results.Hits)...)
 
 		// Is there a next page ?
-		nextPage = page*rows < results.Properties.TotalResults
-
-		if nextPage {
-			totalPages = strconv.Itoa(results.Properties.TotalResults/rows + 1)
+		nextPage := false
+		for _, links := range results.Properties.Links {
+			if links.Rel == "next" {
+				nextPage = links.Href != ""
+			}
 		}
+		if !nextPage || len(rawscenes) == limit {
+			break
+		}
+
+		totalPages = strconv.Itoa(results.Properties.TotalResults/queryParams.Limit + 1)
 	}
 
 	return rawscenes, nil

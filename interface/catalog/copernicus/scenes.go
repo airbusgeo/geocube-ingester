@@ -22,6 +22,7 @@ import (
 )
 
 const (
+	CopernicusPageLimit     = 1000
 	CopernicusQueryURL      = "http://catalogue.dataspace.copernicus.eu/resto/api/collections/search.json?"
 	Sentinel1QueryURL       = "https://catalogue.dataspace.copernicus.eu/resto/api/collections/Sentinel1/search.json?"
 	Sentinel2QueryURL       = "https://catalogue.dataspace.copernicus.eu/resto/api/collections/Sentinel2/search.json?"
@@ -29,6 +30,7 @@ const (
 )
 
 type Provider struct {
+	Limit int
 }
 
 func (p *Provider) Supports(c common.Constellation) bool {
@@ -54,7 +56,7 @@ func (s *Provider) OpenSearchScenes(ctx context.Context, area *entities.AreaToIn
 	}
 
 	// Execute query
-	rawscenes, err := opensearch.Query(ctx, query, opensearch.Config{Provider: "Copernicus", BaseUrl: hostUrl}, area.Page, area.Limit)
+	rawscenes, err := opensearch.Query(ctx, query, opensearch.Config{Provider: "Copernicus", BaseUrl: hostUrl}, area.Page, area.Limit, s.Limit)
 	if err != nil {
 		return entities.Scenes{}, fmt.Errorf("Copernicus.%w", err)
 	}
@@ -68,6 +70,9 @@ func (s *Provider) OpenSearchScenes(ctx context.Context, area *entities.AreaToIn
 }
 
 func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
+	if s.Limit == 0 {
+		s.Limit = CopernicusPageLimit
+	}
 	// Construct Query
 	mapKey := map[string]string{
 		"platformname":          "Collection/Name eq '%s'",
@@ -115,8 +120,8 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 
 	// Append time
 	{
-		startDate := area.StartTime.Format("2006-01-02") + "T00:00:00.000Z"
-		endDate := area.EndTime.Format("2006-01-02") + "T23:59:59.999Z"
+		startDate := area.StartTime.Format("2006-01-02T15:04:05.999Z")
+		endDate := area.EndTime.Format("2006-01-02T15:04:05.999Z")
 		parameters = append(parameters,
 			fmt.Sprintf("ContentDate/Start gt %s", startDate),
 			fmt.Sprintf("ContentDate/Start lt %s", endDate))
@@ -222,17 +227,13 @@ type Hits struct {
 func (s *Provider) queryCopernicus(ctx context.Context, baseurl, query string, page, limit int) ([]Hits, error) {
 	// Pagging
 	var rawscenes []Hits
-	nextPage := true
 	query = neturl.QueryEscape(query)
 	totalPages, count := "?", false // count is false: it takes too much time... It can be set to true for debugging purpose
-	index, limit := service.IndexLimitRows(page, limit)
-	for rows := 1000; nextPage && (index < limit); index += rows {
-		log.Logger(ctx).Sugar().Debugf("[Copernicus] Search page %d/%s", index/rows+1, totalPages)
-		if index+rows > limit {
-			rows = limit - index
-		}
+
+	for _, queryParams := range service.ComputePagesToQuery(page, limit, s.Limit) {
+		log.Logger(ctx).Sugar().Debugf("[Copernicus] Search page %d/%s", queryParams.Page+1, totalPages)
 		// Load results
-		url := baseurl + query + fmt.Sprintf("&$orderby=ContentDate/Start&$top=%d&$skip=%d&$expand=Attributes", rows, index)
+		url := baseurl + query + fmt.Sprintf("&$orderby=ContentDate/Start&$top=%d&$skip=%d&$expand=Attributes", queryParams.Limit, queryParams.Limit*queryParams.Page)
 		if count {
 			url += "&$count=True"
 		}
@@ -258,6 +259,8 @@ func (s *Provider) queryCopernicus(ctx context.Context, baseurl, query string, p
 			return nil, fmt.Errorf("query: http status: %d (response: %s)", results.Status, jsonResults)
 		}
 
+		results.Hits = service.QueryGetResult(&queryParams, results.Hits)
+
 		for i, hit := range results.Hits {
 			results.Hits[i].AttributesMap = map[string]string{}
 			for _, elem := range hit.Attributes {
@@ -273,9 +276,11 @@ func (s *Provider) queryCopernicus(ctx context.Context, baseurl, query string, p
 		rawscenes = append(rawscenes, results.Hits...)
 
 		// Is there a next page ?
-		nextPage = results.Next != ""
+		if results.Next == "" || len(rawscenes) == limit {
+			break
+		}
 		if results.Count > 0 {
-			totalPages = strconv.Itoa((results.Count-1)/rows + 1)
+			totalPages = strconv.Itoa((results.Count-1)/queryParams.Limit + 1)
 			count = false
 		}
 	}
