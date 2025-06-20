@@ -1,0 +1,28 @@
+package geometry
+
+import (
+	"github.com/go-spatial/geom"
+	"github.com/go-spatial/geom/encoding/geojson"
+)
+
+// UnmarshalGeometry, merging featureCollections and geometryCollections into a multipolygon
+func UnmarshalGeometry(data []byte) (_ geom.Geometry, err error) {
+	var g geojson.Geometry
+	if err := g.UnmarshalJSON(data); err != nil {
+		return g.Geometry, err
+	}
+	switch geo := g.Geometry.(type) {
+	case geojson.FeatureCollection:
+		var mp geom.MultiPolygon
+		for _, f := range geo.Features {
+			if err := mergeMultiPolygons(f.Geometry.Geometry, &mp); err != nil {
+				return nil, err
+			}
+		}
+		return mp, nil
+	case geojson.Feature:
+		return geo.Geometry.Geometry, nil
+	default:
+		return g.Geometry, nil
+	}
+}

@@ -2,7 +2,10 @@ package catalog
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"time"
@@ -10,7 +13,6 @@ import (
 	geocube "github.com/airbusgeo/geocube-client-go/client"
 	"github.com/airbusgeo/geocube-ingester/catalog/entities"
 	"github.com/airbusgeo/geocube-ingester/common"
-	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
 )
 
@@ -209,7 +211,7 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 		if scenes, err = c.DoScenesInventory(ctx, area); err != nil {
 			return result, fmt.Errorf("ingestArea.%w", err)
 		}
-		service.ToJSON(struct{ Scenes entities.Scenes }{Scenes: scenes}, outputDir, "scenesInventory.json")
+		ToJSON(struct{ Scenes entities.Scenes }{Scenes: scenes}, outputDir, "scenesInventory.json")
 	}
 
 	// Tile inventory
@@ -218,7 +220,7 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 		if err != nil {
 			return result, fmt.Errorf("ingestArea.%w", err)
 		}
-		service.ToJSON(struct{ Scenes entities.Scenes }{Scenes: scenes}, outputDir, "tilesInventory.json")
+		ToJSON(struct{ Scenes entities.Scenes }{Scenes: scenes}, outputDir, "tilesInventory.json")
 	} else {
 		scenes = scenesWithTiles
 	}
@@ -234,7 +236,7 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 	if err != nil {
 		return result, fmt.Errorf("ingestArea.%w", err)
 	}
-	service.ToJSON(struct{ Scenes []common.SceneToIngest }{Scenes: scenesToIngest}, outputDir, "scenesToIngest.json")
+	ToJSON(struct{ Scenes []common.SceneToIngest }{Scenes: scenesToIngest}, outputDir, "scenesToIngest.json")
 
 	// Post scenes
 	log.Logger(ctx).Sugar().Debugf("Post %d scenes to ingest (creation took %v)", len(scenesToIngest), time.Since(t))
@@ -252,4 +254,17 @@ func (c *Catalog) IngestArea(ctx context.Context, area entities.AreaToIngest, sc
 	}
 
 	return result, err
+}
+
+func ToJSON(v interface{}, workingdir, filename string) error {
+	if workingdir != "" {
+		vb, err := json.Marshal(v)
+		if err != nil {
+			return fmt.Errorf("toJSON.Marshal: %w", err)
+		}
+		if err := os.WriteFile(filepath.Join(workingdir, filename), vb, 0644); err != nil {
+			return fmt.Errorf("toJSON.WriteFile: %w", err)
+		}
+	}
+	return nil
 }

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/common"
-	"github.com/airbusgeo/geocube-ingester/service"
+	"github.com/airbusgeo/geocube-ingester/service/geometry"
 	"github.com/go-spatial/geom"
 	"github.com/go-spatial/geom/encoding/geojson"
 	"github.com/go-spatial/geom/encoding/wkt"
@@ -107,7 +107,7 @@ func (a *AreaToIngest) InstancesID() map[string]string {
 // UnmarshalJSON implements the json.Unmarshaler interface for AreaToIngest
 func (area *AreaToIngest) UnmarshalJSON(data []byte) error {
 	var err error
-	if area.AOI, err = service.UnmarshalGeometry(data); err != nil {
+	if area.AOI, err = geometry.UnmarshalGeometry(data); err != nil {
 		return err
 	}
 
