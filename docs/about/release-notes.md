@@ -18,14 +18,18 @@ To fix incoherences or potential limitation in JSON graphs :
 - Downloader: add a new provider from URL (use --url-provider)
 - Add Documentation "how to add a new sensor"
 - Add Landsat AWS Provider (Catalogue&Download)
+- Add Page/Limit to endpoint catalog/scenes
 
 ### Bug fixes
 - LocalProvider does not require that a date is included in the product name
 - GS/FTP: do not try to unzip the downloaded file if the extension is not "zip"
+- Docker use ubuntu:noble to fix vulnerabilities
+- OneAtlas catalog: fix bugs. Default OneAtlasUsername is APIKEY
 
 ### Optimization
 - catalog/scenes catalog/tiles: remove unused or empty fields in the JSON file exported + fields are low case
 - Storage: Create zip archive with BestSpeed
+- catalog/aoi: speed-up
 
 ## 1.0.3beta
 

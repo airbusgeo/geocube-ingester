@@ -17,11 +17,9 @@ COPY workflow workflow
 COPY cmd/workflow cmd
 RUN cd cmd && go install .
 
-FROM gcr.io/distroless/base-debian12
+FROM gcr.io/distroless/cc-debian12
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libgeos* \
-                    /usr/lib/x86_64-linux-gnu/libstdc++.so.6 \
-                    /lib/x86_64-linux-gnu/libgcc_s.so.1 \
                     /usr/lib/x86_64-linux-gnu/
 COPY --from=builder /lib/x86_64-linux-gnu/libm.so.6 \
                     /lib/x86_64-linux-gnu/
