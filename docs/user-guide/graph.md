@@ -103,8 +103,9 @@ To use the whole product as input
       []
    ]
 }
+```
 
-To use a specitic layer that has been preprocessed by the downloader:
+To use a specific layer that has been preprocessed by the downloader:
 ```json
 {
    "in_files":[

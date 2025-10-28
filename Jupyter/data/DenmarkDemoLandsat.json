@@ -1,5 +1,5 @@
 {
-    "name":"DenmarkDemoLansat",
+    "name":"DenmarkDemoLandsat",
     "type":"Feature",
     "geometry":{
         "type": "MultiPolygon",
@@ -54,6 +54,6 @@
     "is_retriable": true,
     "retry_count": 1,
     "limit": 4,
-    "page": 2
+    "page": 1
 }
 
