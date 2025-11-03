@@ -21,6 +21,7 @@ import (
 	"github.com/docker/docker/client"
 
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/oauth2/google"
 )
 
 type dockerManager struct {
@@ -51,13 +52,12 @@ type DockerConfig struct {
 //			cfg.Envs = strings.Split(*dockerEnvsStr, ",")
 //		}
 func (cfg *DockerConfig) SetFlags() *string {
-	// Docker processing Images connection
-	flag.StringVar(&cfg.RegistryUserName, "docker-registry-username", "_json_key", "username to authentication on private registry")
-	flag.StringVar(&cfg.RegistryPassword, "docker-registry-password", "", "password to authentication on private registry")
-	flag.StringVar(&cfg.RegistryServer, "docker-registry-server", "", "address of server to authenticate on private registry (e.g. https://europe-west1-docker.pkg.dev)")
-	flag.StringVar(&cfg.VolumesToMount, "docker-mount-volumes", "", "list of volumes to mount on the docker (comma separated)")
+	flag.StringVar(&cfg.RegistryUserName, "docker-registry-username", "_json_key", "username to authenticate on private registry")
+	flag.StringVar(&cfg.RegistryPassword, "docker-registry-password", "", "password (service account key or empty when using Workload Identity)")
+	flag.StringVar(&cfg.RegistryServer, "docker-registry-server", "", "address of registry server (e.g. https://europe-west1-docker.pkg.dev)")
+	flag.StringVar(&cfg.VolumesToMount, "docker-mount-volumes", "", "list of volumes to mount (comma separated)")
 
-	return flag.String("docker-envs", "", "docker variable env key white list (comma sep) ")
+	return flag.String("docker-envs", "", "docker env var whitelist (comma sep)")
 }
 
 func NewDockerManager(ctx context.Context, config DockerConfig) (DockerManager, error) {
@@ -67,19 +67,45 @@ func NewDockerManager(ctx context.Context, config DockerConfig) (DockerManager, 
 	}
 
 	var encodedAuthLogin string
-	if config.RegistryUserName != "" && config.RegistryPassword != "" && config.RegistryServer != "" {
-		log.Logger(ctx).Info("register to container registry...")
-		auth := types.AuthConfig{
-			Username:      config.RegistryUserName,
-			Password:      config.RegistryPassword,
-			ServerAddress: config.RegistryPassword,
+
+	// Only attempt registry auth if RegistryServer is provided
+	if config.RegistryServer != "" {
+		var auth types.AuthConfig
+
+		switch {
+		case config.RegistryPassword != "":
+			// Legacy mode — using explicit JSON key
+			log.Logger(ctx).Info("Registering to container registry using explicit credentials...")
+			auth = types.AuthConfig{
+				Username:      config.RegistryUserName,
+				Password:      config.RegistryPassword,
+				ServerAddress: config.RegistryServer,
+			}
+
+		default:
+			// Workload Identity mode — get token from ADC
+			log.Logger(ctx).Info("Registering to container registry using Workload Identity...")
+
+			creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")
+			if err != nil {
+				return nil, fmt.Errorf("failed to get default credentials: %w", err)
+			}
+			token, err := creds.TokenSource.Token()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get access token: %w", err)
+			}
+
+			auth = types.AuthConfig{
+				Username:      "oauth2accesstoken",
+				Password:      token.AccessToken,
+				ServerAddress: config.RegistryServer,
+			}
 		}
 
 		bAuth, err := json.Marshal(&auth)
 		if err != nil {
 			return nil, err
 		}
-
 		encodedAuthLogin = base64.StdEncoding.EncodeToString(bAuth)
 	}
 

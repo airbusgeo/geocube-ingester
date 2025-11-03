@@ -19,6 +19,7 @@ To fix incoherences or potential limitation in JSON graphs :
 - Add Documentation "how to add a new sensor"
 - Add Landsat AWS Provider (Catalogue&Download)
 - Add Page/Limit to endpoint catalog/scenes
+- Ingester processor: add credentials from KSA to connect to docker
 
 ### Bug fixes
 - LocalProvider does not require that a date is included in the product name
