@@ -96,7 +96,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		parametersMap[mapKey["platformname"]] = "SENTINEL-2"
 		parametersMap[mapKey["producttype"]] = "S2MSI1C"
 	default:
-		return entities.Scenes{}, fmt.Errorf("Copernicus: constellation not supported: " + area.SceneType.Constellation)
+		return entities.Scenes{}, fmt.Errorf("Copernicus: constellation not supported: %s", area.SceneType.Constellation)
 	}
 
 	// Append user-defined parameters
@@ -157,7 +157,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		requiredAttributes := []string{"relativeOrbitNumber", "orbitNumber", "productType"}
 		for _, attr := range requiredAttributes {
 			if _, ok := rawscene.AttributesMap[attr]; !ok {
-				return entities.Scenes{}, fmt.Errorf("Copernicus.searchScenes: Missing attribute " + attr + " in results")
+				return entities.Scenes{}, fmt.Errorf("Copernicus.searchScenes: Missing attribute %s in results", attr)
 			}
 		}
 

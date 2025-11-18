@@ -69,7 +69,7 @@ func Info(sceneName string) (map[string]string, error) {
 	switch GetConstellationFromProductId(sceneName) {
 	case Sentinel1:
 		if len(sceneName) < len("MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC") {
-			return nil, fmt.Errorf("invalid Sentinel1 file name: " + sceneName)
+			return nil, fmt.Errorf("invalid Sentinel1 file name: %s", sceneName)
 		}
 		return map[string]string{
 			"SCENE":            sceneName,
@@ -95,7 +95,7 @@ func Info(sceneName string) (map[string]string, error) {
 		}, nil
 	case Sentinel2:
 		if len(sceneName) < len("MMM_MSIXXX_YYYYMMDDTHHMMSS_Nxxyy_ROOO_Txxxxx_<Product Disc.>") {
-			return nil, fmt.Errorf("invalid Sentinel2 file name: " + sceneName)
+			return nil, fmt.Errorf("invalid Sentinel2 file name: %s", sceneName)
 		}
 		if sceneName[10] == '_' {
 			return map[string]string{
@@ -120,7 +120,7 @@ func Info(sceneName string) (map[string]string, error) {
 				"PRODUCT_DISC":    sceneName[45:60],
 			}, nil
 		} else if len(sceneName) < len("MMM_CCCC_FFFFDDDDDD_ssss_YYYYMMDDTHHMMSS_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS") {
-			return nil, fmt.Errorf("invalid Sentinel2 file name: " + sceneName)
+			return nil, fmt.Errorf("invalid Sentinel2 file name: %s", sceneName)
 		}
 		return map[string]string{
 			"SCENE":         sceneName,
@@ -131,7 +131,7 @@ func Info(sceneName string) (map[string]string, error) {
 	case PHR:
 		// DS_PHR1A_201006181052297_FR1_PX_E001N43_0612_06488
 		if len(sceneName) < len("DS_PHRNN_YYYYMMDDHHMMSSS_RRR_PP_XxxxYyy_KKLL_TTTTT") {
-			return nil, fmt.Errorf("invalid Pleiades file name: " + sceneName)
+			return nil, fmt.Errorf("invalid Pleiades file name: %s", sceneName)
 		}
 		return map[string]string{
 			"MISSION_ID":     sceneName[3:8],
@@ -152,7 +152,7 @@ func Info(sceneName string) (map[string]string, error) {
 	case SPOT:
 		// DS_SPOT6_201212051035424_FR1_FR1_FR1_FR1_E002N41_01174
 		if len(sceneName) < len("DS_SPOTN_YYYYMMDDHHMMSSS_AAA_aaa_RRR_rrr_XxxxYyy_TTTTT") {
-			return nil, fmt.Errorf("invalid Spot file name: " + sceneName)
+			return nil, fmt.Errorf("invalid Spot file name: %s", sceneName)
 		}
 		return map[string]string{
 			"SCENE":      sceneName,
@@ -172,7 +172,7 @@ func Info(sceneName string) (map[string]string, error) {
 	case Landsat89:
 		// LC09_L1GT_166003_20250603_20250603_02_T2
 		if len(sceneName) < len("LXSS_LLLL_PPPRRR_YYYYMMDD_yyyymmdd_CX_TX") {
-			return nil, fmt.Errorf("invalid Landsat8/9 file name: " + sceneName)
+			return nil, fmt.Errorf("invalid Landsat8/9 file name: %s", sceneName)
 		}
 		collectionChar := sceneName[1:2]
 		sensorCollection := "oli-tirs"

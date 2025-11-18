@@ -105,7 +105,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		req.Query["platform"] = map[string][]string{"in": {"LANDSAT_8", "LANDSAT_9"}}
 		req.Collections = []string{LandsatCollectionC2L1}
 	default:
-		return entities.Scenes{}, fmt.Errorf("SearchScenes(LandsatAws): constellation not supported: " + area.SceneType.Constellation)
+		return entities.Scenes{}, fmt.Errorf("SearchScenes(LandsatAws): constellation not supported: %s", area.SceneType.Constellation)
 	}
 
 	for k, v := range area.SceneType.Parameters {

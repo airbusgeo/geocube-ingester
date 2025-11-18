@@ -1,4 +1,4 @@
-package client // import "github.com/docker/docker/client"
+package client
 
 import (
 	"bytes"
@@ -11,19 +11,20 @@ import (
 
 // SecretInspectWithRaw returns the secret information with raw data
 func (cli *Client) SecretInspectWithRaw(ctx context.Context, id string) (swarm.Secret, []byte, error) {
-	if err := cli.NewVersionError("1.25", "secret inspect"); err != nil {
+	id, err := trimID("secret", id)
+	if err != nil {
 		return swarm.Secret{}, nil, err
 	}
-	if id == "" {
-		return swarm.Secret{}, nil, objectNotFoundError{object: "secret", id: id}
+	if err := cli.NewVersionError(ctx, "1.25", "secret inspect"); err != nil {
+		return swarm.Secret{}, nil, err
 	}
 	resp, err := cli.get(ctx, "/secrets/"+id, nil, nil)
 	defer ensureReaderClosed(resp)
 	if err != nil {
-		return swarm.Secret{}, nil, wrapResponseError(err, resp, "secret", id)
+		return swarm.Secret{}, nil, err
 	}
 
-	body, err := io.ReadAll(resp.body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return swarm.Secret{}, nil, err
 	}

@@ -97,7 +97,7 @@ func GetBodyRetryReq(req *http.Request, nbRetries int) ([]byte, error) {
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
 			body, _ = io.ReadAll(resp.Body)
-			err = fmt.Errorf(resp.Status + ":" + string(body))
+			err = fmt.Errorf("%s: %v", resp.Status, body)
 			if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 				return nil, err
 			}

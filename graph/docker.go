@@ -14,10 +14,11 @@ import (
 
 	"github.com/airbusgeo/geocube-ingester/service"
 	"github.com/airbusgeo/geocube-ingester/service/log"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	imageT "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
 
 	"go.uber.org/zap/zapcore"
@@ -70,13 +71,13 @@ func NewDockerManager(ctx context.Context, config DockerConfig) (DockerManager, 
 
 	// Only attempt registry auth if RegistryServer is provided
 	if config.RegistryServer != "" {
-		var auth types.AuthConfig
+		var auth registry.AuthConfig
 
 		switch {
 		case config.RegistryPassword != "":
 			// Legacy mode — using explicit JSON key
 			log.Logger(ctx).Info("Registering to container registry using explicit credentials...")
-			auth = types.AuthConfig{
+			auth = registry.AuthConfig{
 				Username:      config.RegistryUserName,
 				Password:      config.RegistryPassword,
 				ServerAddress: config.RegistryServer,
@@ -95,7 +96,7 @@ func NewDockerManager(ctx context.Context, config DockerConfig) (DockerManager, 
 				return nil, fmt.Errorf("failed to get access token: %w", err)
 			}
 
-			auth = types.AuthConfig{
+			auth = registry.AuthConfig{
 				Username:      "oauth2accesstoken",
 				Password:      token.AccessToken,
 				ServerAddress: config.RegistryServer,
@@ -210,11 +211,11 @@ func (d *dockerManager) Process(ctx context.Context, workdir, cmd string, args [
 	}
 
 	defer func() {
-		if err = d.Client.ContainerStop(ctx, createdContainer.ID, nil); err != nil {
+		if err = d.Client.ContainerStop(ctx, createdContainer.ID, container.StopOptions{}); err != nil {
 			log.Logger(ctx).Sugar().Warnf("failed to stop container: %s", createdContainer.ID)
 		}
 
-		if err = d.Client.ContainerRemove(ctx, createdContainer.ID, types.ContainerRemoveOptions{}); err != nil {
+		if err = d.Client.ContainerRemove(ctx, createdContainer.ID, container.RemoveOptions{}); err != nil {
 			log.Logger(ctx).Sugar().Warnf("failed to remove container: %s", createdContainer.ID)
 		}
 	}()
@@ -222,15 +223,15 @@ func (d *dockerManager) Process(ctx context.Context, workdir, cmd string, args [
 	return nil
 }
 
-func (d *dockerManager) pullImage(ctx context.Context, image string) (types.ImageSummary, error) {
-	imagePullRc, err := d.Client.ImagePull(ctx, image, types.ImagePullOptions{
+func (d *dockerManager) pullImage(ctx context.Context, image string) (imageT.Summary, error) {
+	imagePullRc, err := d.Client.ImagePull(ctx, image, imageT.PullOptions{
 		RegistryAuth: d.AuthConfig,
 	})
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "timeout") {
 			err = service.MakeTemporary(err)
 		}
-		return types.ImageSummary{}, fmt.Errorf("failed to pull image %s: %w", image, err)
+		return imageT.Summary{}, fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
 
 	defer imagePullRc.Close()
@@ -243,31 +244,31 @@ func (d *dockerManager) pullImage(ctx context.Context, image string) (types.Imag
 	return d.localImageInfo(ctx, image)
 }
 
-func (d *dockerManager) localImageInfo(ctx context.Context, image string) (types.ImageSummary, error) {
+func (d *dockerManager) localImageInfo(ctx context.Context, image string) (imageT.Summary, error) {
 	filter := filters.NewArgs()
 	filter.Add("reference", image)
 
-	images, err := d.Client.ImageList(ctx, types.ImageListOptions{
+	images, err := d.Client.ImageList(ctx, imageT.ListOptions{
 		All:     false,
 		Filters: filter,
 	})
 	if err != nil {
-		return types.ImageSummary{}, service.MakeTemporary(fmt.Errorf("failed to list image %s: %w", image, err))
+		return imageT.Summary{}, service.MakeTemporary(fmt.Errorf("failed to list image %s: %w", image, err))
 	}
 
 	if len(images) < 1 {
-		return types.ImageSummary{}, service.MakeTemporary(fmt.Errorf("not found: %s", image))
+		return imageT.Summary{}, service.MakeTemporary(fmt.Errorf("not found: %s", image))
 	}
 
 	return images[0], nil
 }
 
 func (d *dockerManager) runContainer(ctx context.Context, containerID string) error {
-	if err := d.Client.ContainerStart(ctx, containerID, types.ContainerStartOptions{}); err != nil {
+	if err := d.Client.ContainerStart(ctx, containerID, container.StartOptions{}); err != nil {
 		return fmt.Errorf("failed to start container: %w", err)
 	}
 
-	containerLogs, err := d.Client.ContainerLogs(ctx, containerID, types.ContainerLogsOptions{
+	containerLogs, err := d.Client.ContainerLogs(ctx, containerID, container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     true,

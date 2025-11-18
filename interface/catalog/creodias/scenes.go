@@ -64,7 +64,7 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 		parametersMap["constellation"] = "SENTINEL-2"
 		parametersMap[mapKey["producttype"]] = "S2MSI1C"
 	default:
-		return entities.Scenes{}, fmt.Errorf("Creodias: constellation not supported: " + area.SceneType.Constellation)
+		return entities.Scenes{}, fmt.Errorf("Creodias: constellation not supported: %s", area.SceneType.Constellation)
 	}
 	for k, v := range area.SceneType.Parameters {
 		if nk, ok := mapKey[k]; ok {

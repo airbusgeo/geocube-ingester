@@ -1135,7 +1135,7 @@ var temporaryErrs = []string{
 // WrapError implements LogFilter
 func (f *PythonLogFilter) WrapError(err error) error {
 	if f.lastError != "" {
-		err = service.MergeErrors(true, err, fmt.Errorf(f.lastError))
+		err = service.MergeErrors(true, err, fmt.Errorf("%s", f.lastError))
 		if err != nil {
 			strerr := err.Error()
 			if strings.Contains(strerr, "FATAL ERROR:") {

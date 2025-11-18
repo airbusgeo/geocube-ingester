@@ -60,7 +60,7 @@ func ConstructQuery(ctx context.Context, area *entities.AreaToIngest, aoi geos.G
 	case common.Sentinel2:
 		parametersMap[mapKey["producttype"]] = "S2MSI1C"
 	default:
-		return "", fmt.Errorf("OpenSearch: constellation not supported: " + area.SceneType.Constellation)
+		return "", fmt.Errorf("OpenSearch: constellation not supported: %s", area.SceneType.Constellation)
 	}
 	for k, v := range area.SceneType.Parameters {
 		if nk, ok := mapKey[k]; ok {

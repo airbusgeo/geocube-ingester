@@ -290,7 +290,7 @@ func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 func (p *provider) buildCatalogParameters(area *entities.AreaToIngest, aoi geos.Geometry) (*catalogRequestParameter, error) {
 	constellation := common.GetConstellationFromString(area.SceneType.Constellation)
 	if !p.Supports(constellation) {
-		return nil, fmt.Errorf("OneAtlas: constellation not supported: " + area.SceneType.Constellation)
+		return nil, fmt.Errorf("OneAtlas: constellation not supported: %s", area.SceneType.Constellation)
 	}
 	convexHullGeometry, err := aoi.ConvexHull()
 	if err != nil {

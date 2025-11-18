@@ -53,9 +53,10 @@ var (
 	altValuesFunc   = flag.Bool("values", false, "if true, alternative string values method will be generated. Default: false")
 	output          = flag.String("output", "", "output file name; default srcdir/<type>_string.go")
 	transformMethod = flag.String("transform", "noop", "enum item name transformation method. Default: noop")
-	trimPrefix      = flag.String("trimprefix", "", "transform each item name by removing a prefix. Default: \"\"")
+	trimPrefix      = flag.String("trimprefix", "", "transform each item name by removing a prefix or comma separated list of prefixes. Default: \"\"")
 	addPrefix       = flag.String("addprefix", "", "transform each item name by adding a prefix. Default: \"\"")
 	linecomment     = flag.Bool("linecomment", false, "use line comment text as printed text when present")
+	typedErrors     = flag.Bool("typederrors", false, "if true, use typed errors for enum string conversion methods. Default: false")
 )
 
 var comments arrayFlags
@@ -119,6 +120,10 @@ func main() {
 	g.Printf("package %s", g.pkg.name)
 	g.Printf("\n")
 	g.Printf("import (\n")
+	if *typedErrors {
+		g.Printf("\t\"errors\"\n")
+		g.Printf("\t\"github.com/dmarkham/enumer/enumerrs\"\n")
+	}
 	g.Printf("\t\"fmt\"\n")
 	g.Printf("\t\"strings\"\n")
 	if *sql {
@@ -135,7 +140,7 @@ func main() {
 
 	// Run generate for each type.
 	for _, typeName := range typs {
-		g.generate(typeName, *json, *yaml, *sql, *text, *gqlgen, *transformMethod, *trimPrefix, *addPrefix, *linecomment, *altValuesFunc)
+		g.generate(typeName, *json, *yaml, *sql, *text, *gqlgen, *transformMethod, *trimPrefix, *addPrefix, *linecomment, *altValuesFunc, *typedErrors)
 	}
 
 	// Format the output.
@@ -415,7 +420,7 @@ func (g *Generator) prefixValueNames(values []Value, prefix string) {
 // generate produces the String method for the named type.
 func (g *Generator) generate(typeName string,
 	includeJSON, includeYAML, includeSQL, includeText, includeGQLGen bool,
-	transformMethod string, trimPrefix string, addPrefix string, lineComment bool, includeValuesMethod bool) {
+	transformMethod string, trimPrefix string, addPrefix string, lineComment bool, includeValuesMethod bool, useTypedErrors bool) {
 	values := make([]Value, 0, 100)
 	for _, file := range g.pkg.files {
 		file.lineComment = lineComment
@@ -468,15 +473,15 @@ func (g *Generator) generate(typeName string,
 
 	g.buildNoOpOrderChangeDetect(runs, typeName)
 
-	g.buildBasicExtras(runs, typeName, runsThreshold)
+	g.buildBasicExtras(runs, typeName, runsThreshold, useTypedErrors)
 	if includeJSON {
-		g.buildJSONMethods(runs, typeName, runsThreshold)
+		g.buildJSONMethods(runs, typeName, runsThreshold, useTypedErrors)
 	}
 	if includeText {
-		g.buildTextMethods(runs, typeName, runsThreshold)
+		g.buildTextMethods(runs, typeName, runsThreshold, useTypedErrors)
 	}
 	if includeYAML {
-		g.buildYAMLMethods(runs, typeName, runsThreshold)
+		g.buildYAMLMethods(runs, typeName, runsThreshold, useTypedErrors)
 	}
 	if includeSQL {
 		g.addValueAndScanMethod(typeName)
@@ -774,9 +779,9 @@ func (g *Generator) buildOneRun(runs [][]Value, typeName string) {
 }
 
 // Arguments to format are:
-// 	[1]: type name
-// 	[2]: size of index element (8 for uint8 etc.)
-// 	[3]: less than zero check (for signed types)
+// [1]: type name
+// [2]: size of index element (8 for uint8 etc.)
+// [3]: less than zero check (for signed types)
 const stringOneRun = `func (i %[1]s) String() string {
 	if %[3]si >= %[1]s(len(_%[1]sIndex)-1) {
 		return fmt.Sprintf("%[1]s(%%d)", i)
@@ -786,10 +791,10 @@ const stringOneRun = `func (i %[1]s) String() string {
 `
 
 // Arguments to format are:
-// 	[1]: type name
-// 	[2]: lowest defined value for type, as a string
-// 	[3]: size of index element (8 for uint8 etc.)
-// 	[4]: less than zero check (for signed types)
+// [1]: type name
+// [2]: lowest defined value for type, as a string
+// [3]: size of index element (8 for uint8 etc.)
+// [4]: less than zero check (for signed types)
 const stringOneRunWithOffset = `func (i %[1]s) String() string {
 	i -= %[2]s
 	if %[4]si >= %[1]s(len(_%[1]sIndex)-1) {

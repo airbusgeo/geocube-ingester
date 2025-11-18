@@ -1,4 +1,4 @@
-package client // import "github.com/docker/docker/client"
+package client
 
 import (
 	"bytes"
@@ -11,16 +11,17 @@ import (
 
 // PluginInspectWithRaw inspects an existing plugin
 func (cli *Client) PluginInspectWithRaw(ctx context.Context, name string) (*types.Plugin, []byte, error) {
-	if name == "" {
-		return nil, nil, objectNotFoundError{object: "plugin", id: name}
+	name, err := trimID("plugin", name)
+	if err != nil {
+		return nil, nil, err
 	}
 	resp, err := cli.get(ctx, "/plugins/"+name+"/json", nil, nil)
 	defer ensureReaderClosed(resp)
 	if err != nil {
-		return nil, nil, wrapResponseError(err, resp, "plugin", name)
+		return nil, nil, err
 	}
 
-	body, err := io.ReadAll(resp.body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, nil, err
 	}

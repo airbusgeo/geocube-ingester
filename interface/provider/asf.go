@@ -47,7 +47,7 @@ func (ip *ASFImageProvider) Download(ctx context.Context, scene common.Scene, lo
 	case "GRD":
 		url = ASFDownloadProductGRD
 	default:
-		return fmt.Errorf("ASFImageProvider: not supported product type: " + info["PRODUCT_TYPE"])
+		return fmt.Errorf("ASFImageProvider: not supported product type: %s", info["PRODUCT_TYPE"])
 	}
 	url = common.FormatBrackets(url, info)
 
