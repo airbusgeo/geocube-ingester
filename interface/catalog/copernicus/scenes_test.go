@@ -57,7 +57,7 @@ func TestQueryCopernicus(t *testing.T) {
 	area := entities.AreaToIngest{
 		AOI:       geometry,
 		StartTime: time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC),
-		EndTime:   time.Date(2022, 1, 12, 23, 0, 0, 0, time.UTC),
+		EndTime:   time.Date(2022, 1, 17, 23, 0, 0, 0, time.UTC),
 		SceneType: entities.SceneType{
 			Constellation: "sentinel2",
 			Parameters: map[string]string{
@@ -66,10 +66,10 @@ func TestQueryCopernicus(t *testing.T) {
 		},
 	}
 
-	query(t, &area, *geom, 0, 7, 6, false)
+	query(t, &area, *geom, 0, 8, 7, false)
 	query(t, &area, *geom, 0, 3, 3, false)
-	query(t, &area, *geom, 1, 6, 0, false)
-	query(t, &area, *geom, 1, 4, 2, false)
+	query(t, &area, *geom, 1, 7, 0, false)
+	query(t, &area, *geom, 1, 4, 3, false)
 	query(t, &area, *geom, 1, 2, 2, true)
 }
 
@@ -86,7 +86,7 @@ func TestOpenQueryCopernicus(t *testing.T) {
 	area := entities.AreaToIngest{
 		AOI:       geometry,
 		StartTime: time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC),
-		EndTime:   time.Date(2022, 1, 12, 23, 0, 0, 0, time.UTC),
+		EndTime:   time.Date(2022, 1, 17, 23, 0, 0, 0, time.UTC),
 		SceneType: entities.SceneType{
 			Constellation: "sentinel2",
 			Parameters: map[string]string{
@@ -95,9 +95,9 @@ func TestOpenQueryCopernicus(t *testing.T) {
 		},
 	}
 
-	openQuery(t, &area, *geom, 0, 7, 6, false)
+	openQuery(t, &area, *geom, 0, 8, 7, false)
 	openQuery(t, &area, *geom, 0, 3, 3, false)
-	openQuery(t, &area, *geom, 1, 6, 0, false)
-	openQuery(t, &area, *geom, 1, 4, 2, false)
+	openQuery(t, &area, *geom, 1, 7, 0, false)
+	openQuery(t, &area, *geom, 1, 4, 3, false)
 	openQuery(t, &area, *geom, 1, 2, 2, true)
 }
