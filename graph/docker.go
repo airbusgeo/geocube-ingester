@@ -62,7 +62,10 @@ func (cfg *DockerConfig) SetFlags() *string {
 }
 
 func NewDockerManager(ctx context.Context, config DockerConfig) (DockerManager, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := client.NewClientWithOpts(
+		client.FromEnv,
+		client.WithAPIVersionNegotiation(),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new docker client: %w", err)
 	}
