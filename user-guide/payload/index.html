@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://github.com/airbusgeo/geocube-ingester/user-guide/payload/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Payload - Geocube Ingester</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Payload";
+        var mkdocs_page_input_path = "user-guide/payload.md";
+        var mkdocs_page_url = "/airbusgeo/geocube-ingester/user-guide/payload/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Geocube Ingester
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../quickstart/">Getting started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Architecture</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../architecture/services/">Services</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/prerequisite/">Prerequisite</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/local-install/">Local environment</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/docker-install/">Docker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/k8s-install/">Deploying with Kubernetes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/others/">Customize environment</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../tutorials/">Tutorials</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Payload</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#parameters-to-request-the-catalogue-to-find-the-products">Parameters to request the catalogue to find the products</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#copernicus">Copernicus</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#landsat">Landsat</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#oneatlas">OneAtlas</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#parameters-to-download-and-process-the-products">Parameters to download and process the products</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#sentinel1">Sentinel1</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#sentinel2-spot-phr">Sentinel2, SPOT, PHR</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#parameters-to-index-the-output-products">Parameters to index the output products</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graph/">Processing graphs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../run/">Run a payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../monitoring/">Monitoring</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../catalog/">Catalogue service</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/interfaces/">Interfaces</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/sensors/">Sensor</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/catalog/">Catalogue</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/help/">Getting help</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/development/">Development</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/release-notes/">Release Notes</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Geocube Ingester</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User guide</li>
+      <li class="breadcrumb-item active">Payload</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="payload">Payload</h2>
+<p>The input of the ingester is a payload. It contains an AOI, a date interval, parameters defining the raw products, parameters defining the processing and parameters defining the products to be ingested in the Geocube.</p>
+<p>The payload will be used to:
+1. List available scenes corresponding to the criterias (<a href="../catalog/">Catalogue</a>)
+2. Configure the downloading and pre-processing of the scenes (Downloader)
+3. Configure the processing of the scenes (Processor)
+4. Index the output products (Processor)</p>
+<p>The payload is a GeoJSON (all fields are mandatory unless otherwise stated):</p>
+<ul>
+<li>AOI according to GeoJSON standards (<code>type</code>, <code>features</code>, <code>geometry</code>, <code>coordinates</code>...)</li>
+<li><code>name</code>: Unique name used to identify the Area in the workflow. After a first ingestion, new scenes can be added to the same area, benefiting from automatic scenes reference picking (useful for S1-bursts).</li>
+<li>
+<p><code>start_time</code>, <code>end_time</code>: date interval</p>
+</li>
+<li>
+<p><code>scene_type</code>: describing the type of the products to be downloaded</p>
+</li>
+<li><code>constellation</code>: Name of the Satellite Constellation (see <a href="../catalog/">currently supported</a>)</li>
+<li><code>parameters</code>: (optional) specific parameters to filter the results (see <a href="#catalogue-apis">Catalogue API guide</a>)</li>
+<li><code>scene_graph_name</code>: name of the graph (or "CopyProductToStorage") that will be used just after downloading the scene (see <a href="../graph/">Processing Graphs</a>)</li>
+<li><code>tile_graph_name</code>: name of the graph (or "Pass") that will be used to process each tile (output of the downloader) (see <a href="../graph/">Processing Graphs</a>)</li>
+<li>
+<p><code>graph_config</code>: (optional): specific configuration of the graphs</p>
+</li>
+<li>
+<p><code>layers</code>: mapping between layers to be indexed in the Geocube and the corresponding variable.instance from the Geocube (see Geocube Documentation).  </p>
+</li>
+<li><code>layername</code>: {"variable":"variable_name", "instance":"instance_name"}</li>
+<li>
+<p><code>record_tags</code> (optional): user-defined tags for identifying/creating the record in the Geocube.</p>
+</li>
+<li>
+<p><code>annotations_urls</code> (optional): list of urls to retrieve Sentinel-1 annotations</p>
+</li>
+<li><code>is_retriable</code> (optional): define if the processing or download is retriable if a fatal error occurs (or if retry_count is over)</li>
+<li><code>retry_count</code> (optional): define the number of time a processing or download is retried if a transient error occurs</li>
+<li><code>storage_uri</code> (optional): define a custom storage</li>
+<li><code>page</code>, <code>limit</code> (optional): query the n-th <code>page</code> (0-based) of the catalog and return <code>limit</code> scenes at most.</li>
+</ul>
+<blockquote>
+<p>Using <code>page</code>, <code>limit</code>, the number of scenes returned might be less than <code>limit</code> <strong>even if</strong> it's not the last page. Check <code>properties["next"]</code> for another page (value <code>true</code>/<code>false</code>)</p>
+</blockquote>
+<h3 id="parameters-to-request-the-catalogue-to-find-the-products">Parameters to request the catalogue to find the products</h3>
+<p>To list available scenes covering an AOI between a range of time, the <a href="../catalog/">Catalogue</a>) will use the fields <code>geometry</code>, <code>start_time</code>, <code>end_time</code> and <code>scene_type</code>.</p>
+<p>The <code>scene_type</code> defines the <code>consellation</code> and the <code>parameters</code> depends on the catalogue:</p>
+<h4 id="copernicus">Copernicus</h4>
+<p>Available <code>scene_type/parameters</code>:</p>
+<ul>
+<li><code>platformname</code>: e.g. <code>SENTINEL-1</code>, <code>SENTINEL-2</code></li>
+<li><code>productType</code>: e.g. <code>SLC</code>, <code>S2MSI1C</code></li>
+<li><code>filename</code></li>
+</ul>
+<p>For Sentinel-1 only:</p>
+<ul>
+<li><code>polarisationmode</code>: default <code>VV VH</code></li>
+<li><code>sensoroperationalmode</code>: default <code>IW</code></li>
+<li><code>relativeorbitnumber</code></li>
+</ul>
+<p>For optical only:</p>
+<ul>
+<li><code>cloudcoverpercentage</code>: format <code>[min TO max]</code></li>
+</ul>
+<h4 id="landsat">Landsat</h4>
+<p>Available <code>scene_type/parameters</code>:</p>
+<ul>
+<li><code>cloudcoverpercentage</code>: format <code>[min TO max]</code></li>
+</ul>
+<h4 id="oneatlas">OneAtlas</h4>
+<p>OneAtlas available parameters: </p>
+<ul>
+<li><code>platform</code>: e.g. <code>PHR1B</code></li>
+<li><code>acquisitionIdentifier</code>: e.g. <code>ACQ_PNEO4_02426805581362</code></li>
+<li><code>productType</code>: e.g. <code>bundle</code></li>
+<li><code>processingLevel</code></li>
+<li><code>cloudCover</code>: e.g. <code>[0,10]</code></li>
+<li><code>incidenceAngle</code></li>
+<li><code>workspace</code></li>
+<li><code>relation</code></li>
+</ul>
+<blockquote>
+<p>NB: To use other parameters or mix different kind of imagery. You need to group all your images in the same workspace (via OneAtlas) and reference only <code>workspace</code> in payload ingestion.</p>
+</blockquote>
+<p>For more information see: <a href="https://api.oneatlas.airbus.com/guides/oneatlas-data/g-search/">OneAtlas API guide</a></p>
+<h3 id="parameters-to-download-and-process-the-products">Parameters to download and process the products</h3>
+<ul>
+<li><code>scene_graph_name</code> defines a path to a <a href="../graph/">processing graph</a> that will be used by the downloader to pre-process the products (example: extract every burst from scenes).</li>
+<li><code>tile_graph_name</code> defines a path to a <a href="../graph/">processing graph</a> that will be used by the processor to process the tiles.</li>
+<li><code>graph_config</code> defines pairs of key-values that can be used by the preceding graphs (see <a href="../graph/#args">Graph:Args</a>)</li>
+</ul>
+<h4 id="sentinel1">Sentinel1</h4>
+<p><code>scene_graph_name</code> is usually used to extract the bursts from the Scenes. This step is done by the downloader as a pre-processing (1 job per Scene).</p>
+<p><code>tile_graph_name</code> defines the processing to do for every Tiles. This step is done by the processor (1 job per Tile).</p>
+<h4 id="sentinel2-spot-phr">Sentinel2, SPOT, PHR</h4>
+<p><code>scene_graph_name</code> can be used to pre-process data (example: extract Panchromatic &amp; MultiSpectral Image from DIMAP product) but it usually used to copy the data to the ingester storage (<code>=CopyToStorage</code>). In this case a Tile is the whole Scene.</p>
+<p><code>tile_graph_name</code> defines the processing to do for each Tile. This step is done by the processor.</p>
+<p>cf. <a href="./#example">Payload ingestion</a></p>
+<h3 id="parameters-to-index-the-output-products">Parameters to index the output products</h3>
+<ul>
+<li><code>record_tags</code> will be used by the catalogue, just before the ingestion starts, to create the records in the Geocube to index the output products</li>
+<li><code>layers</code> will define the match between the output layers of the graph and the variables (and instances) of the Geocube (to index the data).</li>
+</ul>
+<h2 id="example-of-an-aoi-payload">Example of an AOI Payload</h2>
+<pre><code class="language-json">{
+    &quot;name&quot;:&quot;DenmarkDemo&quot;,
+    &quot;type&quot;:&quot;Feature&quot;,
+    &quot;geometry&quot;:{
+        &quot;type&quot;: &quot;MultiPolygon&quot;,
+        &quot;coordinates&quot;:
+        [
+            [
+                [
+                    [10.061230468750068, 54.88637695312502],
+                    [9.957128906249977, 54.87246093750002],
+                    [9.903906250000063, 54.896630859374994],
+                    [9.80625, 54.90600585937503],
+                    [9.77119140625004, 55.059912109375034],
+                    [9.78125, 55.06904296875001],
+                    [9.830371093750015, 55.05825195312505],
+                    [9.998828125000045, 54.986474609374994],
+                    [10.05771484375006, 54.90791015624998],
+                    [10.061230468750068, 54.88637695312502]
+                ]
+            ]
+        ]
+    },
+    &quot;start_time&quot;:&quot;2022-01-01T00:00:00.000Z&quot;,
+    &quot;end_time&quot;:&quot;2022-02-10T00:00:00.000Z&quot;,
+    &quot;scene_type&quot;:{
+        &quot;constellation&quot;:&quot;sentinel1&quot;,
+        &quot;parameters&quot;: {
+            &quot;producttype&quot;: &quot;SLC&quot;,
+            &quot;polarisationmode&quot;: &quot;VV VH&quot;,
+            &quot;sensoroperationalmode&quot;: &quot;IW&quot;,
+            &quot;relativeorbitnumber&quot;: &quot;44&quot;
+        }
+    },
+    &quot;scene_graph_name&quot;:&quot;S1Preprocessing&quot;,
+    &quot;tile_graph_name&quot;:&quot;S1BackscatterCoherence&quot;,
+    &quot;graph_config&quot;:{
+        &quot;projection&quot;:&quot;EPSG:32632&quot;,
+        &quot;snap_cpu_parallelism&quot;:&quot;8&quot;,
+        &quot;bkg_resampling&quot;: &quot;BISINC_5_POINT_INTERPOLATION&quot;
+    },
+    &quot;layers&quot;:{
+        &quot;sigma0_VV&quot;: {&quot;variable&quot;:&quot;BackscatterSigma0VV&quot;, &quot;instance&quot;:&quot;RNKell&quot;},
+        &quot;sigma0_VH&quot;: {&quot;variable&quot;:&quot;BackscatterSigma0VH&quot;, &quot;instance&quot;:&quot;RNKell&quot;},
+        &quot;coh_VV&quot;: {&quot;variable&quot;:&quot;CoherenceVV&quot;, &quot;instance&quot;:&quot;master&quot;},
+        &quot;coh_VH&quot;: {&quot;variable&quot;:&quot;CoherenceVH&quot;, &quot;instance&quot;:&quot;master&quot;}
+    },
+    &quot;record_tags&quot;:{
+        &quot;source&quot;: &quot;tutorial&quot;,
+        &quot;provider&quot;: &quot;geocube-ingester&quot;,
+        &quot;area&quot;:&quot;Denmark&quot;
+    }
+}
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../tutorials/" class="btn btn-neutral float-left" title="Tutorials"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../graph/" class="btn btn-neutral float-right" title="Processing graphs">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../tutorials/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../graph/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

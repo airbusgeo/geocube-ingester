@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://github.com/airbusgeo/geocube-ingester/user-guide/providers/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Provider - Geocube Ingester</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Provider";
+        var mkdocs_page_input_path = "user-guide/providers.md";
+        var mkdocs_page_url = "/airbusgeo/geocube-ingester/user-guide/providers/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Geocube Ingester
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../quickstart/">Getting started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Architecture</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../architecture/services/">Services</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/prerequisite/">Prerequisite</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/local-install/">Local environment</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/docker-install/">Docker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/k8s-install/">Deploying with Kubernetes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/others/">Customize environment</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../tutorials/">Tutorials</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../payload/">Payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graph/">Processing graphs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../run/">Run a payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../monitoring/">Monitoring</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../catalog/">Catalogue service</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Provider</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#creodias">Creodias</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#copernicus">Copernicus</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#gcs">GCS</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#local-directory">Local directory</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#oneatlas">OneAtlas</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#asf">ASF</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#landsat-aws">Landsat AWS</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/interfaces/">Interfaces</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/sensors/">Sensor</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/catalog/">Catalogue</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/help/">Getting help</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/development/">Development</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/release-notes/">Release Notes</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Geocube Ingester</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User guide</li>
+      <li class="breadcrumb-item active">Provider</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="provider">Provider</h2>
+<blockquote>
+<p>NB: This documentation is for user that want to use the providers. For documentation on how to implement a new provider, see <a href="#developer-guide/provideres.md">Developer-Guide/Providers</a>.</p>
+</blockquote>
+<p>Providers are implemented in order to download scenes. They are called one by one until the corresponding image is found.</p>
+<ul>
+<li><a href="./#copernicus">Copernicus</a>: Sentinel scenes</li>
+<li><a href="./#creodias">Creodias</a>: Sentinel scenes</li>
+<li><a href="./#gcs">GCS</a>: any scenes stored in GCS (can be used to retrieve the annotations of an Sentinel1 archive stored in GCS)</li>
+<li><a href="./#local-directory">Local</a>: any scenes stored locally</li>
+<li><a href="./#oneatlas">OneAtlas</a>: Airbus scenes (SPOT, Pleiades, PNEO)</li>
+<li><a href="./#asf">ASF</a>: sentinel1 &amp; 2 scenes</li>
+<li><a href="./#landsat-aws">Landsat AWS</a>: Landsat 8&amp;9</li>
+</ul>
+<p>The scenes to be downloaded are sent to the Downloader Service, then the tiles to be processed are sent to the Processor Service.</p>
+<p>If an autoscaler is configured, the downloading and the processing are done in parallel using all available machines.</p>
+<h3 id="creodias">Creodias</h3>
+<p>Creodias account credentials are needed.</p>
+<p><code>creodias-username</code> and <code>creodias-password</code> workflow and downloader arguments must be defined.</p>
+<p><code>https://finder.creodias.eu/resto/api/collections/&lt;constellation&gt;/search.json</code> endpoint is use to request Creodias.</p>
+<p>and <code>https://auth.creodias.eu/auth/realms/DIAS/protocol/openid-connect/token</code> in order to get JWT Token.</p>
+<p>For more information see: <a href="https://creodias.eu/sentinel-hub-documentation">Creodias Documentation</a></p>
+<h3 id="copernicus">Copernicus</h3>
+<p>Copernicus account credentials are needed.</p>
+<p><code>copernicus-username</code> and <code>copernicus-password</code> downloader arguments must be defined.</p>
+<p>For more information see: <a href="https://documentation.dataspace.copernicus.eu/APIs/OData.html#product-download">Copernicus Documentation</a></p>
+<h3 id="gcs">GCS</h3>
+<p>The downloader service must have the rights to read files on buckets.</p>
+<p><code>gs-provider-buckets</code> workflow and downloader arguments must be defined.</p>
+<p>List of constellation:bucket comma-separated. </p>
+<p>bucket can contain several {IDENTIFIER} than will be replaced according to the sceneName. </p>
+<p>IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)</p>
+<p>For more information see: <a href="https://cloud.google.com/storage">GCS Documentation</a></p>
+<h3 id="local-directory">Local directory</h3>
+<p>No credentials needed.</p>
+<p><code>local-path</code> downloader argument must be defined (local path where images are stored)</p>
+<h3 id="oneatlas">OneAtlas</h3>
+<p>OneAtlas account credentials are needed.</p>
+<p><code>oneatlas-username</code> and <code>oneatlas-apikey</code> workflow and downloader arguments must be defined.</p>
+<p>By default, OneAtlas uses: </p>
+<ul>
+<li><code>https://access.foundation.api.oneatlas.airbus.com/api/v1/items</code> as download endpoint  </li>
+<li><code>https://data.api.oneatlas.airbus.com</code> as order endpoint</li>
+<li><code>https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token</code> as authentication endpoint</li>
+</ul>
+<p>It's possible to use another endpoint by defining <code>oneatlas-download-endpoint</code>, <code>oneatlas-order-endpoint</code> and <code>oneatlas-auth-endpoint</code>.</p>
+<p>Important: concerning pricing, OneAtlas provider will be process and download image while credits are available. </p>
+<p>For more information see: <a href="https://oneatlas.airbus.com/home">OneAtlas Documentation</a></p>
+<h3 id="asf">ASF</h3>
+<p>Asf account credentials are needed.</p>
+<p><code>asf-token</code> downloader argument must be defined.</p>
+<p>Asf uses <code>https://datapool.asf.alaska.edu/SLC/S{MISSION_VERSION}/{SCENE}.zip</code> for SLC product and <code>https://datapool.asf.alaska.edu/GRD-HD/S{MISSION_VERSION}/{SCENE}.zip</code> for GRD products.</p>
+<p><a href="https://asf.alaska.edu/data-sets/sar-data-sets/sentinel-1/sentinel-1-documents-tools/">ASF Documentation</a></p>
+<h3 id="landsat-aws">Landsat AWS</h3>
+<p>AWS credentials are needed (pay-on-request):
+- <code>--landsat-aws-access-key-id</code>: Landsat AWS access key id
+- <code>--landsat-aws-secret-access-key</code>: Landsat AWS secret access key</p>
+<p><a href="https://registry.opendata.aws/usgs-landsat/">Landsat AWS</a></p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../catalog/" class="btn btn-neutral float-left" title="Catalogue service"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../../developer-guide/interfaces/" class="btn btn-neutral float-right" title="Interfaces">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../catalog/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../../developer-guide/interfaces/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

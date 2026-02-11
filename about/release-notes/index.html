@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://github.com/airbusgeo/geocube-ingester/about/release-notes/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Release Notes - Geocube Ingester</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Release Notes";
+        var mkdocs_page_input_path = "about/release-notes.md";
+        var mkdocs_page_url = "/airbusgeo/geocube-ingester/about/release-notes/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Geocube Ingester
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../quickstart/">Getting started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Architecture</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../architecture/services/">Services</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/prerequisite/">Prerequisite</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/local-install/">Local environment</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/docker-install/">Docker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/k8s-install/">Deploying with Kubernetes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/others/">Customize environment</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/tutorials/">Tutorials</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/payload/">Payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/graph/">Processing graphs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/run/">Run a payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/monitoring/">Monitoring</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/catalog/">Catalogue service</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/interfaces/">Interfaces</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/sensors/">Sensor</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/catalog/">Catalogue</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../help/">Getting help</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../development/">Development</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Release Notes</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#110">1.1.0</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#warning">Warning</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#outdated-graphs">Outdated graphs</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#functionalities">Functionalities</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#bug-fixes">Bug fixes</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#optimization">Optimization</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#103beta">1.0.3beta</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#functionalities_1">Functionalities</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#bug-fixes_1">Bug fixes</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#optimization_1">Optimization</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Geocube Ingester</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">About</li>
+      <li class="breadcrumb-item active">Release Notes</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="release-notes">Release notes</h2>
+<h3 id="110">1.1.0</h3>
+<h4 id="warning">Warning</h4>
+<ul>
+<li>catalog/scenes and catalog/tiles: fields are low case</li>
+</ul>
+<h5 id="outdated-graphs">Outdated graphs</h5>
+<p>To fix incoherences or potential limitation in JSON graphs :
+- Layer "product" is replaced by "<strong>product</strong>"
+- Extension "all" is replaced by "<em>"
+- When importing with extension "zip", the file is not unzipped (use Extension "</em>" to unzip the file)
+- When importing with extension "*", "SAFE" or "dim", the unzip folder is ensured to have the name <layer>.<Extension> (or just <layer> for the former case).</p>
+<blockquote>
+<p>Be sure to update the processing graphs, otherwise the behaviour will be undefined.</p>
+</blockquote>
+<h4 id="functionalities">Functionalities</h4>
+<ul>
+<li>Downloader: add a new provider from URL (use --url-provider)</li>
+<li>Add Documentation "how to add a new sensor"</li>
+<li>Add Landsat AWS Provider (Catalogue&amp;Download)</li>
+<li>Add Page/Limit to endpoint catalog/scenes</li>
+<li>Ingester processor: add credentials from KSA to connect to docker</li>
+</ul>
+<h4 id="bug-fixes">Bug fixes</h4>
+<ul>
+<li>LocalProvider does not require that a date is included in the product name</li>
+<li>GS/FTP: do not try to unzip the downloaded file if the extension is not "zip"</li>
+<li>Docker use ubuntu:noble to fix vulnerabilities</li>
+<li>OneAtlas catalog: fix bugs. Default OneAtlasUsername is APIKEY</li>
+</ul>
+<h4 id="optimization">Optimization</h4>
+<ul>
+<li>catalog/scenes catalog/tiles: remove unused or empty fields in the JSON file exported + fields are low case</li>
+<li>Storage: Create zip archive with BestSpeed</li>
+<li>catalog/aoi: speed-up</li>
+</ul>
+<h3 id="103beta">1.0.3beta</h3>
+<h4 id="functionalities_1">Functionalities</h4>
+<ul>
+<li>AreaToIngest: Add RetryCount to automatically retry a processing or a download RetryCount times</li>
+<li>AreaToIngest: Add IsRetriable to enable or disable the retry of a processing or a download</li>
+<li>AreaToIngest: Add StorageURI to define a custom storage URI for downloader and processor</li>
+<li>Workflow: add endpoint \aoi{pattern} to list aois by pattern</li>
+<li>ProcessingGraph: add condition=on_failure/on_fatal_failure and error_condition=... to create/index/delete a file in case of failure</li>
+<li>remove CreodiasAnnotationsProvider, add UrlAnnotationsProvider instead of GCSAnnotationBucket</li>
+<li>gs-provider-buckets supports wildcard</li>
+<li>gs-provider downloads the last version if more than one file is present</li>
+<li>rename params Catalog parameter <strong>--gcstorage -&gt; --gcs-annotations-bucket</strong></li>
+<li>URL patterns support {KEY}-format to be replaced by information extracted from the scene name (see --help)</li>
+<li>Add paging for loadScenes &amp; loadTiles</li>
+<li>Copernicus database catalogue: add <strong>--copernicus-catalog</strong></li>
+<li>Sobloo, Scihub, Onda, Mundi catalog/provider decomissioning</li>
+</ul>
+<h4 id="bug-fixes_1">Bug fixes</h4>
+<ul>
+<li>return EmptyError, in case of ingestion of an empty area</li>
+<li>raise an error if scene.AOI != AOI during an ingestion</li>
+<li>GetDownloadLink from GCSAnnotationsBucket</li>
+<li>PythonLogFilter does not ignore FATAL ERROR anymore</li>
+<li>scihub catalogue: retry 3 times</li>
+<li>oneatlas: exponential retry</li>
+<li>Processor.index: add more time before retry</li>
+<li>ingestScenes might delete records that are used somewhere else</li>
+<li>ingestScenes with more scenes than endDate/startDate</li>
+<li>POST /catalog/aoi without scenes or tiles</li>
+</ul>
+<h4 id="optimization_1">Optimization</h4>
+<ul>
+<li>catalog.ScenesToIngest: list all records at once, instead of one by one</li>
+<li>databse: add status to AOI to retrieve the status more efficiently </li>
+<li>ingestScenes: by batch instead of one by one</li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../development/" class="btn btn-neutral float-left" title="Development"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../development/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

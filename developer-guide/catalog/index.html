@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://github.com/airbusgeo/geocube-ingester/developer-guide/catalog/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Catalogue - Geocube Ingester</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Catalogue";
+        var mkdocs_page_input_path = "developer-guide/catalog.md";
+        var mkdocs_page_url = "/airbusgeo/geocube-ingester/developer-guide/catalog/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Geocube Ingester
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../quickstart/">Getting started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Architecture</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../architecture/services/">Services</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/prerequisite/">Prerequisite</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/local-install/">Local environment</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/docker-install/">Docker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/k8s-install/">Deploying with Kubernetes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/others/">Customize environment</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/tutorials/">Tutorials</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/payload/">Payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/graph/">Processing graphs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/run/">Run a payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/monitoring/">Monitoring</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/catalog/">Catalogue service</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../interfaces/">Interfaces</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../sensors/">Sensor</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Catalogue</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#add-a-new-catalogue">Add a new Catalogue</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/help/">Getting help</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/development/">Development</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/release-notes/">Release Notes</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Geocube Ingester</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Developer guide</li>
+      <li class="breadcrumb-item active">Catalogue</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="catalogue">Catalogue</h2>
+<p>NB: This documentation is for developer that want to implement a new Catalogue Provider. For documentation on how to use the catalogue, see <a href="#user-guide/catalog.md">User-Guide/Catalogue</a>.</p>
+<h3 id="add-a-new-catalogue">Add a new Catalogue</h3>
+<ol>
+<li>In file <code>catalog/scenes.go</code>, add newProvider instantiation in <code>ScenesInventory()</code> method.</li>
+<li>For a new constellation/satellite: in file <code>catalog/common/naming.go</code> add the constellation name and modify <code>GetConstellationFromString</code> method.</li>
+<li>Add configuration parameters (credentials, endpoint) in <code>cmd/catalog/main.go</code> and  <code>cmd/workflow/main.go</code>.</li>
+<li>Implement new catalog in <code>interface/catalog</code> following the interface:</li>
+</ol>
+<pre><code class="language-go">type ScenesProvider interface {
+    Supports(c common.Constellation) bool
+    SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error)
+}
+</code></pre>
+<p><code>SearchScenes</code> method returns a list of available scenes</p>
+<ol>
+<li>Update the documentation:</li>
+<li><a href="../../user-guide/catalog/">docs/user-guide/catalog.md</a> to describe the new catalogue and explain how to configure it.</li>
+<li><a href="../../user-guide/payload/">docs/user-guide/payload.md</a> to describe the specific parameters to set in the payload-file to request this catalogue.</li>
+</ol>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../sensors/" class="btn btn-neutral float-left" title="Sensor"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../providers/" class="btn btn-neutral float-right" title="Provider">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../sensors/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../providers/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://github.com/airbusgeo/geocube-ingester/installation/local-install/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Local environment - Geocube Ingester</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Local environment";
+        var mkdocs_page_input_path = "installation/local-install.md";
+        var mkdocs_page_url = "/airbusgeo/geocube-ingester/installation/local-install/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Geocube Ingester
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../quickstart/">Getting started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Architecture</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../architecture/services/">Services</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../prerequisite/">Prerequisite</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Local environment</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#environment-of-development">Environment of development</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#build-and-run-go-application">Build and run Go application</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#messaging-broker">Messaging broker</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#pgqueue">PGQueue</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#pubsub-emulator">PubSub Emulator</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#downloader">Downloader</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#processor">Processor</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#workflow">Workflow</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../docker-install/">Docker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../k8s-install/">Deploying with Kubernetes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../others/">Customize environment</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/tutorials/">Tutorials</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/payload/">Payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/graph/">Processing graphs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/run/">Run a payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/monitoring/">Monitoring</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/catalog/">Catalogue service</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/interfaces/">Interfaces</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/sensors/">Sensor</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/catalog/">Catalogue</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/help/">Getting help</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/development/">Development</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/release-notes/">Release Notes</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Geocube Ingester</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Installation</li>
+      <li class="breadcrumb-item active">Local environment</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="local-installation">Local installation</h2>
+<h3 id="environment-of-development">Environment of development</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Name</th>
+<th style="text-align: center;">Version</th>
+<th style="text-align: center;">link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">Golang</td>
+<td style="text-align: center;">&gt;= 1.23</td>
+<td style="text-align: center;">https://golang.org/doc/install</td>
+</tr>
+<tr>
+<td style="text-align: center;">GDAL</td>
+<td style="text-align: center;">&gt;= 3.8</td>
+<td style="text-align: center;">https://gdal.org</td>
+</tr>
+<tr>
+<td style="text-align: center;">Python</td>
+<td style="text-align: center;">&gt;= 3.7</td>
+<td style="text-align: center;">https://www.python.org/downloads/</td>
+</tr>
+<tr>
+<td style="text-align: center;">PostgreSQL</td>
+<td style="text-align: center;">&gt;= 15</td>
+<td style="text-align: center;">https://www.postgresql.org/download/</td>
+</tr>
+<tr>
+<td style="text-align: center;">Docker</td>
+<td style="text-align: center;">NC</td>
+<td style="text-align: center;">https://docs.docker.com/engine/install/</td>
+</tr>
+<tr>
+<td style="text-align: center;">(ESA SNAP)</td>
+<td style="text-align: center;">&gt;=8.0</td>
+<td style="text-align: center;">https://step.esa.int/main/download/snap-download/</td>
+</tr>
+</tbody>
+</table>
+<h3 id="build-and-run-go-application">Build and run Go application</h3>
+<h4 id="messaging-broker">Messaging broker</h4>
+<h5 id="pgqueue">PGQueue</h5>
+<p>To use this messaging broker, create the <code>pgq_jobs</code> table in your postgres database using the following script <code>vendor/github.com/airbusgeo/geocube/interface/messaging/pgqueue/create_table.sql</code>.</p>
+<pre><code class="language-bash">$ psql -h &lt;database_host&gt; -d &lt;database_name&gt; -f vendor/github.com/airbusgeo/geocube/interface/messaging/pgqueue/create_table.sql
+</code></pre>
+<p>Then, start the services the following arguments:
+- <code>--pgq-connection</code>: connection uri to the postgres database (e.g. <code>postgresql://user:password@localhost:5432/geocube</code>)
+- <code>--event-queue events</code>
+- <code>--downloader-queue/--job-queue downloader</code>
+- <code>--processor-queue/--job-queue processor</code></p>
+<h5 id="pubsub-emulator">PubSub Emulator</h5>
+<p>A Pub/Sub emulator is available to use PubSub in a local system (with limited capacities).</p>
+<p>Please follow the <a href="https://cloud.google.com/pubsub/docs/emulator">documentation</a> to start the emulator.</p>
+<p>Example:</p>
+<pre><code class="language-bash">gcloud beta emulators pubsub start --project=geocube-emulator --host-port $PUBSUB_EMULATOR_HOST
+</code></pre>
+<p>After starting pubsub emulator server, the following script creates ingester topics and subscriptions: <code>tools/pubsub_emulator/main.go</code>.</p>
+<pre><code class="language-bash">$ go run tools/pubsub_emulator/main.go --project geocube-emulator
+2021/06/16 14:26:06 New client for project geocube-emulator
+2021/06/16 14:26:06 Create Topic : ingester-downloader
+2021/06/16 14:26:06 Create Topic : ingester-processor
+2021/06/16 14:26:06 Create Topic : ingester-events
+2021/06/16 14:26:06 Create Subscription : ingester-downloader
+2021/06/16 14:26:06 Create Subscription : ingester-processor
+2021/06/16 14:26:06 Create Subscription : ingester-events
+2021/06/16 14:26:06 Done!
+</code></pre>
+<p>In order to run the ingester with the PubSub emulator, you must define the <code>PUBSUB_EMULATOR_HOST</code> environment variable (by default <code>localhost:8085</code>) <strong>before</strong> starting services.</p>
+<h4 id="downloader">Downloader</h4>
+<p>You can find the downloader main application in <code>cmd/downloader</code> folder.
+Build application:</p>
+<pre><code class="language-bash">$ go build
+</code></pre>
+<p>Downloader needs the path of the local install of ESA SNAP and the <code>graph</code> folder (at the root of geocube-ingester).</p>
+<p>Run application:</p>
+<pre><code class="language-bash">$ export GRAPHPATH=&lt;geocube-ingester&gt;/graph
+$ export SNAPPATH=&lt;path to ESA SNAP gpt binary&gt;
+$ ./downloader -flag value
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-bash">$ export GRAPHPATH=/home/user/geocube-ingester/graph
+$ export SNAPPATH=/usr/local/snap/bin/gpt
+$ export WORKING_DIR=/home/user/geocube-ingester/data/
+$ ./downloader --ps-project geocube-emulator --job-queue ingester-downloader --event-queue ingester-events --local-path $WORKING_DIR/data --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp -gs-provider-buckets=Sentinel2:gs://gcp-public-data-sentinel-2/tiles/{LATITUDE_BAND}/{GRID_SQUARE}/{GRANULE_ID}/{SCENE}.SAFE --copernicus-username=$COPERNICUS_USERNAME --copernicus-password=$COPERNICUS_PASSWORD
+</code></pre>
+<p>For more information concerning flags and downloader argument, you can run:</p>
+<pre><code class="language-bash">$ ./downloader --help
+Usage of ./downloader:
+  -asf-token string
+        ASF token (optional). To configure Alaska Satellite Facility as a potential image Provider.
+  -creodias-password string
+        creodias account password (optional)
+  -creodias-username string
+        creodias account username (optional). To configure Creodias as a potential image Provider.
+  -docker-envs string
+        docker variable env key white list (comma sep) 
+  -docker-mount-volumes string
+        list of volumes to mount on the docker (comma separated)
+  -docker-registry-password string
+        password to authentication on private registry
+  -docker-registry-server string
+        address of server to authenticate on private registry
+  -docker-registry-username string
+        username to authentication on private registry (default &quot;_json_key&quot;)
+  -event-queue string
+        name of the queue for job events (pgqueue or pubsub topic)
+  -gs-provider-buckets string
+        Google Storage buckets. List of constellation:bucket comma-separated (optional). To configure GS as a potential image Provider.
+            bucket can contain several {IDENTIFIER} than will be replaced according to the sceneName.
+            IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
+
+  -job-queue string
+        name of the queue for downloader jobs (pgqueue or pubsub subscription)
+  -local-path string
+        local path where images are stored (optional). To configure a local path as a potential image Provider.
+  -oneatlas-apikey string
+        oneatlas apikey to use
+  -oneatlas-auth-endpoint string
+        oneatlas order endpoint to use (default &quot;https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token&quot;)
+  -oneatlas-download-endpoint string
+        oneatlas download endpoint to use (default &quot;https://access.foundation.api.oneatlas.airbus.com/api/v1/items&quot;)
+  -oneatlas-order-endpoint string
+        oneatlas order endpoint to use (default &quot;https://data.api.oneatlas.airbus.com&quot;)
+  -oneatlas-username string
+        oneatlas account username (optional). To configure Oneatlas as a potential image Provider.
+  -peps-password string
+        peps account password (optional)
+  -peps-username string
+        peps account username (optional). To configure PEPS as a potential image Provider.
+  -pgq-connection string
+        enable pgq messaging system with a connection to the database
+  -ps-project string
+        pubsub subscription project (gcp only/not required in local usage)
+  -copernicus-password string
+        copernicus account password (optional)
+  -copernicus-username string
+        copernicus account username (optional). To configure Copernicus as a potential image Provider.
+  -storage-uri string
+        storage uri (currently supported: local, gs). To store outputs of the scene preprocessing graph.
+  -with-docker-engine
+        activate the support of graph.engine == 'docker' (require a running docker-daemon)
+  -workdir string
+        working directory to store intermediate results (default &quot;/local-ssd&quot;)
+</code></pre>
+<h4 id="processor">Processor</h4>
+<p>You can find the processor main application in <code>cmd/processor</code> folder.
+Build application:</p>
+<pre><code class="language-bash">$ go build
+$ ls -l
+-rwxrwxr-x 1 user user 17063376 juin  11 15:45 processor
+-rw-rw-r-- 1 user user    11214 juin   9 16:09 main.go
+</code></pre>
+<p>Processor needs the path of the local install of ESA SNAP and the <code>graph</code> folder (at the root of geocube-ingester).</p>
+<p>Run application:</p>
+<pre><code class="language-bash">$ export GRAPHPATH=./graph
+$ export SNAPPATH=&lt;path to ESA SNAP gpt binary&gt;
+$ ./processor -flag value
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-bash">$ export GRAPHPATH=./graph
+$ export SNAPPATH=/usr/local/snap/bin/gpt
+$ export WORKING_DIR=/home/user/geocube-ingester/data/
+$ ./processor --ps-project geocube-emulator --job-queue ingester-processor --event-queue ingester-events --geocube-server $GEOCUBE_SERVER --geocube-insecure --storage-uri $WORKING_DIR/output --workdir $WORKING_DIR/tmp
+</code></pre>
+<p>For more information concerning flags and downloader argument, you can run:</p>
+<pre><code class="language-bash">$ ./processor --help
+Usage of ./processor:
+  -docker-envs string
+        docker variable env key white list (comma sep) 
+  -docker-mount-volumes string
+        list of volumes to mount on the docker (comma separated)
+  -docker-registry-password string
+        password to authentication on private registry
+  -docker-registry-server string
+        address of server to authenticate on private registry
+  -docker-registry-username string
+        username to authentication on private registry (default &quot;_json_key&quot;)
+  -event-queue string
+        name of the queue for job events (pgqueue or pubsub topic)
+  -geocube-apikey string
+        geocube server api key
+  -geocube-insecure
+        connection to geocube server is insecure
+  -geocube-server string
+        address of geocube server (default &quot;127.0.0.1:8080&quot;)
+  -job-queue string
+        name of the queue for processor jobs (pgqueue or pubsub subscription)
+  -pgq-connection string
+        enable pgq messaging system with a connection to the database
+  -ps-project string
+        pubsub subscription project (gcp only/not required in local usage)
+  -storage-uri string
+        storage uri (currently supported: local, gs). To get outputs of the scene preprocessing graph and store outputs of the tile processing graph.
+  -with-docker-engine
+        activate the support of graph.engine == 'docker' (require a running docker-daemon)
+  -workdir string
+        working directory to store intermediate results (default &quot;/local-ssd&quot;)
+</code></pre>
+<h4 id="workflow">Workflow</h4>
+<p>You can find the workflow main application in <code>cmd/workflow</code> folder.
+Build application:</p>
+<pre><code class="language-bash">$ go build
+$ ls -l
+-rwxrwxr-x 1 user user 17063376 juin  11 15:45 workflow
+-rw-rw-r-- 1 user user    11214 juin   9 16:09 main.go
+</code></pre>
+<p>Run application:</p>
+<pre><code class="language-bash">$ ./workflow -flag value
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-bash">$ export DB_CONNECTION=postgresql://user:password@localhost:5432/ingester?binary_parameters=yes
+$ export WORKFLOW_PORT=8082
+$ ./workflow --ps-project geocube-emulator --event-queue ingester-events --downloader-queue ingester-downloader --processor-queue ingester-processor --db-connection=$DB_CONNECTION --port $WORKFLOW_PORT --geocube-server $GEOCUBE_SERVER --geocube-insecure
+</code></pre>
+<p>For more information concerning flags and downloader argument, you can run:</p>
+<pre><code class="language-bash">$ ./workflow --help
+Usage of ./workflow:
+  -bearer-auth string
+        bearer authentication (token) (optional)
+  -db-connection string
+        database connection
+  -downloader-queue string
+        name of the queue for downloader jobs (pgqueue or pubsub topic)
+  -downloader-rc string
+        image-downloader replication controller name (autoscaler)
+  -event-queue string
+        name of the queue for job events (pgqueue or pubsub subscription)
+  -gcstorage string
+        GCS url where scenes are stored (for annotations) (optional)
+  -geocube-apikey string
+        geocube server api key
+  -geocube-insecure
+        connection to geocube server is insecure
+  -geocube-server string
+        address of geocube server (default &quot;127.0.0.1:8080&quot;)
+  -max-downloader int
+        Max downloader instances (autoscaler) (default 10)
+  -max-processor int
+        Max Processor instances (autoscaler) (default 900)
+  -namespace string
+        namespace (autoscaler)
+  -oneatlas-apikey string
+        oneatlas account apikey (to generate an api key for your account: https://account.foundation.oneatlas.airbus.com/api-keys)
+  -oneatlas-auth-endpoint string
+        oneatlas order endpoint to use (default &quot;https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token&quot;)
+  -oneatlas-endpoint string
+        oneatlas endpoint to search products from the catalogue (default &quot;https://search.foundation.api.oneatlas.airbus.com/api/v2/opensearch&quot;)
+  -oneatlas-order-endpoint string
+        oneatlas order endpoint to estimate processing price (default &quot;https://data.api.oneatlas.airbus.com&quot;)
+  -oneatlas-username string
+        oneatlas account username (optional). To configure Oneatlas as a potential image Provider.
+  -pgq-connection string
+        enable pgq messaging system with a connection to the database
+  -port string
+        workflow port ot use (default &quot;8080&quot;)
+  -processor-queue string
+        name of the queue for processor jobs (pgqueue or pubsub topic)
+  -processor-rc string
+        tile-processor replication controller name (autoscaler)
+  -ps-project string
+        pubsub subscription project (gcp only/not required in local usage)
+  -tls
+        enable TLS protocol (certificate and key must be /tls/tls.crt and /tls/tls.key)
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../prerequisite/" class="btn btn-neutral float-left" title="Prerequisite"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../docker-install/" class="btn btn-neutral float-right" title="Docker">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../prerequisite/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../docker-install/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

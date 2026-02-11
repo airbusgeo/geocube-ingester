@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://github.com/airbusgeo/geocube-ingester/installation/k8s-install/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Deploying with Kubernetes - Geocube Ingester</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Deploying with Kubernetes";
+        var mkdocs_page_input_path = "installation/k8s-install.md";
+        var mkdocs_page_url = "/airbusgeo/geocube-ingester/installation/k8s-install/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Geocube Ingester
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../quickstart/">Getting started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Architecture</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../architecture/services/">Services</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../prerequisite/">Prerequisite</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../local-install/">Local environment</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../docker-install/">Docker</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Deploying with Kubernetes</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#iam-security">IAM &amp; Security</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#container-registry">Container Registry</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#private-registry">Private Registry</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#docker-hub">Docker Hub</a>
+    </li>
+        </ul>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#create-namespace">Create Namespace</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#create-secrets-in-namespace">Create Secrets in namespace</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#create-deployment-in-namespace">Create deployment in namespace</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../others/">Customize environment</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/tutorials/">Tutorials</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/payload/">Payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/graph/">Processing graphs</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/run/">Run a payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/monitoring/">Monitoring</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/catalog/">Catalogue service</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../user-guide/providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/interfaces/">Interfaces</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/sensors/">Sensor</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/catalog/">Catalogue</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/help/">Getting help</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/development/">Development</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/release-notes/">Release Notes</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Geocube Ingester</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Installation</li>
+      <li class="breadcrumb-item active">Deploying with Kubernetes</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="installation-kubernetes-cluster">Installation - Kubernetes Cluster</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<p>Kubctl must be installed and configured in order to be connected to the right kubernetes cluster.
+You also need database and Messaging (kubernetes examples are available in Geocube Installation Guide) these same examples can be used here.
+Ingester should be deployed in the same cluster as Geocube, in a different namespace.</p>
+<h4 id="iam-security">IAM &amp; Security</h4>
+<p>All the notions of security and service account are not covered in this document. It is the responsibility of the installers.
+The files presented below are available as examples/templates. They do not present any notions of security.</p>
+<h4 id="container-registry">Container Registry</h4>
+<p>You can create your own registry server: https://docs.docker.com/registry/deploying/</p>
+<h5 id="private-registry">Private Registry</h5>
+<p>You can configure your kubernetes deployment files with private docker registry.</p>
+<p>For more information, see: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/</p>
+<p><code>imagePullSecrets</code> is defined in your kubernetes configuration files and image name is specified as follow ex: <code>image: geocube-private-image:tag</code></p>
+<h5 id="docker-hub">Docker Hub</h5>
+<p>In case the images are stored on https://hub.docker.com, you can define them as follows in your kubernetes configuration files (postgresql example: <code>image: postgres:11</code>):</p>
+<pre><code class="language-kubernetes">apiVersion: networking.k8s.io/v1
+kind: Deployment
+metadata:
+  name: postgresql
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: postgresql
+          image: postgres:11
+</code></pre>
+<p>In this example, https://hub.docker.com/layers/postgres/library/postgres/11.0/images/sha256-05f9b83f85bdf0382b1cb8fb72d17d7c8098b0287d7dd1df4ff09aa417a0500b?context=explore image will be loaded.</p>
+<h3 id="create-namespace">Create Namespace</h3>
+<p>You must define a CLUSTER variable environment.
+The dedicated namespace <code>ingester</code> is created by running the following command:</p>
+<pre><code class="language-bash">$ kubectl apply -f deploy/k8s/namespace.yaml
+</code></pre>
+<h3 id="create-secrets-in-namespace">Create Secrets in namespace</h3>
+<p>Kubernetes configuration file is available here: <code>deploy/k8s/secrets.yaml</code>. All the parameters between <code>{{}}</code> are mandatory:
+1. <code>{{GEOCUBE_SERVER}}</code>: uri of the Geocube (eg. <code>127.0.0.1:8080</code>)
+2. <code>{{STORAGE_URI}}</code>: uri where to store the outputs (layers) of the Ingester (eg. <code>/ingester/</code> or <code>gs://ingester/</code>)
+3. <code>{{DB_CONNECTION}}</code>: uri of the database (eg. <code>postgresql://user:password@localhost:5432/geocube</code>)</p>
+<p>The other parameters (mainly authentication information for image providers) are optional.</p>
+<p>Ingester server must have sufficient rights in order to read and write into database. For more information, see: https://www.postgresql.org/docs/11/auth-pg-hba-conf.html</p>
+<p>After that, secrets can be created:</p>
+<pre><code class="language-bash">$ kubectl apply -f deploy/k8s/public/secrets.yaml
+</code></pre>
+<h3 id="create-deployment-in-namespace">Create deployment in namespace</h3>
+<p>In order to start Ingester, you have to define some parameters in <code>deploy/k8s/public/workflow.yaml</code> (all the parameters between <code>{{}}</code> are mandatory):</p>
+<ol>
+<li><code>{{WORKFLOW_IMAGE}}</code>: Workflow docker image  (eg. <code>&lt;container_registry&gt;/processor:&lt;tag&gt;</code>)</li>
+<li><code>{{DOWNLOADER_IMAGE}}</code>: Downloader docker image  (eg. <code>&lt;container_registry&gt;/downloader:&lt;tag&gt;</code>)</li>
+<li><code>{{PROCESSOR_IMAGE}}</code>: Processor docker image  (eg. <code>&lt;container_registry&gt;/processor:&lt;tag&gt;</code>)</li>
+</ol>
+<p>Then, deployement can be created in namespace <code>ingester</code> by running the following command:</p>
+<pre><code class="language-bash">$ kubectl apply -f deploy/k8s/public/workflow.yaml
+</code></pre>
+<p>NB:</p>
+<ul>
+<li>Workflow.yaml kubernetes file is an example of Ingester deployment in the cloud. You need to adapt them in order to configure database, messaging and storage access.</li>
+<li>In you want to use pubsub emulator, you need to add <code>PUB_SUB_EMULATOR</code> variable environment in your deployment and replication controller (already describe in Geocube Documentation).</li>
+<li>If you want to use pgqueue, you need to refer to: <a href="../local-install/#PGQueue">PGQueue Configuration</a></li>
+</ul>
+<p>Ex configuration with pubSub emulator:</p>
+<pre><code class="language-kubernetes">env:
+  - name: PUBSUB_EMULATOR_HOST
+    value: 0.0.0.0:8085
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../docker-install/" class="btn btn-neutral float-left" title="Docker"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../others/" class="btn btn-neutral float-right" title="Customize environment">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../docker-install/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../others/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

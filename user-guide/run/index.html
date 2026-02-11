@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://github.com/airbusgeo/geocube-ingester/user-guide/run/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Run a payload - Geocube Ingester</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Run a payload";
+        var mkdocs_page_input_path = "user-guide/run.md";
+        var mkdocs_page_url = "/airbusgeo/geocube-ingester/user-guide/run/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Geocube Ingester
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../quickstart/">Getting started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Architecture</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../architecture/services/">Services</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/prerequisite/">Prerequisite</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/local-install/">Local environment</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/docker-install/">Docker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/k8s-install/">Deploying with Kubernetes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/others/">Customize environment</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../tutorials/">Tutorials</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../payload/">Payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graph/">Processing graphs</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Run a payload</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#workflow-steps">Workflow steps</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#list-the-available-scenes">List the available scenes</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#list-the-available-tiles">List the available tiles</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#start-the-ingestion">Start the ingestion</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../monitoring/">Monitoring</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../catalog/">Catalogue service</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/interfaces/">Interfaces</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/sensors/">Sensor</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/catalog/">Catalogue</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/help/">Getting help</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/development/">Development</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/release-notes/">Release Notes</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Geocube Ingester</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User guide</li>
+      <li class="breadcrumb-item active">Run a payload</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="run-a-payload">Run a payload</h2>
+<h3 id="workflow-steps">Workflow steps</h3>
+<ol>
+<li>Catalogue generates a list of scenes matching with <code>geometry</code>, <code>start_time</code>, <code>end_time</code> and <code>scene_type</code> filter.</li>
+<li>Catalogue generates a list of tiles for every scene (For Sentinel1: Burst = Tiles, for other constellation Scenes = Tiles)</li>
+</ol>
+<p>Then, the ingestion can starts:</p>
+<ol>
+<li>Catalogue checks Geocube parameters validity (ie. <code>layers</code> JSON block which is reference Geocube variables and instances to use: must be existed)</li>
+<li>Catalogue creates associated records. If a record already exists (including the <code>record_tags</code>), it is reused.</li>
+<li>Workflow is started, Downloader will start one job per Scene. After that, Processor will start also one job per Scene/Tile.</li>
+</ol>
+<h3 id="list-the-available-scenes">List the available scenes</h3>
+<p>The first step of the ingestion is to list the scenes available on the AOI at the given dates.
+The ingester will query the scenes from the external catalogues configured in the Catalogue Service.</p>
+<p>The Catalogue service has the endpoint <code>/catalog/scenes</code> (<code>GET</code> or <code>POST</code>) that takes a payload in input</p>
+<pre><code class="language-shell">curl -F &quot;area=@{payloadFile}&quot; -H &quot;Authorization: Bearer {token}&quot; {workflow_server}/catalog/scenes
+</code></pre>
+<blockquote>
+<p>NB: This request supports (0-based) page/limit parameters to limit the query if the area or the date interval is big : <code>/catalog/scenes?page={page}&amp;limit={limit}</code>.
+A limit of 1000 scenes is appropriate.</p>
+</blockquote>
+<p>This request returns a geojson file containing a list of features. Each feature is a product and has the following properties:</p>
+<ul>
+<li><code>aoi</code>: name of the AOI, copied from <code>payload.name</code></li>
+<li><code>data</code>: used by the ingester. Some fields (<code>graph_config</code>, <code>graph_name</code>, <code>is_retriable</code>, <code>storage_uri</code>) are copied from the <code>payload</code>. Others are:</li>
+<li><code>date</code>: of acquisition of the image</li>
+<li><code>record_id</code>: id of the record created with <code>wkt</code>, <code>date</code> and <code>tags</code> (ignored at this stage)</li>
+<li><code>metadata</code>: dictionary of metadata that can be used by the ingester (such as <code>download_link</code>)</li>
+<li><code>uuid</code>: unique id of the image provided by the catalogue</li>
+<li><code>id</code>: unique id given to the scene by the ingester-workflow (ignored at this stage)</li>
+<li><code>source_id</code>: id of the image</li>
+<li><code>tags</code>: tags of the record with which the images will be indexed (dictionary of key:value). The record will be created at the begining of the ingestion</li>
+<li><code>wkt</code>: a WKT of the image extent in EPSG:4326</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-json">{
+    &quot;aoi&quot;:&quot;DenmarkDemoS2&quot;,
+    &quot;data&quot;:{
+        &quot;date&quot;:&quot;2022-01-04T10:34:31Z&quot;,
+        &quot;graph_config&quot;:{},
+        &quot;graph_name&quot;:&quot;CopyProductToStorage&quot;,
+        &quot;is_retriable&quot;:true,
+        &quot;record_id&quot;:&quot;&quot;,
+        &quot;storage_uri&quot;:&quot;&quot;,
+        &quot;uuid&quot;:&quot;875f96fb-e591-4bcf-8202-fada69733e26&quot;
+    },
+    &quot;id&quot;:0,
+    &quot;source_id&quot;:&quot;S2A_MSIL1C_20220104T103431_N0510_R108_T32UNG_20240423T092858&quot;,
+    &quot;tags&quot;:{
+        &quot;area&quot;:&quot;Denmark&quot;,
+        &quot;cloudCoverPercentage&quot;:&quot;50.9439586971957&quot;,
+        &quot;constellation&quot;:&quot;SENTINEL2&quot;,
+        &quot;ingestionDate&quot;:&quot;2022-01-04T10:34:31.000000Z&quot;,
+        &quot;orbit&quot;:&quot;34139&quot;,
+        &quot;orbitDirection&quot;:&quot;&quot;,
+        &quot;productType&quot;:&quot;S2MSI1C&quot;,
+        &quot;provider&quot;:&quot;geocube-ingester&quot;,
+        &quot;relativeOrbit&quot;:&quot;108&quot;,&quot;satellite&quot;:&quot;SENTINEL2A&quot;,
+        &quot;source&quot;:&quot;tutorial&quot;,&quot;sourceID&quot;:&quot;S2A_MSIL1C_20220104T103431_N0510_R108_T32UNG_20240423T092858&quot;,
+        &quot;uuid&quot;:&quot;875f96fb-e591-4bcf-8202-fada69733e26&quot;
+    },
+    &quot;wkt&quot;:&quot;POLYGON ((8.999680177 55.89488809,8.999687664 54.95909887,10.71398549 54.94701782,10.7572757 55.93320247,9.0247385 55.94555573,8.999680177 55.89488809))&quot;
+}
+</code></pre>
+<h3 id="list-the-available-tiles">List the available tiles</h3>
+<p>If the scenes are to be divided in tiles (Sentinel-1 bursts for example), the endpoint <code>/catalog/tiles</code> will do it.</p>
+<pre><code class="language-shell">curl -F &quot;area=@{payloadFile}&quot; -H &quot;Authorization: Bearer {token}&quot; {workflow_server}/catalog/tiles
+</code></pre>
+<h3 id="start-the-ingestion">Start the ingestion</h3>
+<p>The endpoint <code>catalog/aoi</code> (<code>POST</code>) lists the availables scenes and tiles then starts the ingestion of a <code>payload</code>.</p>
+<pre><code class="language-shell">curl -F &quot;area=@{payloadFile}&quot; -H &quot;Authorization: Bearer {token}&quot; {workflow_server}/catalog/aoi
+</code></pre>
+<p>If the scenes or the tiles are already available (from a call of <code>/catalog/scenes</code> or <code>/catalog/tiles</code>), the results can be sent to the end point, preventing the ingester to call the catalogue again. It's highly recommended to do so, by listing the scenes first and checking the results (optionaly editing them).</p>
+<p>From a list of tiles:</p>
+<pre><code class="language-shell">curl -F &quot;area=@{payloadFile}&quot; -F &quot;tiles=@outputs/tiles.json&quot; -H &quot;Authorization: Bearer {token}&quot; {workflow_server}/catalog/aoi
+</code></pre>
+<p>Example of tiles.json: <a href="../monitoring/#tiles">here</a></p>
+<p>From a list of scenes:</p>
+<pre><code class="language-shell">curl -F &quot;area=@{payloadFile}&quot; -F &quot;scenes=@outputs/scenes.json&quot; -H &quot;Authorization: Bearer {token}&quot; {workflow_server}/catalog/aoi
+</code></pre>
+<p>Example of scenes.json: <a href="../monitoring/#scenes">here</a>.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../graph/" class="btn btn-neutral float-left" title="Processing graphs"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../monitoring/" class="btn btn-neutral float-right" title="Monitoring">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../graph/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../monitoring/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

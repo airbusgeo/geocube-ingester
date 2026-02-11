@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://github.com/airbusgeo/geocube-ingester/user-guide/graph/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Processing graphs - Geocube Ingester</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Processing graphs";
+        var mkdocs_page_input_path = "user-guide/graph.md";
+        var mkdocs_page_url = "/airbusgeo/geocube-ingester/user-guide/graph/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Geocube Ingester
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../quickstart/">Getting started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Architecture</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../architecture/services/">Services</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Installation</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/prerequisite/">Prerequisite</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/local-install/">Local environment</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/docker-install/">Docker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/k8s-install/">Deploying with Kubernetes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../installation/others/">Customize environment</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User guide</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../tutorials/">Tutorials</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../payload/">Payload</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Processing graphs</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#principle">Principle</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#json-graph">JSON Graph</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#structure">Structure</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#config">Config</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#files">Files</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#examples-of-layer-name">Examples of Layer name</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#examples-of-file-extension">Examples of File Extension</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#input-files">Input Files</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#output-files">Output Files</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#steps">Steps</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#engine">Engine</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#command">Command</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#args">Args</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#condition">Condition</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#example-processing-sentinel1">Example Processing Sentinel1</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#example-processing-sentinel2">Example Processing Sentinel2</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#docker-engine">Docker Engine</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#principle-concept">Principle &amp; Concept</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#deployment">Deployment</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#private-registry">Private Registry</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#credentials">Credentials</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#volume">Volume</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../run/">Run a payload</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../monitoring/">Monitoring</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../catalog/">Catalogue service</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/interfaces/">Interfaces</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/sensors/">Sensor</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/catalog/">Catalogue</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/providers/">Provider</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">About</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/help/">Getting help</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/development/">Development</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../about/release-notes/">Release Notes</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Geocube Ingester</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User guide</li>
+      <li class="breadcrumb-item active">Processing graphs</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="graph">Graph</h2>
+<h3 id="principle">Principle</h3>
+<p>A processing graph defines a sequence of <a href="./#steps">steps</a> which will be executed on the input images. </p>
+<p>Each step is a command with parameters and <a href="./#config">configurations</a>. A logical <a href="./#condition">condition</a> can be added to the execution of the step.</p>
+<p>Each step is executed with an <code>engine</code> among <code>Python</code>, <code>Snap</code>, <code>cmd</code> and <code>Docker</code>.</p>
+<p>Graph should have <a href="./#input-files">input</a> or/and <a href="./#output-files">output</a> files (depends on kind of processing).</p>
+<h3 id="json-graph">JSON Graph</h3>
+<h4 id="structure">Structure</h4>
+<pre><code class="language-go">type ProcessingGraphJSON struct {
+    Config   map[string]string `json:&quot;config&quot;`
+    Envs     []string          `json:&quot;envs,omitempty&quot;`
+    InFiles  [3][]InFile       `json:&quot;in_files&quot;`
+    OutFiles [][]OutFile       `json:&quot;out_files&quot;`
+    Steps    []ProcessingStep  `json:&quot;processing_steps&quot;`
+}
+</code></pre>
+<h4 id="config">Config</h4>
+<p>List of configuration values that can be used as parameters of a <code>Command</code>, using <code>ArgConfig</code> structure (see <a href="#args">Args</a>).</p>
+<h4 id="files">Files</h4>
+<p>A file is defined by its name (<code>Layer</code> field) and its <code>Extension</code> (it must be consistent between the <code>scene graph</code> and the <code>tile graph</code>).</p>
+<h6 id="examples-of-layer-name">Examples of Layer name</h6>
+<pre><code class="language-go">const (
+      Product     Layer = &quot;__product__&quot;     // Special value, that will be replaced by the SourceID of the Scene
+      Annotations Layer = &quot;__annotations__&quot; // Special value, that will be replaced by the SourceID of the Scene + &quot;_annotations&quot; suffix
+
+    LayerPreprocessed  Layer = &quot;preprocessed&quot;
+    LayerCoregistrated Layer = &quot;coregistred&quot;
+    LayerCoregExtract  Layer = &quot;coregextract&quot;
+    LayerCoherence     Layer = &quot;coherence&quot;
+
+    LayerBackscatterVV Layer = &quot;sigma0_VV&quot;
+    LayerBackscatterVH Layer = &quot;sigma0_VH&quot;
+    LayerCoherenceVV   Layer = &quot;coh_VV&quot;
+    LayerCoherenceVH   Layer = &quot;coh_VH&quot;
+    LayerPanchromatic  Layer = &quot;P&quot;
+    LayerMultiSpectral Layer = &quot;MS&quot;
+)
+</code></pre>
+<h6 id="examples-of-file-extension">Examples of File Extension</h6>
+<pre><code class="language-go">const (
+    NoExtension    Extension = &quot;&quot; // The layer has no extension
+    ExtensionGTiff Extension = &quot;tif&quot;
+    ExtensionZIP   Extension = &quot;zip&quot;
+    // The following extensions are directories, thus, they are stored as a zip file (see service.storeAsZip() function)
+    // Using those extensions ensures that the stored files will be unzipped in a directory named &lt;layer&gt;.&lt;Extension&gt;
+    ExtensionSAFE      Extension = &quot;SAFE&quot; // Sentinel product
+    ExtensionDIMAP     Extension = &quot;dim&quot;
+    ExtensionDIMAPData Extension = &quot;data&quot;
+    ExtensionAll       Extension = &quot;*&quot; // The content of the whole working directory (e.g. useful to export all the downloaded files as one zip file). Replaced by NoExtension in the directory name
+)
+</code></pre>
+<h5 id="input-files">Input Files</h5>
+<blockquote>
+<p>For the processor graph file only</p>
+</blockquote>
+<p><code>InFile</code> defines a file used in input of the processing. It can be either a <code>product</code> that has just be downloaded by the <code>downloader</code> or a list of <code>Layer</code> that will be processed by the <code>processor</code>.</p>
+<p>The files defined in <code>InFile</code> are automatically downloaded from the storage and stored locally during the processing.</p>
+<h6 id="structure_1">Structure</h6>
+<pre><code class="language-go">// InFile describes an input file of the processing
+type InFile struct {
+    File
+    Condition TileCondition `json:&quot;condition&quot;`
+}
+</code></pre>
+<h6 id="example">Example</h6>
+<p>To use the whole product as input</p>
+<pre><code class="language-json">{
+   &quot;in_files&quot;:[
+      [
+         {
+            &quot;layer&quot;:&quot;__product__&quot;,
+            &quot;extension&quot;:&quot;SAFE&quot;
+         }
+      ],
+      [],
+      []
+   ]
+}
+</code></pre>
+<p>To use a specific layer that has been preprocessed by the downloader:</p>
+<pre><code class="language-json">{
+   &quot;in_files&quot;:[
+      [
+         {
+            &quot;layer&quot;:&quot;coregistrated&quot;,
+            &quot;extension&quot;:&quot;tif&quot;
+         }
+      ],
+      [],
+      []
+   ]
+}
+</code></pre>
+<p>Infiles json block is an array of 3. The first value is always relative to the current product. The second and third values can be used to reference other products, such as the previous in the timeserie or the first of the timeserie (e.g: to have a unique reference for all the images in the timeserie). For instance, it is useful in order to process coherence cf. <a href="./#example-processing-sentinel1">Example with S1</a></p>
+<h5 id="output-files">Output Files</h5>
+<p><code>OutFile</code> defines a file (name (<code>Layer</code>) and extension) generated by the processing steps. Output files can be stored in the storage, indexed in the geocube (for <code>processor</code> only), or flagged as to be deleted.</p>
+<p>If an <code>OutFile</code> is to be indexed in the Geocube, the following information must be provided (for other action, they will be ignored):
+- <code>DType</code>
+- <code>NoData</code>
+- <code>Min</code>, <code>Max</code>
+- <code>ExtMin</code>, <code>ExtMax</code>
+- <code>Exponent</code>
+- <code>Nbands</code></p>
+<p>See geocube indexation documentation for further information.</p>
+<h6 id="structure_2">Structure</h6>
+<pre><code class="language-go">// OutFile describes an output file of the processing
+type OutFile struct {
+    File
+    dformatOut Arg           // argFixed or argConfig
+    DType      DType         `json:&quot;datatype&quot;`
+    NoData     float64       `json:&quot;nodata&quot;`
+    Min        float64       `json:&quot;min_value&quot;`
+    Max        float64       `json:&quot;max_value&quot;`
+    ExtMin     float64       `json:&quot;ext_min_value&quot;`
+    ExtMax     float64       `json:&quot;ext_max_value&quot;`
+    Exponent   float64       `json:&quot;exponent&quot;` // JSON default: 1
+    Nbands     int           `json:&quot;nbands&quot;`   // JSON default: 1
+    Action     OutFileAction `json:&quot;action&quot;`
+    Condition  TileCondition `json:&quot;condition&quot;` // JSON default: pass
+}
+</code></pre>
+<h6 id="available-action">Available action</h6>
+<pre><code class="language-go">// OutFileAction
+const (
+    ToIgnore OutFileAction = iota `json:&quot;to_ignore&quot;`
+    ToCreate                      `json:&quot;to_create&quot;`
+    ToIndex                       `json:&quot;to_index&quot;`
+    ToDelete                      `json:&quot;to_delete&quot;`
+)
+</code></pre>
+<h6 id="example_1">Example</h6>
+<pre><code class="language-json">{
+   &quot;out_files&quot;:[
+      [
+         {
+            &quot;layer&quot;:&quot;img&quot;,
+            &quot;extension&quot;:&quot;tif&quot;,
+            &quot;action&quot;:&quot;to_index&quot;,
+            &quot;dformat_out&quot;:{
+               &quot;type&quot;:&quot;fixed&quot;,
+               &quot;value&quot;:&quot;uint16,0,0,30000&quot;
+            },
+            &quot;ext_min_value&quot;:0,
+            &quot;ext_max_value&quot;:3,
+            &quot;nbands&quot;:4
+         },
+         {
+            &quot;layer&quot;:&quot;clcsh&quot;,
+            &quot;extension&quot;:&quot;tif&quot;,
+            &quot;action&quot;:&quot;to_create&quot;,
+         },
+         {
+            &quot;layer&quot;:&quot;__product__&quot;,
+            &quot;extension&quot;:&quot;SAFE&quot;,
+            &quot;action&quot;:&quot;to_delete&quot;,
+            &quot;error_condition&quot;: &quot;on_fatal_failure&quot;
+         }
+      ],
+      [],
+      []
+   ]
+}
+</code></pre>
+<h4 id="steps">Steps</h4>
+<p>List of processing steps that will be executed sequentially.</p>
+<h5 id="engine">Engine</h5>
+<p>Define the kind of engine that will be used to execute the step.</p>
+<p>Available engines:</p>
+<ul>
+<li>Snap: for Sentinel constellation (if installed)</li>
+<li>Python: to execute python script</li>
+<li>Docker: to run a docker</li>
+<li>Cmd: for command available in the docker</li>
+</ul>
+<h5 id="command">Command</h5>
+<p>Define the command to execute with the given engine.</p>
+<p>MyBinary Example:</p>
+<pre><code class="language-json">{
+  &quot;processing_steps&quot;: [
+    {
+      &quot;engine&quot;: &quot;cmd&quot;,
+      &quot;command&quot;: &quot;./cmd/MyBinary&quot;
+    }
+  ]
+}
+</code></pre>
+<p>Docker Example:</p>
+<pre><code class="language-json">{
+  &quot;engine&quot;: &quot;docker&quot;,
+  &quot;command&quot;: &quot;containerRegistry/myImage:myTag&quot;
+}
+</code></pre>
+<h5 id="args">Args</h5>
+<p>List of arguments that will be passed to the command, with the following synthax : <code>--argument-name argument-value</code>.</p>
+<p>They can be of five types:</p>
+<ul>
+<li><code>ArgIn</code>: The path of the file corresponding to a layer in <code>InFiles</code>.</li>
+<li><code>ArgOut</code>: The path of the file corresponding to a layer in <code>OutFiles</code>.</li>
+<li><code>ArgFixed</code>: A fixed value</li>
+<li><code>ArgConfig</code>: A value retrieved from the <code>Config</code> using a key. The key <code>workdir</code> is defined at runtime to point to the working directory.</li>
+<li><code>ArgTile</code>: A value retrieved from the tile. Supported value:</li>
+<li><code>constellation</code></li>
+<li><code>scene</code> name</li>
+<li><code>date</code><ul>
+<li><code>number</code>: tile number (for Sentinel-1: =burst number)</li>
+<li><code>swath</code> (Sentinel-1)</li>
+<li><code>cohdate</code>: (Sentinel-1) Date of the reference burst if different from previous date or date of the burst</li>
+</ul>
+</li>
+</ul>
+<h6 id="structure_3">Structure:</h6>
+<pre><code class="language-go">type ArgIn struct {
+    Input     int               `json:&quot;tile_index&quot;` // Index of input [0, 1, 2]
+    Layer     service.Layer     `json:&quot;layer&quot;`
+    Extension service.Extension `json:&quot;extension&quot;`
+}
+
+type ArgOut struct { 
+    service.Layer `json:&quot;layer&quot;`
+    Extension     service.Extension `json:&quot;extension&quot;`
+}
+
+type ArgFixed string  // fixed arg
+type ArgConfig string // arg from config
+type ArgTile string   // arg from tile info
+</code></pre>
+<h6 id="example_2">Example</h6>
+<pre><code class="language-json">{
+  &quot;engine&quot;:&quot;docker&quot;,
+  &quot;command&quot;:&quot;containerRegistry/myImage:myTag&quot;,
+  &quot;args&quot;:{
+    &quot;workdir&quot;:{
+      &quot;type&quot;:&quot;config&quot;,
+      &quot;value&quot;:&quot;workdir&quot;
+    },
+    &quot;image-in&quot;:{
+      &quot;type&quot;:&quot;in&quot;,
+      &quot;layer&quot;:&quot;__product__&quot;,
+      &quot;extension&quot;:&quot;SAFE&quot;
+    },
+    &quot;parameter-from-config&quot;:{
+      &quot;type&quot;:&quot;config&quot;,
+      &quot;value&quot;:&quot;key-in-config&quot;
+    },
+    &quot;constellation&quot;:{
+      &quot;type&quot;:&quot;fixed&quot;,
+      &quot;value&quot;:&quot;sentinel2&quot;
+    },
+    &quot;out-file&quot;:{
+      &quot;type&quot;:&quot;out&quot;,
+      &quot;layer&quot;:&quot;img&quot;,
+      &quot;extension&quot;:&quot;tif&quot;
+    },
+    &quot;out-pattern&quot;:{
+      &quot;type&quot;:&quot;out&quot;,
+      &quot;layer&quot;:&quot;*&quot;,
+      &quot;extension&quot;:&quot;tif&quot;
+    }
+  }
+}
+</code></pre>
+<p>This step will run something similar to:</p>
+<p><code>docker run -v &lt;volume&gt;:&lt;workdir&gt; containerRegistry/myImage:myTag --workdir &lt;config['workdir']&gt; --image-in &lt;path to in_file[0]/product.SAFE&gt; --parameter-from-config &lt;config['key-in-config']&gt; --constellation sentinel2 --out-file &lt;path to out_file[0]/img.tif&gt; --out-pattern &lt;path to out_file[0]&gt;/*.tif</code></p>
+<h5 id="condition">Condition</h5>
+<p>Condition to optionally execute the step.</p>
+<h6 id="structure_4">Structure</h6>
+<pre><code class="language-go">type TileCondition struct {
+    Name string
+    Pass func([]common.Tile) bool
+}
+</code></pre>
+<h6 id="available-tileconditions">Available tileConditions</h6>
+<pre><code class="language-go">// condPass is a tileCondition always true
+var pass = TileCondition{&quot;pass&quot;, func(tiles []common.Tile) bool { return true }}
+
+// condDiffTile returns true if tile1 != tile2
+var condDiffT0T1 = TileCondition{&quot;different_T0_T1&quot;, func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[1].Scene.SourceID }}
+var condDiffT0T2 = TileCondition{&quot;different_T0_T2&quot;, func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID != tiles[2].Scene.SourceID }}
+var condDiffT1T2 = TileCondition{&quot;different_T1_T2&quot;, func(tiles []common.Tile) bool { return tiles[1].Scene.SourceID != tiles[2].Scene.SourceID }}
+
+// condEqualTile returns true if tile1 == tile2
+var condEqualT0T1 = TileCondition{&quot;equal_T0_T1&quot;, func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID == tiles[1].Scene.SourceID }}
+var condEqualT0T2 = TileCondition{&quot;equal_T0_T2&quot;, func(tiles []common.Tile) bool { return tiles[0].Scene.SourceID == tiles[2].Scene.SourceID }}
+var condEqualT1T2 = TileCondition{&quot;equal_T1_T2&quot;, func(tiles []common.Tile) bool { return tiles[1].Scene.SourceID == tiles[2].Scene.SourceID }}
+</code></pre>
+<h6 id="example_3">Example</h6>
+<pre><code class="language-json">{
+  &quot;condition&quot;: &quot;pass&quot;
+}
+</code></pre>
+<h4 id="example-processing-sentinel1">Example Processing Sentinel1</h4>
+<pre><code class="language-json">{
+  &quot;config&quot;: {
+    &quot;bs_erode_iterations&quot;: &quot;10&quot;,
+    &quot;coh_erode_iterations&quot;: &quot;10&quot;,
+    &quot;coherence_azimuth&quot;: &quot;4&quot;,
+    &quot;coherence_range&quot;: &quot;16&quot;,
+    &quot;dem_egm_correction&quot;: &quot;True&quot;,
+    &quot;dem_file&quot;: &quot;&quot;,
+    &quot;dem_name&quot;: &quot;SRTM 3Sec&quot;,
+    &quot;dem_nodata&quot;: &quot;0&quot;,
+    &quot;dem_resampling&quot;: &quot;BILINEAR_INTERPOLATION&quot;,
+    &quot;dformat_out&quot;: &quot;float32,0,0,1&quot;,
+    &quot;img_resampling&quot;: &quot;BICUBIC_INTERPOLATION&quot;,
+    &quot;bkg_resampling&quot;: &quot;BISINC_21_POINT_INTERPOLATION&quot;,
+    &quot;projection&quot;: &quot;EPSG:4326&quot;,
+    &quot;resolution&quot;: &quot;20&quot;,
+    &quot;snap_cpu_parallelism&quot;: &quot;1&quot;,
+    &quot;terrain_correction_azimuth&quot;: &quot;1&quot;,
+    &quot;terrain_correction_range&quot;: &quot;4&quot;
+  },
+  &quot;processing_steps&quot;: [
+    {
+      &quot;engine&quot;: &quot;snap&quot;,
+      &quot;command&quot;: &quot;snap/S1_SLC_BkG.xml&quot;,
+      &quot;args&quot;: {
+        &quot;dem_file&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_file&quot; },
+        &quot;dem_name&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_name&quot; },
+        &quot;dem_nodata&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_nodata&quot; },
+        &quot;dem_resampling&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_resampling&quot; },
+        &quot;resampling&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;bkg_resampling&quot; },
+        &quot;master&quot;: { &quot;type&quot;: &quot;in&quot;, &quot;tile_index&quot;: 2, &quot;layer&quot;: &quot;preprocessed&quot;, &quot;extension&quot;: &quot;dim&quot; },
+        &quot;output&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coregistred&quot;, &quot;extension&quot;: &quot;dim&quot; },
+        &quot;slave&quot;: { &quot;type&quot;: &quot;in&quot;, &quot;tile_index&quot;: 0, &quot;layer&quot;: &quot;preprocessed&quot;, &quot;extension&quot;: &quot;dim&quot; }
+      },
+      &quot;condition&quot;: &quot;pass&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;snap&quot;,
+      &quot;command&quot;: &quot;snap/S1_SLC_SlvExtract.xml&quot;,
+      &quot;args&quot;: {
+        &quot;input&quot;: { &quot;type&quot;: &quot;in&quot;, &quot;tile_index&quot;: 0, &quot;layer&quot;: &quot;coregistred&quot;, &quot;extension&quot;: &quot;dim&quot; },
+        &quot;output&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coregextract&quot;, &quot;extension&quot;: &quot;dim&quot; }
+      },
+      &quot;condition&quot;: &quot;different_T0_T1&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;snap&quot;,
+      &quot;command&quot;: &quot;snap/S1_SLC_Deb_BetaSigma_ML_TC_RNKELL.xml&quot;,
+      &quot;args&quot;: {
+        &quot;azimuth_multilook&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;terrain_correction_azimuth&quot; },
+        &quot;band&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;Sigma0&quot; },
+        &quot;dem_egm&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_egm_correction&quot; },
+        &quot;dem_file&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_file&quot; },
+        &quot;dem_name&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_name&quot; },
+        &quot;dem_nodata&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_nodata&quot; },
+        &quot;dem_resampling&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_resampling&quot; },
+        &quot;grid_align&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;true&quot; },
+        &quot;img_resampling&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;img_resampling&quot; },
+        &quot;img_suffix&quot;: { &quot;type&quot;: &quot;tile&quot;, &quot;value&quot;: &quot;date&quot; },
+        &quot;input&quot;: { &quot;type&quot;: &quot;in&quot;, &quot;tile_index&quot;: 0, &quot;layer&quot;: &quot;coregistred&quot;, &quot;extension&quot;: &quot;dim&quot; },
+        &quot;outputVH&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;sigma0_VH&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;outputVV&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;sigma0_VV&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;projection&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;projection&quot; },
+        &quot;range_multilook&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;terrain_correction_range&quot; },
+        &quot;resolution&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;resolution&quot; },
+        &quot;swath&quot;: { &quot;type&quot;: &quot;tile&quot;, &quot;value&quot;: &quot;swath&quot; },
+        &quot;trig&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;sin&quot; }
+      },
+      &quot;condition&quot;: &quot;pass&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;python&quot;,
+      &quot;command&quot;: &quot;python/erodeMask.py&quot;,
+      &quot;args&quot;: {
+        &quot;file-in&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;sigma0_VV&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;file-out&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;sigma0_VV&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;iterations&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;bs_erode_iterations&quot; },
+        &quot;no-data&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;0&quot; }
+      },
+      &quot;condition&quot;: &quot;pass&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;python&quot;,
+      &quot;command&quot;: &quot;python/convert.py&quot;,
+      &quot;args&quot;: {
+        &quot;dformat-out&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dformat_out&quot; },
+        &quot;file-in&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;sigma0_VV&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;file-out&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;sigma0_VV&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;range-in&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;0,1&quot; }
+      },
+      &quot;condition&quot;: &quot;pass&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;python&quot;,
+      &quot;command&quot;: &quot;python/erodeMask.py&quot;,
+      &quot;args&quot;: {
+        &quot;file-in&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;sigma0_VH&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;file-out&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;sigma0_VH&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;iterations&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;bs_erode_iterations&quot; },
+        &quot;no-data&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;0&quot; }
+      },
+      &quot;condition&quot;: &quot;pass&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;python&quot;,
+      &quot;command&quot;: &quot;python/convert.py&quot;,
+      &quot;args&quot;: {
+        &quot;dformat-out&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dformat_out&quot; },
+        &quot;file-in&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;sigma0_VH&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;file-out&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;sigma0_VH&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;range-in&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;0,1&quot; }
+      },
+      &quot;condition&quot;: &quot;pass&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;snap&quot;,
+      &quot;command&quot;: &quot;snap/S1_SLC_BkG.xml&quot;,
+      &quot;args&quot;: {
+        &quot;dem_file&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_file&quot; },
+        &quot;dem_name&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_name&quot; },
+        &quot;dem_nodata&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_nodata&quot; },
+        &quot;dem_resampling&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_resampling&quot; },
+        &quot;resampling&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;bkg_resampling&quot; },
+        &quot;master&quot;: { &quot;type&quot;: &quot;in&quot;, &quot;tile_index&quot;: 0, &quot;layer&quot;: &quot;coregextract&quot;, &quot;extension&quot;: &quot;dim&quot; },
+        &quot;output&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coregistred&quot;, &quot;extension&quot;: &quot;dim&quot; },
+        &quot;slave&quot;: { &quot;type&quot;: &quot;in&quot;, &quot;tile_index&quot;: 1, &quot;layer&quot;: &quot;coregextract&quot;, &quot;extension&quot;: &quot;dim&quot; }
+      },
+      &quot;condition&quot;: &quot;different_T1_T2&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;snap&quot;,
+      &quot;command&quot;: &quot;snap/S1_SLC_Coh_BSel_Deb_ML_TC.xml&quot;,
+      &quot;args&quot;: {
+        &quot;azimuth_multilook&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;terrain_correction_azimuth&quot; },
+        &quot;coherence_azimuth&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;coherence_azimuth&quot; },
+        &quot;coherence_range&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;coherence_range&quot; },
+        &quot;dem_egm&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_egm_correction&quot; },
+        &quot;dem_file&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_file&quot; },
+        &quot;dem_name&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_name&quot; },
+        &quot;dem_nodata&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_nodata&quot; },
+        &quot;dem_resampling&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dem_resampling&quot; },
+        &quot;grid_align&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;true&quot; },
+        &quot;img_resampling&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;img_resampling&quot; },
+        &quot;input&quot;: { &quot;type&quot;: &quot;in&quot;, &quot;tile_index&quot;: 0, &quot;layer&quot;: &quot;coregistred&quot;, &quot;extension&quot;: &quot;dim&quot; },
+        &quot;outputVH&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coh_VH&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;outputVV&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coh_VV&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;projection&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;projection&quot; },
+        &quot;range_multilook&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;terrain_correction_range&quot; },
+        &quot;resolution&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;resolution&quot; },
+        &quot;sel_date&quot;: { &quot;type&quot;: &quot;tile&quot;, &quot;value&quot;: &quot;cohdate&quot; }
+      },
+      &quot;condition&quot;: &quot;different_T0_T1&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;python&quot;,
+      &quot;command&quot;: &quot;python/erodeMask.py&quot;,
+      &quot;args&quot;: {
+        &quot;file-in&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coh_VV&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;file-out&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coh_VV&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;iterations&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;coh_erode_iterations&quot; },
+        &quot;no-data&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;0&quot; }
+      },
+      &quot;condition&quot;: &quot;different_T0_T1&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;python&quot;,
+      &quot;command&quot;: &quot;python/convert.py&quot;,
+      &quot;args&quot;: {
+        &quot;dformat-out&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dformat_out&quot; },
+        &quot;file-in&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coh_VV&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;file-out&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coh_VV&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;range-in&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;0,1&quot; }
+      },
+      &quot;condition&quot;: &quot;different_T0_T1&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;python&quot;,
+      &quot;command&quot;: &quot;python/erodeMask.py&quot;,
+      &quot;args&quot;: {
+        &quot;file-in&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coh_VH&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;file-out&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coh_VH&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;iterations&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;coh_erode_iterations&quot; },
+        &quot;no-data&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;0&quot; }
+      },
+      &quot;condition&quot;: &quot;different_T0_T1&quot;
+    },
+    {
+      &quot;engine&quot;: &quot;python&quot;,
+      &quot;command&quot;: &quot;python/convert.py&quot;,
+      &quot;args&quot;: {
+        &quot;dformat-out&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dformat_out&quot; },
+        &quot;file-in&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coh_VH&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;file-out&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;coh_VH&quot;, &quot;extension&quot;: &quot;tif&quot; },
+        &quot;range-in&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;0,1&quot; }
+      },
+      &quot;condition&quot;: &quot;different_T0_T1&quot;
+    }
+  ],
+  &quot;in_files&quot;: [
+    [
+      {
+        &quot;layer&quot;: &quot;preprocessed&quot;,
+        &quot;extension&quot;: &quot;dim&quot;
+      }
+    ],
+    [
+      {
+        &quot;layer&quot;: &quot;coregextract&quot;,
+        &quot;extension&quot;: &quot;dim&quot;,
+        &quot;condition&quot;: &quot;different_T1_T2&quot;
+      }
+    ],
+    [
+      {
+        &quot;layer&quot;: &quot;preprocessed&quot;,
+        &quot;extension&quot;: &quot;dim&quot;,
+        &quot;condition&quot;: &quot;different_T0_T2&quot;
+      }
+    ]
+  ],
+  &quot;out_files&quot;: [
+    [
+      {
+        &quot;layer&quot;: &quot;sigma0_VV&quot;,
+        &quot;extension&quot;: &quot;tif&quot;,
+        &quot;dformat_out&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dformat_out&quot; },
+        &quot;ext_min_value&quot;: 0,
+        &quot;ext_max_value&quot;: 1,
+        &quot;action&quot;: &quot;to_index&quot;
+      },
+      {
+        &quot;layer&quot;: &quot;sigma0_VH&quot;,
+        &quot;extension&quot;: &quot;tif&quot;,
+        &quot;dformat_out&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dformat_out&quot; },
+        &quot;ext_min_value&quot;: 0,
+        &quot;ext_max_value&quot;: 1,
+        &quot;action&quot;: &quot;to_index&quot;
+      },
+      {
+        &quot;layer&quot;: &quot;coh_VV&quot;,
+        &quot;extension&quot;: &quot;tif&quot;,
+        &quot;dformat_out&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dformat_out&quot; },
+        &quot;ext_min_value&quot;: 0,
+        &quot;ext_max_value&quot;: 1,
+        &quot;action&quot;: &quot;to_index&quot;,
+        &quot;condition&quot;: &quot;different_T0_T1&quot;
+      },
+      {
+        &quot;layer&quot;: &quot;coh_VH&quot;,
+        &quot;extension&quot;: &quot;tif&quot;,
+        &quot;dformat_out&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;dformat_out&quot; },
+        &quot;ext_min_value&quot;: 0,
+        &quot;ext_max_value&quot;: 1,
+        &quot;action&quot;: &quot;to_index&quot;,
+        &quot;condition&quot;: &quot;different_T0_T1&quot;
+      }
+    ],
+    [
+    ],
+    []
+  ]
+}
+</code></pre>
+<h4 id="example-processing-sentinel2">Example Processing Sentinel2</h4>
+<pre><code class="language-json">{
+    &quot;config&quot;: {
+      &quot;srtm-uri&quot;: &quot;...&quot;
+    },
+    &quot;processing_steps&quot;: [
+     {
+      &quot;engine&quot;: &quot;cmd&quot;,
+      &quot;command&quot;: &quot;./cmd/radiometric_processor&quot;,
+      &quot;args&quot;: {
+        &quot;workdir&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;workdir&quot; },
+        &quot;image&quot;: { &quot;type&quot;: &quot;in&quot;, &quot;layer&quot;: &quot;__product__&quot;, &quot;extension&quot;: &quot;SAFE&quot; },
+        &quot;srtm-uri&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;srtm-uri&quot; },
+        &quot;constellation&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;sentinel2&quot; },
+        &quot;out-pattern&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;*&quot;, &quot;extension&quot;: &quot;tif&quot; }
+      },
+      &quot;condition&quot;: &quot;pass&quot;
+     },
+     {
+      &quot;engine&quot;: &quot;cmd&quot;,
+      &quot;command&quot;: &quot;./cmd/registation&quot;,
+      &quot;args&quot;: {
+        &quot;workdir&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;workdir&quot; },
+        &quot;satellite-image&quot;: { &quot;type&quot;: &quot;in&quot;, &quot;layer&quot;: &quot;__product__&quot;, &quot;extension&quot;: &quot;SAFE&quot; },
+        &quot;input&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;*.tif&quot;},
+        &quot;output&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;.&quot; },
+        &quot;constellation&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;Sentinel2&quot; }
+      },
+      &quot;condition&quot;: &quot;pass&quot;
+     }
+    ],
+    &quot;in_files&quot;: [
+     [
+      {
+        &quot;layer&quot;: &quot;__product__&quot;,
+        &quot;extension&quot;: &quot;SAFE&quot;
+      }
+     ],
+     [],
+     []
+    ],
+    &quot;out_files&quot;: [
+     [
+      {
+        &quot;layer&quot;: &quot;img&quot;,
+        &quot;extension&quot;: &quot;tif&quot;,
+        &quot;action&quot;: &quot;to_index&quot;,
+        &quot;dformat_out&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;uint16,0,0,30000&quot; },
+        &quot;ext_min_value&quot;: 0,
+        &quot;ext_max_value&quot;: 3,
+        &quot;nbands&quot;: 4
+      },
+      {
+        &quot;layer&quot;: &quot;quality_mask&quot;,
+        &quot;extension&quot;: &quot;tif&quot;,
+        &quot;action&quot;: &quot;to_index&quot;,
+        &quot;dformat_out&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;int16,-1,0,10000&quot; },
+        &quot;ext_min_value&quot;: 0,
+        &quot;ext_max_value&quot;: 1
+      }
+     ],
+     [],
+     []
+    ]
+   }
+
+</code></pre>
+<h3 id="docker-engine">Docker Engine</h3>
+<h4 id="principle-concept">Principle &amp; Concept</h4>
+<p>Instead of using and runing one large image docker which contains every dependencies (Snap, Python, other binaries), the ingester processor can be a docker container orchestrator.</p>
+<p><img alt="Docker Processor" src="../docker-processor.png" /></p>
+<p>Processor Replication controller can be configured to run two containers:</p>
+<ul>
+<li>Generic container with processor Go binary and docker binary (Client)</li>
+<li>Dind (docker in docker) container which contains docker daemon (Server)</li>
+</ul>
+<h4 id="deployment">Deployment</h4>
+<p>In order to deploy this kind of architecture, some configuration must be added in your k8s config file:</p>
+<p>In client container (environment var):</p>
+<pre><code class="language-kubernetes">- name: DOCKER_HOST
+  value: tcp://localhost:2375
+</code></pre>
+<p>A certificate can be defined in order to secure your server or enable insecure trafic.</p>
+<p>In Server container (environment var):</p>
+<pre><code class="language-kubernetes">- name: DOCKER_TLS_CERTDIR
+  value: &quot;&quot;
+</code></pre>
+<h4 id="private-registry">Private Registry</h4>
+<p>In order to use private registry, credentials must be configured in Client side container.</p>
+<ul>
+<li>user (for gcp registry: <code>_json_key</code>)</li>
+<li>password (for gcp registry: service account content)</li>
+<li>server (for gcp registry e.g: <code>https://europe-west1-docker.pkg.dev</code>)</li>
+</ul>
+<p>For images stored in public registry (ex. docker.hub), there is no need for credentials.</p>
+<h4 id="credentials">Credentials</h4>
+<p>Some containers need file credentials (to request storage for example).</p>
+<p><code>docker-mount-volumes</code> can be defined in client executable arguments to mount a volume containing credential file.</p>
+<p>Variable environment must be also defined in graph file:</p>
+<pre><code class="language-json">{
+      &quot;engine&quot;: &quot;docker&quot;,
+      &quot;command&quot;: &quot;myImage&quot;,
+      &quot;args&quot;: {
+        &quot;workdir&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;workdir&quot; },
+        &quot;image&quot;: { &quot;type&quot;: &quot;in&quot;, &quot;layer&quot;: &quot;__product__&quot;, &quot;extension&quot;: &quot;SAFE&quot; },
+        &quot;srtm-uri&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;srtm-uri&quot; },
+        &quot;roadmap&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;roadmap-robot&quot; },
+        &quot;options&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;roadmap-options&quot; },
+        &quot;roadmap-params&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;roadmap-params&quot; },
+        &quot;libs&quot;: { &quot;type&quot;: &quot;config&quot;, &quot;value&quot;: &quot;libs&quot; },
+        &quot;constellation&quot;: { &quot;type&quot;: &quot;fixed&quot;, &quot;value&quot;: &quot;sentinel2&quot; },
+        &quot;out-pattern&quot;: { &quot;type&quot;: &quot;out&quot;, &quot;layer&quot;: &quot;*&quot;, &quot;extension&quot;: &quot;tif&quot; }
+      },
+      &quot;envs&quot;: [&quot;GOOGLE_APPLICATION_CREDENTIALS=/myPath/myFile&quot;],
+      &quot;condition&quot;: &quot;pass&quot;
+}
+</code></pre>
+<p>Important: Path defined in args and path in graphFile should be equal.</p>
+<h4 id="volume">Volume</h4>
+<p>In order to mount volume correctly, it is important to enable access to all containers (processor &amp; docker-daemon)</p>
+<p>Example:</p>
+<ul>
+<li>
+<p>If you want to use a <code>workdir</code> which is mount on <code>/local-sdd</code> in your processor kubernetes deployment.</p>
+</li>
+<li>
+<p>If you want to mount also this <code>workdir</code> on your docker processing, you need to mount this volume on processor container and docker-dind container to enable docker-daemon access.</p>
+</li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../payload/" class="btn btn-neutral float-left" title="Payload"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../run/" class="btn btn-neutral float-right" title="Run a payload">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../payload/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../run/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
