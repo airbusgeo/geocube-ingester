@@ -86,5 +86,9 @@ var conditionJSON = map[string]Condition{
 }
 
 func (t TileCondition) Pass(tiles []common.Tile) bool {
-	return t.PassFn.(TileConditionFn)(tiles)
+	passFn, ok := t.PassFn.(TileConditionFn)
+	if !ok {
+		return true
+	}
+	return passFn(tiles)
 }
