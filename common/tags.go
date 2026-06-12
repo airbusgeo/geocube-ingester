@@ -4,6 +4,7 @@ package common
 // See documentation for details on each tag
 const (
 	TagSourceID                 = "sourceID"
+	TagEntityID                 = "entityID"
 	TagUUID                     = "uuid"
 	TagIngestionDate            = "ingestionDate"
 	TagConstellation            = "constellation"

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/common"
+	"github.com/airbusgeo/geocube-ingester/service"
 )
 
 const (
@@ -101,7 +102,7 @@ func (ip *CreoDiasImageProvider) Download(ctx context.Context, scene common.Scen
 	}
 
 	url += "?token=" + ip.token
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil, false); err != nil {
+	if err := downloadArchiveWithAuth(ctx, url, localDir, service.ExtensionZIP, sceneName, ip.Name(), &ip.user, &ip.pword, "", nil, false); err != nil {
 		return fmt.Errorf("CreoDiasImageProvider.%w", err)
 	}
 	return nil

@@ -74,17 +74,16 @@ func GetBodyRetry(url string, nbRetries int) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("NewRequest: %w", err)
 	}
-	return GetBodyRetryReq(req, nbRetries)
+	return GetBodyRetryReq(&http.Client{}, req, nbRetries)
 }
 
 // GetBodyRetry: simple GET with N retries in case of temporary errors
-func GetBodyRetryReq(req *http.Request, nbRetries int) ([]byte, error) {
+func GetBodyRetryReq(client *http.Client, req *http.Request, nbRetries int) ([]byte, error) {
 	var e *neturl.Error
 	var body []byte
 	var err error
 	var resp *http.Response
 
-	client := &http.Client{}
 	for i := range nbRetries + 1 {
 		time.Sleep(((1 << i) - 1) * time.Second) // Exponential backoff, starting at 0
 		resp, err = client.Do(req)

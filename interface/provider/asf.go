@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/airbusgeo/geocube-ingester/common"
+	"github.com/airbusgeo/geocube-ingester/service"
 )
 
 const (
@@ -52,7 +53,7 @@ func (ip *ASFImageProvider) Download(ctx context.Context, scene common.Scene, lo
 	url = common.FormatBrackets(url, info)
 
 	token := "Bearer " + ip.token
-	if err = downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), nil, nil, "Authorization", &token, true); err != nil {
+	if err = downloadArchiveWithAuth(ctx, url, localDir, service.ExtensionZIP, sceneName, ip.Name(), nil, nil, "Authorization", &token, true); err != nil {
 		return fmt.Errorf("ASFImageProvider.%w", err)
 	}
 	return nil

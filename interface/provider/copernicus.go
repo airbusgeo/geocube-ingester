@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/common"
+	"github.com/airbusgeo/geocube-ingester/service"
 )
 
 const copernicusDownloadProduct = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products(%s)/$value"
@@ -92,7 +93,7 @@ func (ip *CopernicusImageProvider) Download(ctx context.Context, scene common.Sc
 	}
 
 	token := "Bearer " + ip.token
-	if err := downloadZipWithAuth(ctx, url, localDir, sceneName, ip.Name(), nil, nil, "Authorization", &token, true); err != nil {
+	if err := downloadArchiveWithAuth(ctx, url, localDir, service.ExtensionZIP, sceneName, ip.Name(), nil, nil, "Authorization", &token, true); err != nil {
 		return fmt.Errorf("CopernicusImageProvider.%w", err)
 	}
 	return nil

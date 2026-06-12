@@ -18,6 +18,7 @@ To fix incoherences or potential limitation in JSON graphs :
 - Downloader: add a new provider from URL (use --url-provider)
 - Add Documentation "how to add a new sensor"
 - Add Landsat AWS Provider (Catalogue&Download)
+- Add USGS M2M Provider for Landsat scenes (Download only)
 - Add Page/Limit to endpoint catalog/scenes
 - Ingester processor: add credentials from KSA to connect to docker
 

@@ -46,6 +46,7 @@ const (
 	NoExtension    Extension = "" // The layer has no extension
 	ExtensionGTiff Extension = "tif"
 	ExtensionZIP   Extension = "zip"
+	ExtensionTAR   Extension = "tar"
 	// The following extensions are directories, thus, they are stored as a zip file (see service.storeAsZip() function)
 	// Using those extensions ensures that the stored file will be unzipped in a directory named <layer>.<Extension>
 	ExtensionSAFE      Extension = "SAFE" // Sentinel product

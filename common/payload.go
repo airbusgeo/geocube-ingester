@@ -15,6 +15,7 @@ const (
 const (
 	UUIDMetadata         = "uuid"
 	DownloadLinkMetadata = "download_link"
+	EntityIdMetadata     = "entity_id"
 )
 
 type TileMapping struct {

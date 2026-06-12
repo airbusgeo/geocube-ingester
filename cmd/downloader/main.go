@@ -18,6 +18,7 @@ import (
 	"github.com/airbusgeo/geocube/interface/messaging"
 	"github.com/airbusgeo/geocube/interface/messaging/pgqueue"
 	"github.com/airbusgeo/geocube/interface/messaging/pubsub"
+	"github.com/airbusgeo/geocube/interface/storage/uri"
 	"go.uber.org/zap"
 )
 
@@ -52,6 +53,8 @@ type config struct {
 	FTPPath, FTPUsername, FTPPassword string
 	LandsatAwsAccessKeyId             string
 	LandsatAwsSecretAccessKey         string
+	UsgsM2MUsername, UsgsM2MToken     string
+	UsgsM2MCacheURI                   string
 
 	WithDockerEngine bool
 	Docker           graph.DockerConfig
@@ -86,6 +89,9 @@ func newAppConfig() (*config, error) {
 	flag.StringVar(&config.OneAtlasAuthenticationEndpoint, "oneatlas-auth-endpoint", "https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token", "oneatlas order endpoint to use")
 	flag.StringVar(&config.LandsatAwsAccessKeyId, "landsat-aws-access-key-id", "", "Landsat AWS access key id (optional). To configure Landsat AWS as a potential image Provider")
 	flag.StringVar(&config.LandsatAwsSecretAccessKey, "landsat-aws-secret-access-key", "", "Landsat AWS secret access key (optional). Required in addition to Landsat AWS access key id.")
+	flag.StringVar(&config.UsgsM2MUsername, "usgs-m2m-username", "", "USGS M2M username (optional). To configure USGS M2M as a potential image Provider.")
+	flag.StringVar(&config.UsgsM2MToken, "usgs-m2m-token", "", "USGS M2M application token (optional). Required in addition to USGS M2M username.")
+	flag.StringVar(&config.UsgsM2MCacheURI, "usgs-m2m-cache-uri", "", "USGS M2M cache URI for token caching (optional). i.e., /tmp/m2m_cache or gs://bucket/cache")
 	gsProviderBuckets := flag.String("gs-provider-buckets", "", `Google Storage buckets. List of "constellation:bucket" comma-separated (optional). To configure GS as a potential image Provider.
 	bucket can contain several {IDENTIFIER} than will be replaced according to the sceneName.
 	IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
@@ -240,6 +246,22 @@ func run(ctx context.Context) error {
 		defer cncl()
 		providerNames = append(providerNames, oneatlasProvider.Name()+" ("+config.OneAtlasUsername+")")
 		imageProviders = append(imageProviders, oneatlasProvider)
+	}
+	// Landsat:
+	// - two providers are defined (USGS and AWS)
+	// - USGS being free of charge, it is defined first
+	if config.UsgsM2MUsername != "" && config.UsgsM2MToken != "" {
+		var cacheURI string
+		if config.UsgsM2MCacheURI != "" {
+			cfgCacheURI, err := uri.ParseUri(config.UsgsM2MCacheURI)
+			if err != nil {
+				return fmt.Errorf("invalid usgs-m2m-cache-uri: %w", err)
+			}
+			cacheURI = cfgCacheURI.String()
+		}
+		usgsProvider := provider.NewUsgsM2MImageProvider(config.UsgsM2MUsername, config.UsgsM2MToken, cacheURI)
+		providerNames = append(providerNames, usgsProvider.Name()+" ("+config.UsgsM2MUsername+")")
+		imageProviders = append(imageProviders, usgsProvider)
 	}
 	if config.LandsatAwsAccessKeyId != "" && config.LandsatAwsSecretAccessKey != "" {
 		providerNames = append(providerNames, "Landsat AWS ("+config.LandsatAwsAccessKeyId+")")

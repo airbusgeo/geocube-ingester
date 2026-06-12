@@ -357,7 +357,7 @@ func (p *provider) queryCatalog(ctx context.Context, catalogRequestParameter *ca
 		request.Header.Add("Content-Type", "application/json")
 		request.SetBasicAuth(p.username, p.password)
 
-		bodyResponse, err := service.GetBodyRetryReq(request, 3)
+		bodyResponse, err := service.GetBodyRetryReq(&http.Client{}, request, 3)
 		if err != nil {
 			return nil, fmt.Errorf("queryCatalog.%w", err)
 		}

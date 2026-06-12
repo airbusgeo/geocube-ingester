@@ -97,9 +97,9 @@ func displayProgress(ctx context.Context, prefix string, resp *grab.Response, ev
 	}
 }
 
-func downloadZipWithAuth(ctx context.Context, url, localDir, sceneName, provider string, user, pword *string, header_key string, header_value *string, copyAuthOnRedirect bool) error {
-	localZip := sceneFilePath(localDir, sceneName, service.ExtensionZIP)
-	req, err := grab.NewRequest(localZip, url)
+func downloadArchiveWithAuth(ctx context.Context, uri, localDir string, ext service.Extension, sceneName, provider string, user, pword *string, header_key string, header_value *string, copyAuthOnRedirect bool) error {
+	localArchive := sceneFilePath(localDir, sceneName, ext)
+	req, err := grab.NewRequest(localArchive, uri)
 	if err != nil {
 		return fmt.Errorf("downloadZipWithAuth.NewRequest: %w", err)
 	}
@@ -119,8 +119,8 @@ func downloadZipWithAuth(ctx context.Context, url, localDir, sceneName, provider
 		return fmt.Errorf("downloadZipWithAuth.%w", err)
 	}
 
-	defer os.Remove(localZip)
-	if err := unarchive(ctx, localZip, localDir); err != nil {
+	defer os.Remove(localArchive)
+	if err := unarchive(ctx, localArchive, localDir); err != nil {
 		return service.MakeTemporary(fmt.Errorf("downloadZipWithAuth.Unarchive: %w", err))
 	}
 	return nil
@@ -162,13 +162,13 @@ func download(ctx context.Context, req *grab.Request, displayPrefix string, copy
 }
 
 // unarchive file with basic check.
-func unarchive(ctx context.Context, localZip, localDir string) error {
-	tmpdir, err := os.MkdirTemp(localDir, filepath.Base(localZip))
+func unarchive(ctx context.Context, localArchive, localDir string) error {
+	tmpdir, err := os.MkdirTemp(localDir, filepath.Base(localArchive))
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(tmpdir)
-	if err := archiver.Unarchive(localZip, tmpdir); err != nil {
+	if err := archiver.Unarchive(localArchive, tmpdir); err != nil {
 		return fmt.Errorf("during unarchiving: %w", err)
 	}
 	files, err := os.ReadDir(tmpdir)
@@ -225,4 +225,19 @@ func getDownloadURL(searchURL string) (string, error) {
 	}
 
 	return jsonURL.Features[0].Properties.Services.Download.URL, nil
+}
+
+// httpStatusCode2Error returns an error message embedding the HTTP status code:
+// - nil is returned for 2xx HTTP status codes.
+// - error is flagged as temporary for a selected number of HTTP status codes (e.g. 408, 429, 500)
+func httpStatusCode2Error(statusCode int) error {
+	var httpErr error
+	if statusCode < 200 || statusCode >= 300 {
+		httpErr = fmt.Errorf("HTTP StatusCode %d", statusCode)
+		switch statusCode {
+		case 408, 429, 500, 501, 502, 503, 504:
+			httpErr = service.MakeTemporary(httpErr)
+		}
+	}
+	return httpErr
 }

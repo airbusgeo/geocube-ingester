@@ -11,6 +11,7 @@ Providers are implemented in order to download scenes. They are called one by on
 - [OneAtlas](providers.md#oneatlas): Airbus scenes (SPOT, Pleiades, PNEO)
 - [ASF](providers.md#asf): sentinel1 & 2 scenes
 - [Landsat AWS](providers.md#landsat-aws): Landsat 8&9
+- [USGS M2M](providers.md#usgs-m2m): Landsat scenes
 
 The scenes to be downloaded are sent to the Downloader Service, then the tiles to be processed are sent to the Processor Service.
 
@@ -94,4 +95,18 @@ AWS credentials are needed (pay-on-request):
 - `--landsat-aws-secret-access-key`: Landsat AWS secret access key
 
 [Landsat AWS](https://registry.opendata.aws/usgs-landsat/)
+
+## USGS M2M
+
+USGS M2M account credentials are needed.
+
+`usgs-m2m-username` and `usgs-m2m-token` downloader arguments must be defined.
+
+An optional `usgs-m2m-cache-uri` can be specified to cache the API authentication token (e.g., `/tmp/m2m_cache` or `gs://bucket/cache`). Token is valid for 2 hours.
+
+USGS M2M uses the [USGS Machine-to-Machine (M2M) API](https://m2m.cr.usgs.gov/api/docs/json/) to fetch Landsat Collection 2 Level-1 data.
+
+> Note: An access request is necessary at https://ers.cr.usgs.gov/profile/access
+
+For more information see: [USGS M2M API Documentation](https://m2m.cr.usgs.gov/api/docs/reference/#download-options)
 

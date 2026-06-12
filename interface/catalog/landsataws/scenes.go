@@ -134,6 +134,15 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 	for i, landsatFeature := range landsatFeatures {
 		properties := landsatFeature.Properties
 		sourceId := landsatFeature.Id
+
+		// Check for required elements
+		requiredAttributes := []string{"landsat:scene_id", "datetime", "landsat:collection_number", "landsat:correction"}
+		for _, attr := range requiredAttributes {
+			if _, ok := properties[attr]; !ok {
+				return entities.Scenes{}, fmt.Errorf("Landsataws.searchScenes: Missing properties %s in results", attr)
+			}
+		}
+
 		// Parse date
 		date, err := time.Parse(time.RFC3339Nano, properties["datetime"].(string))
 		if err != nil {
@@ -148,10 +157,14 @@ func (s *Provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest
 				Data: common.SceneAttrs{
 					Date:         date,
 					TileMappings: map[string]common.TileMapping{},
+					Metadata: map[string]interface{}{
+						common.EntityIdMetadata: properties["landsat:scene_id"],
+					},
 				},
 			},
 			Tags: map[string]string{
 				common.TagSourceID:                 sourceId,
+				common.TagEntityID:                 fmt.Sprintf("%v", properties["landsat:scene_id"]),
 				common.TagProductType:              productType,
 				common.TagCloudCoverPercentage:     fmt.Sprintf("%v", properties["eo:cloud_cover"]),
 				common.TagLandCloudCoverPercentage: fmt.Sprintf("%v", properties["landsat:cloud_cover_land"]),
@@ -191,13 +204,13 @@ func (s *Provider) queryLandsatAws(ctx context.Context, url string, searchReq aw
 			return nil, fmt.Errorf("queryLandsatAws.json.encode: %w", err)
 		}
 
-		req, err := http.NewRequest(httpMethod, url, reqBody)
+		req, err := http.NewRequestWithContext(ctx, httpMethod, url, reqBody)
 		if err != nil {
 			return nil, err
 		}
 		req.Header.Add("Content-Type", "application/json")
 
-		respBody, err := service.GetBodyRetryReq(req, 4)
+		respBody, err := service.GetBodyRetryReq(&http.Client{}, req, 4)
 		if err != nil {
 			return nil, fmt.Errorf("queryLandsatAws.GetBodyRetryReq: %w", err)
 		}
