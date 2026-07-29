@@ -127,7 +127,10 @@ func (ss *StorageStrategy) SaveLayer(ctx context.Context, tile common.Tile, laye
 		folders := []string{src}
 		switch ext {
 		case ExtensionDIMAP:
-			folders = append(folders, WithExt(src, ExtensionDIMAPData))
+			dimapData := WithExt(src, ExtensionDIMAPData)
+			if _, err := os.Stat(dimapData); err == nil {
+				folders = append(folders, dimapData)
+			}
 		case ExtensionAll:
 			// Zip the content of the localdir.
 			files, err := os.ReadDir(localdir)
