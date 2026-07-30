@@ -260,5 +260,9 @@ func WithExt(filePath string, ext Extension) string {
 }
 
 func GetExt(filePath string) Extension {
-	return Extension(path.Ext(filePath)[1:])
+	ext := path.Ext(filePath)
+	if ext == "" {
+		return NoExtension
+	}
+	return Extension(ext[1:])
 }

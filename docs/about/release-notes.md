@@ -33,6 +33,7 @@ To fix incoherences or potential limitation in JSON graphs :
 - Docker use ubuntu:noble to fix vulnerabilities
 - OneAtlas catalog: fix bugs. Default OneAtlasUsername is APIKEY
 - Fix vulnerabilities (update mod)
+- GetExt with no extension crashes
 
 ### Optimization
 - catalog/scenes catalog/tiles: remove unused or empty fields in the JSON file exported + fields are low case

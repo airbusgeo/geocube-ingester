@@ -191,6 +191,9 @@ func unarchive(ctx context.Context, localArchive, localDir string) error {
 
 // sceneFilePath returns the path of the scene, given the directory and the sceneid
 func sceneFilePath(dir, sceneID string, ext service.Extension) string {
+	if ext == service.NoExtension {
+		return path.Join(dir, sceneID)
+	}
 	return path.Join(dir, sceneID+"."+string(ext))
 }
 
