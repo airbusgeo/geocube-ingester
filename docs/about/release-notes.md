@@ -26,6 +26,7 @@ To fix incoherences or potential limitation in JSON graphs :
 - Workflow: add the endpoint PUT aoi/{aoi}/fail to cancel all retriable scenes and tiles of an AOI
 - Graph: condition "pass" is the default
 - Downloader: remove local output tiles at the end to save storage in case of several tiles
+- Downloader: url provider for local directory & for GCS can download folder
 
 ### Bug fixes
 - LocalProvider does not require that a date is included in the product name

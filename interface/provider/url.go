@@ -10,7 +10,7 @@ import (
 	"github.com/airbusgeo/geocube/interface/storage/uri"
 )
 
-// URLImageProvider implements ImageProvider for direct download link
+// URLImageProvider implements ImageProvider for direct download link that is in scene.Data.Metadata[common.DownloadLinkMetadata]
 type URLImageProvider struct {
 }
 
@@ -47,7 +47,21 @@ func (ip *URLImageProvider) Download(ctx context.Context, scene common.Scene, lo
 	var localFile string
 	switch uri.Protocol() {
 	case "file", "":
-		localFile = downloadLink
+		if ext == service.ExtensionZIP {
+			localFile = downloadLink
+		} else {
+			Copy(downloadLink, localDir)
+		}
+	case "gs":
+		localFile = sceneFilePath(localDir, sceneName, ext)
+		if uri.FileName() == "" {
+			if _, err = DownloadGCSBucket(ctx, uri.String(), localFile); err != nil {
+				return fmt.Errorf("URLImageProvider: %w", err)
+			}
+			break
+		}
+		fallthrough
+
 	default:
 		localFile = sceneFilePath(localDir, sceneName, ext)
 		if err = uri.DownloadToFile(ctx, localFile); err != nil {

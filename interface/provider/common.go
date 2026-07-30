@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/airbusgeo/geocube-ingester/service"
@@ -243,4 +244,128 @@ func httpStatusCode2Error(statusCode int) error {
 		}
 	}
 	return httpErr
+}
+
+func IsDir(path string) (bool, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	switch fileInfo.Mode() & os.ModeType {
+	case os.ModeDir:
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+
+// Copy src to dest
+func Copy(src, dest string) error {
+	isDir, err := IsDir(src)
+	if err != nil {
+		return fmt.Errorf("Copy: %w", err)
+	}
+	if isDir {
+		return CopyDirectory(src, dest)
+	}
+	if isDir, _ := IsDir(dest); isDir {
+		dest = path.Join(dest, path.Base(src))
+	}
+	return CopyFile(src, dest)
+}
+
+func CopyDirectory(scrDir, dest string) error {
+	entries, err := os.ReadDir(scrDir)
+	if err != nil {
+		return fmt.Errorf("CopyDirectory: %w", err)
+	}
+	for _, entry := range entries {
+		sourcePath := filepath.Join(scrDir, entry.Name())
+		destPath := filepath.Join(dest, entry.Name())
+
+		fileInfo, err := os.Stat(sourcePath)
+		if err != nil {
+			return fmt.Errorf("CopyDirectory: %w", err)
+		}
+
+		stat, ok := fileInfo.Sys().(*syscall.Stat_t)
+		if !ok {
+			return fmt.Errorf("CopyDirectory: failed to get raw syscall.Stat_t data for '%s'", sourcePath)
+		}
+
+		switch fileInfo.Mode() & os.ModeType {
+		case os.ModeDir:
+			if err := CreateIfNotExists(destPath, 0755); err != nil {
+				return fmt.Errorf("CopyDirectory.%w", err)
+			}
+			if err := CopyDirectory(sourcePath, destPath); err != nil {
+				return fmt.Errorf("CopyDirectory.%w", err)
+			}
+		default:
+			if err := CopyFile(sourcePath, destPath); err != nil {
+				return fmt.Errorf("CopyDirectory.%w", err)
+			}
+		}
+
+		if err := os.Lchown(destPath, int(stat.Uid), int(stat.Gid)); err != nil {
+			return fmt.Errorf("CopyDirectory: %w", err)
+		}
+
+		fInfo, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("CopyDirectory: %w", err)
+		}
+
+		isSymlink := fInfo.Mode()&os.ModeSymlink != 0
+		if !isSymlink {
+			if err := os.Chmod(destPath, fInfo.Mode()); err != nil {
+				return fmt.Errorf("CopyDirectory: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+// CopyFile copies a single file from src to dst
+func CopyFile(srcFile, dstFile string) error {
+	out, err := os.Create(dstFile)
+	if err != nil {
+		return fmt.Errorf("CopyFile: %w", err)
+	}
+
+	defer out.Close()
+
+	in, err := os.Open(srcFile)
+	if err != nil {
+		return fmt.Errorf("CopyFile: %w", err)
+	}
+
+	defer in.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return fmt.Errorf("CopyFile: %w", err)
+	}
+
+	return nil
+}
+
+func Exists(filePath string) bool {
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return false
+	}
+
+	return true
+}
+
+func CreateIfNotExists(dir string, perm os.FileMode) error {
+	if Exists(dir) {
+		return nil
+	}
+
+	if err := os.MkdirAll(dir, perm); err != nil {
+		return fmt.Errorf("CreateIfNotExists: failed to create directory: '%s', error: '%s'", dir, err.Error())
+	}
+
+	return nil
 }

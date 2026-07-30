@@ -113,7 +113,7 @@ func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, loc
 				if err := ip.downloadZip(ctx, url, localDir); err != nil {
 					return fmt.Errorf("GSImageProvider[%s].%w", url, err)
 				}
-			} else if files, err := ip.downloadDirectory(ctx, url, filepath.Join(localDir, service.WithExt(sceneName, ext))); err != nil {
+			} else if files, err := DownloadGCSBucket(ctx, url, filepath.Join(localDir, service.WithExt(sceneName, ext))); err != nil {
 				return fmt.Errorf("GSImageProvider[%s].%w", url, err)
 			} else if len(files) == 0 {
 				return fmt.Errorf("GSImageProvider[%s]: not found", url)
@@ -128,9 +128,9 @@ func (ip *GSImageProvider) Download(ctx context.Context, scene common.Scene, loc
 	return err
 }
 
-// downloadDirectory fetches all objects prefixed by uri to destination
+// DownloadGCSBucket fetches all objects prefixed by uri to destination
 // It returns the list of absolute filenames that were created (i.e with the destination prefix)
-func (ip *GSImageProvider) downloadDirectory(ctx context.Context, uri string, dstDir string) (files []string, err error) {
+func DownloadGCSBucket(ctx context.Context, uri string, dstDir string) (files []string, err error) {
 	defer func() {
 		if err != nil {
 			err = service.MakeTemporary(err)
