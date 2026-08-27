@@ -216,7 +216,7 @@ func run(ctx context.Context) error {
 			if len(bucket) != 2 {
 				return fmt.Errorf("malformed GSBuckets config. Must be constellation:bucket")
 			}
-			if err := gs.AddBucket(bucket[0], bucket[1]); err != nil {
+			if err := gs.AddBucket(common.GetConstellationFromString(bucket[0]), bucket[1]); err != nil {
 				return fmt.Errorf("malformed GSBuckets config: %s", err)
 			}
 		}

@@ -34,22 +34,13 @@ func NewGSImageProvider() *GSImageProvider {
 }
 
 // AddBucket to the provider
-// constellation must be one of sentinel1, sentinel-1, sentinel2, sentinel-2
 // bucket can contain several {IDENTIFIER} than will be replaced according to the information found in scenename
 // IDENTIFIER must be one of SCENE, MISSION_ID, PRODUCT_LEVEL, DATE(YEAR/MONTH/DAY), TIME(HOUR/MINUTE/SECOND), PDGS, ORBIT, TILE (LATITUDE_BAND/GRID_SQUARE/GRANULE_ID)
-func (ip *GSImageProvider) AddBucket(constellation, bucket string) error {
-	switch strings.ToLower(constellation) {
-	case "sentinel1", "sentinel-1":
-		ip.buckets[common.Sentinel1] = append(ip.buckets[common.Sentinel1], bucket)
-	case "sentinel2", "sentinel-2":
-		ip.buckets[common.Sentinel2] = append(ip.buckets[common.Sentinel2], bucket)
-	case "spot":
-		ip.buckets[common.SPOT] = append(ip.buckets[common.SPOT], bucket)
-	case "phr":
-		ip.buckets[common.PHR] = append(ip.buckets[common.PHR], bucket)
-	default:
+func (ip *GSImageProvider) AddBucket(constellation common.Constellation, bucket string) error {
+	if constellation == common.Unknown {
 		return fmt.Errorf("GSImageProvider: constellation not supported")
 	}
+	ip.buckets[constellation] = append(ip.buckets[constellation], bucket)
 	return nil
 }
 

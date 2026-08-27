@@ -176,13 +176,15 @@ func Info(sceneName string) (map[string]string, error) {
 		}
 		collectionChar := sceneName[1:2]
 		sensorCollection := "oli-tirs"
-		if collectionChar == "O" {
+		switch collectionChar {
+		case "O":
 			sensorCollection = "oli"
-		} else if collectionChar == "T" {
+		case "T":
 			sensorCollection = "tirs"
 		}
 
 		return map[string]string{
+			"SCENE":      sceneName,
 			"MISSION_ID": sceneName[0:1] + sceneName[2:4],
 			"DATE":       sceneName[17:25],
 			"YEAR":       sceneName[17:21],

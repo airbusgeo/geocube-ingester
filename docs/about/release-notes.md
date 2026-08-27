@@ -15,13 +15,15 @@ To fix incoherences or potential limitation in JSON graphs :
 > Be sure to update the processing graphs, otherwise the behaviour will be undefined.
 
 ### Functionalities
-- Downloader: add a new provider from URL (use --url-provider)
 - Add Documentation "how to add a new sensor"
+- Add URL Downloader Provider (use --url-provider)
 - Add Landsat AWS Provider (Catalogue&Download)
-- Add USGS M2M Provider for Landsat scenes (Download only)
+- Add USGS M2M Downloader Provider for Landsat scenes
+- Add Landsat/PNEO support for GS Downloader Provider
 - Add Creodias TOTP 2FA authentication + token caching via `creodias-cache-uri` parameter to avoid re-authenticating on every download request
-- Add Page/Limit to endpoint catalog/scenes
+- Add Page/Limit to endpoints catalog/scenes
 - Ingester processor: add credentials from KSA to connect to docker
+- Workflow: add the endpoint PUT aoi/{aoi}/fail to cancel all retriable scenes and tiles of an AOI
 
 ### Bug fixes
 - LocalProvider does not require that a date is included in the product name
