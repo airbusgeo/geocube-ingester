@@ -94,7 +94,7 @@ For more information see: [OneAtlas API guide](https://api.oneatlas.airbus.com/g
 
 ### Sentinel2, SPOT, PHR
 
-`scene_graph_name` can be used to pre-process data (example: extract Panchromatic & MultiSpectral Image from DIMAP product) but it usually used to copy the data to the ingester storage (`=CopyToStorage`). In this case a Tile is the whole Scene.
+`scene_graph_name` can be used to pre-process data (example: extract Panchromatic & MultiSpectral Image from DIMAP product) but it usually used to copy the data to the ingester storage (`=CopyProductToStorage`). In this case a Tile is the whole Scene.
 
 `tile_graph_name` defines the processing to do for each Tile. This step is done by the processor.
 
