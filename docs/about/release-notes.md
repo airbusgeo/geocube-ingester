@@ -25,6 +25,7 @@ To fix incoherences or potential limitation in JSON graphs :
 - Ingester processor: add credentials from KSA to connect to docker
 - Workflow: add the endpoint PUT aoi/{aoi}/fail to cancel all retriable scenes and tiles of an AOI
 - Graph: condition "pass" is the default
+- Downloader: remove local output tiles at the end to save storage in case of several tiles
 
 ### Bug fixes
 - LocalProvider does not require that a date is included in the product name

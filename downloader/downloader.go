@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/airbusgeo/geocube-ingester/common"
@@ -113,6 +114,10 @@ func ProcessTile(ctx context.Context, storageService service.Storage, scene comm
 					return fmt.Errorf("ProcessTile[%s].%w", logtilename, err)
 				}
 				log.Logger(ctx).Sugar().Debugf("%s exported to %s", logtilename, dst)
+				localfile := path.Join(workdir, service.LayerFileName(tiles[i], f.Layer, f.Extension))
+				if err := os.RemoveAll(localfile); err != nil {
+					log.Logger(ctx).Sugar().Errorf("%s cannot delete %s: %v", logtilename, localfile, err)
+				}
 			}
 		}
 	}
