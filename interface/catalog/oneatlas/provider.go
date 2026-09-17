@@ -59,12 +59,12 @@ func (p *provider) Supports(c common.Constellation) bool {
 }
 
 func (p *provider) SearchScenes(ctx context.Context, area *entities.AreaToIngest, aoi geos.Geometry) (entities.Scenes, error) {
-	catalogRequestParameter, err := p.buildCatalogParameters(area, aoi)
+	catParams, err := p.buildCatalogParameters(area, aoi)
 	if err != nil {
 		return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas].%w", err)
 	}
 
-	catalogResponse, err := p.queryCatalog(ctx, catalogRequestParameter, area.Page, area.Limit)
+	catalogResponse, err := p.queryCatalog(ctx, catParams, area.Page, area.Limit)
 	if err != nil {
 		return entities.Scenes{}, fmt.Errorf("SearchScenes[OneAtlas].%w", err)
 	}
@@ -297,7 +297,7 @@ func (p *provider) buildCatalogParameters(area *entities.AreaToIngest, aoi geos.
 		return nil, err
 	}
 
-	g, err := geometry.GeosToGeom(convexHullGeometry)
+	g, err := convexHullGeometry.ToWKT()
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +332,7 @@ func (p *provider) buildCatalogParameters(area *entities.AreaToIngest, aoi geos.
 		IncidenceAngle:        incidenceAngle,
 		Workspace:             workspace,
 		Relation:              relation,
-		Geometry:              geojson.Geometry{Geometry: g},
+		GeometryWKT:           g,
 	}, nil
 }
 

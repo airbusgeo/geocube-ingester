@@ -1,6 +1,6 @@
 {
-    "name":"Toulouse",
-    "type":"Feature",
+    "type": "Feature",
+    "name": "Toulouse",
     "geometry":{
         "type": "MultiPolygon",
         "coordinates":
@@ -26,25 +26,30 @@
           ]
     	]
     },
-    "start_time":"2020-01-01T00:00:00.000Z",
-    "end_time":"2025-01-01T00:00:00.000Z",
-	"scene_type":{
-        "constellation":"PHR",
+    "start_time": "2020-01-01T00:00:00.000Z",
+    "end_time": "2025-01-01T00:00:00.000Z",
+    "scene_type": {
+        "constellation": "PHR",
         "parameters": {
-            "productType": "bundle",
             "cloudCover": "[0,80]"
         }
     },
-    "scene_graph_name":"PhrPreProcessing",
-    "tile_graph_name":"PhrProcessing",
-    "graph_config":{},
-    "layers":{
-	"MS": {"variable":"Multispectral_4bands", "instance":"default"},
-        "P": {"variable":"Panchromatic", "instance":"default"}
+    "scene_graph_name": "PhrPreProcessing",
+    "tile_graph_name": "PhrProcessing",
+    "graph_config": {},
+    "layers": {
+        "MS": {
+            "variable": "Multispectral_4bands",
+            "instance": "default"
+        },
+        "P": {
+            "variable": "Panchromatic",
+            "instance": "default"
+        }
     },
-    "record_tags":{
+    "record_tags": {
         "source": "tutorial",
-	"provider": "geocube-ingester",
-	"area":"Toulouse"
+        "provider": "geocube-ingester",
+        "area": "Toulouse"
     }
 }
