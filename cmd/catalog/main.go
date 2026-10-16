@@ -168,9 +168,9 @@ func ingestArea(ctx context.Context, jsonPath string) error {
 
 	var workingDir string
 	if c.WorkingDir != "" {
-		workingDir = filepath.Join(c.WorkingDir, uuid.New().String())
+		workingDir = c.WorkingDir
 	}
-
+	workingDir = filepath.Join(workingDir, uuid.New().String())
 	if err = os.MkdirAll(workingDir, 0766); err != nil {
 		return service.MakeTemporary(fmt.Errorf("make directory %s: %w", workingDir, err))
 	}
