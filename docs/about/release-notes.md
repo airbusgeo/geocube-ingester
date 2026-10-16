@@ -24,12 +24,14 @@ To fix incoherences or potential limitation in JSON graphs :
 - Add Page/Limit to endpoints catalog/scenes
 - Ingester processor: add credentials from KSA to connect to docker
 - Workflow: add the endpoint PUT aoi/{aoi}/fail to cancel all retriable scenes and tiles of an AOI
+- Graph: condition "pass" is the default
 
 ### Bug fixes
 - LocalProvider does not require that a date is included in the product name
 - GS/FTP: do not try to unzip the downloaded file if the extension is not "zip"
 - Docker use ubuntu:noble to fix vulnerabilities
 - OneAtlas catalog: fix bugs. Default OneAtlasUsername is APIKEY
+- Fix vulnerabilities (update mod)
 
 ### Optimization
 - catalog/scenes catalog/tiles: remove unused or empty fields in the JSON file exported + fields are low case

@@ -4,7 +4,7 @@ ARG BASE_IMAGE=ubuntu:noble
 # If SNAP is used as a base image, UPDATE_SNAP=1 will update the modules
 ARG UPDATE_SNAP
 
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.27-bookworm AS builder
 ENV GOFLAGS=-mod=vendor
 WORKDIR /build
 COPY go.mod .

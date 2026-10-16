@@ -4,14 +4,11 @@ package s3
 
 import (
 	"context"
-	"fmt"
-	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	internalChecksum "github.com/aws/aws-sdk-go-v2/service/internal/checksum"
 	s3cust "github.com/aws/aws-sdk-go-v2/service/s3/internal/customizations"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go/middleware"
-	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
 // This operation enables you to delete multiple objects from a bucket using a
@@ -66,17 +63,22 @@ import (
 //     versioning-enabled bucket, you must specify the s3:DeleteObjectVersion
 //     permission.
 //
-//   - Directory bucket permissions - To grant access to this API operation on a
-//     directory bucket, we recommend that you use the [CreateSession]CreateSession API operation
-//     for session-based authorization. Specifically, you grant the
-//     s3express:CreateSession permission to the directory bucket in a bucket policy
-//     or an IAM identity-based policy. Then, you make the CreateSession API call on
-//     the bucket to obtain a session token. With the session token in your request
-//     header, you can make API requests to this operation. After the session token
-//     expires, you make another CreateSession API call to generate a new session
-//     token for use. Amazon Web Services CLI or SDKs create session and refresh the
-//     session token automatically to avoid service interruptions when a session
-//     expires. For more information about authorization, see [CreateSession]CreateSession .
+// If the s3:DeleteObject or s3:DeleteObjectVersion permissions are explicitly
+//
+//	denied in your bucket policy, attempts to delete any unversioned objects result
+//	in a 403 Access Denied error.
+//
+//	- Directory bucket permissions - To grant access to this API operation on a
+//	directory bucket, we recommend that you use the [CreateSession]CreateSession API operation
+//	for session-based authorization. Specifically, you grant the
+//	s3express:CreateSession permission to the directory bucket in a bucket policy
+//	or an IAM identity-based policy. Then, you make the CreateSession API call on
+//	the bucket to obtain a session token. With the session token in your request
+//	header, you can make API requests to this operation. After the session token
+//	expires, you make another CreateSession API call to generate a new session
+//	token for use. Amazon Web Services CLI or SDKs create session and refresh the
+//	session token automatically to avoid service interruptions when a session
+//	expires. For more information about authorization, see [CreateSession]CreateSession .
 //
 // Content-MD5 request header
 //
@@ -112,11 +114,12 @@ import (
 // [ListParts]: https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListParts.html
 // [AbortMultipartUpload]: https://docs.aws.amazon.com/AmazonS3/latest/API/API_AbortMultipartUpload.html
 // [UploadPart]: https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html
-// [CreateSession]: https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateSession.html
 // [CompleteMultipartUpload]: https://docs.aws.amazon.com/AmazonS3/latest/API/API_CompleteMultipartUpload.html
 // [Regional and Zonal endpoints for directory buckets in Availability Zones]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/endpoint-directory-buckets-AZ.html
 // [MFA Delete]: https://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html#MultiFactorAuthenticationDelete
 // [CreateMultipartUpload]: https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateMultipartUpload.html
+//
+// [CreateSession]: https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateSession.html
 func (c *Client) DeleteObjects(ctx context.Context, params *DeleteObjectsInput, optFns ...func(*Options)) (*DeleteObjectsOutput, error) {
 	if params == nil {
 		params = &DeleteObjectsInput{}
@@ -199,9 +202,19 @@ type DeleteObjectsInput struct {
 	//
 	//   - CRC64NVME
 	//
+	//   - MD5
+	//
 	//   - SHA1
 	//
 	//   - SHA256
+	//
+	//   - SHA512
+	//
+	//   - XXHASH3
+	//
+	//   - XXHASH64
+	//
+	//   - XXHASH128
 	//
 	// For more information, see [Checking object integrity] in the Amazon S3 User Guide.
 	//
@@ -242,9 +255,8 @@ type DeleteObjectsInput struct {
 	// Confirms that the requester knows that they will be charged for the request.
 	// Bucket owners need not specify this parameter in their requests. If either the
 	// source or destination S3 bucket has Requester Pays enabled, the requester will
-	// pay for corresponding charges to copy the object. For information about
-	// downloading objects from Requester Pays buckets, see [Downloading Objects in Requester Pays Buckets]in the Amazon S3 User
-	// Guide.
+	// pay for the corresponding charges. For information about downloading objects
+	// from Requester Pays buckets, see [Downloading Objects in Requester Pays Buckets]in the Amazon S3 User Guide.
 	//
 	// This functionality is not supported for directory buckets.
 	//
@@ -286,9 +298,6 @@ type DeleteObjectsOutput struct {
 }
 
 func (c *Client) addOperationDeleteObjectsMiddlewares(stack *middleware.Stack, options Options) (err error) {
-	if err := stack.Serialize.Add(&setOperationInputMiddleware{}, middleware.After); err != nil {
-		return err
-	}
 	err = stack.Serialize.Add(&awsRestxml_serializeOpDeleteObjects{}, middleware.After)
 	if err != nil {
 		return err
@@ -297,59 +306,17 @@ func (c *Client) addOperationDeleteObjectsMiddlewares(stack *middleware.Stack, o
 	if err != nil {
 		return err
 	}
-	if err := addProtocolFinalizerMiddlewares(stack, options, "DeleteObjects"); err != nil {
-		return fmt.Errorf("add protocol finalizers: %v", err)
-	}
 
-	if err = addlegacyEndpointContextSetter(stack, options); err != nil {
-		return err
-	}
-	if err = addSetLoggerMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addClientRequestID(stack); err != nil {
-		return err
-	}
-	if err = addComputeContentLength(stack); err != nil {
-		return err
-	}
 	if err = addResolveEndpointMiddleware(stack, options); err != nil {
 		return err
 	}
 	if err = addComputePayloadSHA256(stack); err != nil {
 		return err
 	}
-	if err = addRetry(stack, options); err != nil {
-		return err
-	}
-	if err = addRawResponseToMetadata(stack); err != nil {
-		return err
-	}
-	if err = addRecordResponseTiming(stack); err != nil {
-		return err
-	}
-	if err = addSpanRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addClientUserAgent(stack, options); err != nil {
-		return err
-	}
-	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
-		return err
-	}
-	if err = smithyhttp.AddCloseResponseBodyMiddleware(stack); err != nil {
-		return err
-	}
-	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
+	if err = addRecordResponseTiming(stack, options); err != nil {
 		return err
 	}
 	if err = addPutBucketContextMiddleware(stack); err != nil {
-		return err
-	}
-	if err = addTimeOffsetBuild(stack, c); err != nil {
-		return err
-	}
-	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
 	if err = addIsExpressUserAgent(stack); err != nil {
@@ -364,13 +331,7 @@ func (c *Client) addOperationDeleteObjectsMiddlewares(stack *middleware.Stack, o
 	if err = addOpDeleteObjectsValidationMiddleware(stack); err != nil {
 		return err
 	}
-	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDeleteObjects(options.Region), middleware.Before); err != nil {
-		return err
-	}
 	if err = addMetadataRetrieverMiddleware(stack); err != nil {
-		return err
-	}
-	if err = addRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addDeleteObjectsInputChecksumMiddlewares(stack, options); err != nil {
@@ -388,6 +349,9 @@ func (c *Client) addOperationDeleteObjectsMiddlewares(stack *middleware.Stack, o
 	if err = disableAcceptEncodingGzip(stack); err != nil {
 		return err
 	}
+	if err = s3cust.HandleResponseErrorWith200Status(stack); err != nil {
+		return err
+	}
 	if err = addRequestResponseLogging(stack, options); err != nil {
 		return err
 	}
@@ -398,12 +362,6 @@ func (c *Client) addOperationDeleteObjectsMiddlewares(stack *middleware.Stack, o
 		return err
 	}
 	if err = s3cust.AddExpressDefaultChecksumMiddleware(stack); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
 		return err
 	}
 	if err = addInterceptors(stack, options); err != nil {
@@ -417,14 +375,6 @@ func (v *DeleteObjectsInput) bucket() (string, bool) {
 		return "", false
 	}
 	return *v.Bucket, true
-}
-
-func newServiceMetadataMiddleware_opDeleteObjects(region string) *awsmiddleware.RegisterServiceMetadata {
-	return &awsmiddleware.RegisterServiceMetadata{
-		Region:        region,
-		ServiceID:     ServiceID,
-		OperationName: "DeleteObjects",
-	}
 }
 
 // getDeleteObjectsRequestAlgorithmMember gets the request checksum algorithm
